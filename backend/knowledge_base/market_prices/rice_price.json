@@ -1,0 +1,195 @@
+{
+  "category": "Fruits and Vegetables",
+  "description": "Information about major fruits and vegetables commonly traded in Indian agricultural markets. Market prices should be retrieved dynamically from Agmarknet or eNAM APIs.",
+  "price_unit": "₹ per kg",
+  "data_source": [
+    "Agmarknet",
+    "eNAM"
+  ],
+  "commodities": [
+    {
+      "id": "FV001",
+      "name": "Tomato",
+      "category": "Vegetable",
+      "scientific_name": "Solanum lycopersicum",
+      "unit": "kg",
+      "season": [
+        "Year Round"
+      ],
+      "major_states": [
+        "Andhra Pradesh",
+        "Telangana",
+        "Karnataka",
+        "Maharashtra"
+      ],
+      "markets": [
+        "eNAM",
+        "Local APMC"
+      ]
+    },
+    {
+      "id": "FV002",
+      "name": "Potato",
+      "category": "Vegetable",
+      "scientific_name": "Solanum tuberosum",
+      "unit": "kg",
+      "season": [
+        "Rabi"
+      ],
+      "major_states": [
+        "Uttar Pradesh",
+        "West Bengal",
+        "Punjab"
+      ]
+    },
+    {
+      "id": "FV003",
+      "name": "Onion",
+      "category": "Vegetable",
+      "scientific_name": "Allium cepa",
+      "unit": "kg",
+      "season": [
+        "Kharif",
+        "Rabi"
+      ],
+      "major_states": [
+        "Maharashtra",
+        "Karnataka",
+        "Madhya Pradesh"
+      ]
+    },
+    {
+      "id": "FV004",
+      "name": "Brinjal",
+      "category": "Vegetable",
+      "scientific_name": "Solanum melongena",
+      "unit": "kg"
+    },
+    {
+      "id": "FV005",
+      "name": "Chilli",
+      "category": "Vegetable",
+      "scientific_name": "Capsicum annuum",
+      "unit": "kg"
+    },
+    {
+      "id": "FV006",
+      "name": "Cabbage",
+      "category": "Vegetable",
+      "scientific_name": "Brassica oleracea",
+      "unit": "kg"
+    },
+    {
+      "id": "FV007",
+      "name": "Cauliflower",
+      "category": "Vegetable",
+      "scientific_name": "Brassica oleracea var. botrytis",
+      "unit": "kg"
+    },
+    {
+      "id": "FV008",
+      "name": "Carrot",
+      "category": "Vegetable",
+      "scientific_name": "Daucus carota",
+      "unit": "kg"
+    },
+    {
+      "id": "FV009",
+      "name": "Lady Finger",
+      "category": "Vegetable",
+      "scientific_name": "Abelmoschus esculentus",
+      "unit": "kg"
+    },
+    {
+      "id": "FV010",
+      "name": "Bottle Gourd",
+      "category": "Vegetable",
+      "scientific_name": "Lagenaria siceraria",
+      "unit": "kg"
+    },
+    {
+      "id": "FV011",
+      "name": "Bitter Gourd",
+      "category": "Vegetable",
+      "scientific_name": "Momordica charantia",
+      "unit": "kg"
+    },
+    {
+      "id": "FV012",
+      "name": "Cucumber",
+      "category": "Vegetable",
+      "scientific_name": "Cucumis sativus",
+      "unit": "kg"
+    },
+    {
+      "id": "FV013",
+      "name": "Pumpkin",
+      "category": "Vegetable",
+      "scientific_name": "Cucurbita maxima",
+      "unit": "kg"
+    },
+    {
+      "id": "FV014",
+      "name": "Banana",
+      "category": "Fruit",
+      "scientific_name": "Musa spp.",
+      "unit": "dozen"
+    },
+    {
+      "id": "FV015",
+      "name": "Mango",
+      "category": "Fruit",
+      "scientific_name": "Mangifera indica",
+      "unit": "kg"
+    },
+    {
+      "id": "FV016",
+      "name": "Apple",
+      "category": "Fruit",
+      "scientific_name": "Malus domestica",
+      "unit": "kg"
+    },
+    {
+      "id": "FV017",
+      "name": "Orange",
+      "category": "Fruit",
+      "scientific_name": "Citrus sinensis",
+      "unit": "kg"
+    },
+    {
+      "id": "FV018",
+      "name": "Papaya",
+      "category": "Fruit",
+      "scientific_name": "Carica papaya",
+      "unit": "kg"
+    },
+    {
+      "id": "FV019",
+      "name": "Guava",
+      "category": "Fruit",
+      "scientific_name": "Psidium guajava",
+      "unit": "kg"
+    },
+    {
+      "id": "FV020",
+      "name": "Pomegranate",
+      "category": "Fruit",
+      "scientific_name": "Punica granatum",
+      "unit": "kg"
+    }
+  ],
+  "api_response_example": {
+    "commodity": "Tomato",
+    "market": "Hyderabad",
+    "state": "Telangana",
+    "minimum_price": "₹1200/quintal",
+    "maximum_price": "₹1800/quintal",
+    "modal_price": "₹1500/quintal",
+    "last_updated": "Dynamic from API"
+  },
+  "references": [
+    "Agmarknet",
+    "eNAM",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

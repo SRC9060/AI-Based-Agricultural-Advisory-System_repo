@@ -1,0 +1,129 @@
+{
+  "pest_id": "PEST001",
+  "name": "Aphids",
+  "scientific_name": "Aphididae",
+  "category": "Sap-Sucking Insect",
+  "description": "Aphids are small soft-bodied insects that suck plant sap, weakening crops and transmitting several plant viruses.",
+  "common_names": {
+    "english": "Aphids",
+    "hindi": "चेपा",
+    "telugu": "పేను",
+    "tamil": "அஃபிட்ஸ்"
+  },
+  "affected_crops": [
+    "Rice",
+    "Wheat",
+    "Maize",
+    "Cotton",
+    "Tomato",
+    "Brinjal",
+    "Chilli",
+    "Potato",
+    "Mustard",
+    "Beans"
+  ],
+  "identification": {
+    "size": "1-3 mm",
+    "color": [
+      "Green",
+      "Black",
+      "Brown",
+      "Yellow"
+    ],
+    "appearance": "Small pear-shaped insects found on young leaves and stems."
+  },
+  "life_cycle": {
+    "egg": "Eggs are laid on host plants.",
+    "nymph": "Several nymph stages before adulthood.",
+    "adult": "Adults reproduce rapidly, especially during cool weather."
+  },
+  "symptoms": [
+    "Leaves curl downward.",
+    "Yellowing of leaves.",
+    "Sticky honeydew on leaves.",
+    "Black sooty mold develops on honeydew.",
+    "Stunted plant growth.",
+    "Poor flowering and fruiting."
+  ],
+  "damage": [
+    "Sucks plant sap.",
+    "Reduces photosynthesis.",
+    "Weakens plants.",
+    "Transmits viral diseases.",
+    "Reduces crop yield."
+  ],
+  "favorable_conditions": {
+    "temperature": "15-25°C",
+    "humidity": "Moderate",
+    "weather": "Cool and dry weather favors multiplication."
+  },
+  "monitoring": [
+    "Inspect young shoots weekly.",
+    "Check the underside of leaves.",
+    "Use yellow sticky traps.",
+    "Monitor aphid population before spraying."
+  ],
+  "natural_control": [
+    "Release Ladybird Beetles.",
+    "Encourage Green Lacewings.",
+    "Use Neem Oil (3-5 ml/L).",
+    "Spray Neem Seed Kernel Extract (5%)."
+  ],
+  "chemical_control": [
+    {
+      "insecticide": "Imidacloprid",
+      "purpose": "Controls sucking pests."
+    },
+    {
+      "insecticide": "Thiamethoxam",
+      "purpose": "Effective against aphids."
+    },
+    {
+      "insecticide": "Acetamiprid",
+      "purpose": "Systemic insecticide."
+    }
+  ],
+  "integrated_pest_management": [
+    "Monitor fields regularly.",
+    "Avoid excessive nitrogen fertilizer.",
+    "Remove heavily infested shoots.",
+    "Use biological control first.",
+    "Apply insecticides only when Economic Threshold Level (ETL) is crossed."
+  ],
+  "economic_threshold_level": {
+    "general": "Treat when aphid population exceeds ETL recommended for the crop by local agricultural authorities."
+  },
+  "prevention": [
+    "Maintain field sanitation.",
+    "Avoid excess nitrogen application.",
+    "Control weeds around fields.",
+    "Grow healthy seedlings.",
+    "Encourage beneficial insects."
+  ],
+  "affected_plant_parts": [
+    "Young leaves",
+    "Tender shoots",
+    "Flower buds",
+    "Stem"
+  ],
+  "yield_loss": {
+    "estimated": "10-50%",
+    "severity": "Moderate to High"
+  },
+  "keywords": [
+    "aphids",
+    "green aphid",
+    "black aphid",
+    "sap sucking pest",
+    "leaf curling",
+    "honeydew",
+    "sooty mold"
+  ],
+  "references": [
+    "ICAR",
+    "ICAR-NCIPM",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

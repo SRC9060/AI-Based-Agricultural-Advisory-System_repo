@@ -1,0 +1,67 @@
+{
+  "scheme_id": "GOV003",
+  "scheme_name": "Soil Health Card Scheme",
+  "launch_year": 2015,
+  "implemented_by": "Ministry of Agriculture & Farmers Welfare",
+  "scheme_type": "Soil Health Management",
+  "description": "The Soil Health Card Scheme provides farmers with information on soil nutrient status and fertilizer recommendations based on scientific soil testing.",
+  "objective": [
+    "Promote balanced fertilizer use.",
+    "Improve soil fertility.",
+    "Increase crop productivity.",
+    "Reduce fertilizer misuse."
+  ],
+  "soil_parameters": [
+    "pH",
+    "Electrical Conductivity",
+    "Organic Carbon",
+    "Nitrogen",
+    "Phosphorus",
+    "Potassium",
+    "Sulphur",
+    "Zinc",
+    "Iron",
+    "Copper",
+    "Manganese",
+    "Boron"
+  ],
+  "benefits": [
+    "Balanced fertilizer recommendations.",
+    "Improved soil health.",
+    "Higher crop yields.",
+    "Reduced cultivation cost."
+  ],
+  "eligibility": [
+    "All farmers."
+  ],
+  "required_documents": [
+    "Aadhaar Card",
+    "Land Details",
+    "Mobile Number"
+  ],
+  "application_methods": [
+    "Agriculture Department",
+    "Soil Testing Laboratory",
+    "Krishi Vigyan Kendra"
+  ],
+  "soil_testing_steps": [
+    "Collect soil sample.",
+    "Submit sample to laboratory.",
+    "Laboratory analysis.",
+    "Receive Soil Health Card."
+  ],
+  "recommended_frequency": "Once every 2 years",
+  "official_website": "https://soilhealth.dac.gov.in",
+  "keywords": [
+    "Soil Health Card",
+    "Soil Test",
+    "Fertilizer Recommendation",
+    "NPK",
+    "Micronutrients"
+  ],
+  "references": [
+    "Soil Health Card Portal",
+    "ICAR",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

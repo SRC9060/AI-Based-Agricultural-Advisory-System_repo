@@ -1,0 +1,101 @@
+{
+  "id": "DIS_LATE_BLIGHT_001",
+  "disease_name": "Late Blight",
+  "scientific_name": "Phytophthora infestans",
+  "disease_type": "Oomycete",
+  "affected_crops": [
+    "Tomato",
+    "Potato"
+  ],
+  "common_names": {
+    "english": "Late Blight",
+    "hindi": "लेट ब्लाइट",
+    "telugu": "లేట్ బ్లైట్"
+  },
+  "description": "Late blight is one of the most destructive diseases of tomato and potato, capable of causing severe crop losses under cool and humid conditions.",
+  "symptoms": [
+    "Water-soaked lesions on leaves",
+    "Brown to black irregular spots",
+    "White fungal growth on the underside of leaves during humid weather",
+    "Stem lesions",
+    "Dark brown fruit rot",
+    "Rapid wilting of plants"
+  ],
+  "favorable_conditions": {
+    "temperature": "10-22°C",
+    "humidity": "Above 90%",
+    "rainfall": "Continuous rain or heavy dew",
+    "weather": "Cool, cloudy and humid"
+  },
+  "spread": [
+    "Wind-borne spores",
+    "Rain splash",
+    "Infected potato tubers",
+    "Crop residues",
+    "Contaminated irrigation water"
+  ],
+  "life_cycle": {
+    "pathogen": "Survives in infected plant debris and potato tubers.",
+    "infection": "Spores germinate under cool and humid conditions.",
+    "spread_rate": "Very rapid during rainy weather."
+  },
+  "management": {
+    "cultural_practices": [
+      "Use disease-free seedlings.",
+      "Remove infected plants immediately.",
+      "Avoid overhead irrigation.",
+      "Maintain proper plant spacing.",
+      "Ensure good drainage."
+    ],
+    "organic_control": [
+      "Copper-based organic fungicides",
+      "Trichoderma spp.",
+      "Field sanitation"
+    ],
+    "chemical_control": [
+      {
+        "fungicide": "Metalaxyl + Mancozeb",
+        "purpose": "Preventive and curative control"
+      },
+      {
+        "fungicide": "Cymoxanil + Mancozeb",
+        "purpose": "Disease management"
+      },
+      {
+        "fungicide": "Copper Oxychloride",
+        "purpose": "Protective spray"
+      }
+    ]
+  },
+  "prevention": [
+    "Use resistant varieties whenever available.",
+    "Avoid waterlogging.",
+    "Inspect fields regularly.",
+    "Remove infected debris after harvest.",
+    "Rotate crops."
+  ],
+  "economic_impact": {
+    "yield_loss": "30-100%",
+    "severity": "High"
+  },
+  "recommended_monitoring": [
+    "Weekly field scouting",
+    "Inspect lower leaves",
+    "Monitor weather forecasts for cool and humid conditions"
+  ],
+  "keywords": [
+    "late blight",
+    "phytophthora",
+    "tomato disease",
+    "potato disease",
+    "leaf blight",
+    "fruit rot"
+  ],
+  "references": [
+    "ICAR",
+    "ICAR-IIHR",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "weather_id": "WEATHER002",
+  "topic": "Temperature",
+  "category": "Weather Advisory",
+  "description": "Temperature is one of the most important environmental factors influencing seed germination, crop growth, flowering, fruit setting, grain filling, and overall yield. Each crop has an optimum temperature range for healthy growth.",
+  "importance": [
+    "Controls seed germination.",
+    "Influences photosynthesis.",
+    "Affects flowering and fruit setting.",
+    "Determines crop maturity.",
+    "Influences pest and disease development.",
+    "Affects water requirement."
+  ],
+  "temperature_ranges": {
+    "very_cold": "< 10°C",
+    "cold": "10-20°C",
+    "moderate": "20-30°C",
+    "warm": "30-35°C",
+    "hot": "35-40°C",
+    "extreme_heat": "> 40°C"
+  },
+  "ideal_temperature_by_crop": {
+    "Rice": "20-35°C",
+    "Wheat": "15-25°C",
+    "Maize": "18-32°C",
+    "Cotton": "21-35°C",
+    "Tomato": "20-27°C",
+    "Potato": "15-20°C",
+    "Groundnut": "22-30°C",
+    "Sugarcane": "20-35°C",
+    "Banana": "26-30°C",
+    "Mango": "24-30°C"
+  },
+  "heat_stress": {
+    "description": "Heat stress occurs when temperatures rise above the crop's optimum range.",
+    "symptoms": [
+      "Leaf rolling",
+      "Leaf scorching",
+      "Flower drop",
+      "Fruit drop",
+      "Poor grain filling",
+      "Wilting",
+      "Reduced yield"
+    ],
+    "management": [
+      "Provide irrigation during hot afternoons.",
+      "Apply organic mulch.",
+      "Use shade nets for vegetables.",
+      "Avoid fertilizer application during peak heat.",
+      "Spray water during extreme heat if recommended."
+    ]
+  },
+  "cold_stress": {
+    "description": "Cold stress slows crop growth and reduces nutrient uptake.",
+    "symptoms": [
+      "Slow germination",
+      "Yellow leaves",
+      "Stunted growth",
+      "Poor flowering",
+      "Reduced fruit set"
+    ],
+    "management": [
+      "Provide light irrigation before frost.",
+      "Use crop covers.",
+      "Delay sowing if severe cold is expected.",
+      "Apply balanced fertilizers."
+    ]
+  },
+  "frost_damage": {
+    "temperature": "Below 0°C",
+    "affected_crops": [
+      "Tomato",
+      "Potato",
+      "Banana",
+      "Papaya",
+      "Chilli"
+    ],
+    "symptoms": [
+      "Blackened leaves",
+      "Water-soaked tissues",
+      "Leaf burn",
+      "Stem damage"
+    ],
+    "prevention": [
+      "Light irrigation before frost.",
+      "Use plastic tunnels or covers.",
+      "Smoke generation in orchards where recommended.",
+      "Mulching around plants."
+    ]
+  },
+  "effects_on_crop_growth": {
+    "low_temperature": [
+      "Slow growth",
+      "Poor nutrient absorption",
+      "Delayed maturity"
+    ],
+    "high_temperature": [
+      "Rapid water loss",
+      "Flower drop",
+      "Reduced photosynthesis",
+      "Sunscald on fruits"
+    ]
+  },
+  "recommended_farmer_actions": {
+    "during_heat_wave": [
+      "Increase irrigation frequency.",
+      "Use mulch to conserve moisture.",
+      "Avoid pesticide spraying during midday.",
+      "Provide shade for nursery plants."
+    ],
+    "during_cold_wave": [
+      "Protect young seedlings.",
+      "Cover sensitive crops.",
+      "Avoid irrigation during freezing conditions."
+    ]
+  },
+  "impact_on_pests": [
+    "Warm temperatures increase whitefly and aphid populations.",
+    "High temperatures favor mite infestation.",
+    "Moderate temperatures favor caterpillar development."
+  ],
+  "impact_on_diseases": [
+    "High temperature with humidity promotes fungal diseases.",
+    "Cool weather favors late blight in tomato and potato.",
+    "Warm weather supports bacterial multiplication."
+  ],
+  "temperature_monitoring": [
+    "Follow IMD weather forecasts.",
+    "Use digital thermometers in farms.",
+    "Monitor day and night temperatures.",
+    "Adjust irrigation based on weather."
+  ],
+  "government_services": [
+    "India Meteorological Department (IMD)",
+    "Gramin Krishi Mausam Sewa (GKMS)",
+    "PMFBY Weather Advisory",
+    "State Agriculture Department"
+  ],
+  "faqs": [
+    {
+      "question": "What is the ideal temperature for most crops?",
+      "answer": "Most crops perform well between 20°C and 30°C, but the ideal range varies by crop."
+    },
+    {
+      "question": "How can crops be protected from extreme heat?",
+      "answer": "Use mulching, timely irrigation, shade nets, and avoid field operations during peak afternoon heat."
+    },
+    {
+      "question": "What is heat stress?",
+      "answer": "Heat stress occurs when temperatures exceed the optimum level for crop growth, reducing yield and quality."
+    },
+    {
+      "question": "How can frost damage be prevented?",
+      "answer": "Use crop covers, light irrigation before frost, mulching, and other recommended frost protection practices."
+    },
+    {
+      "question": "Why is temperature monitoring important?",
+      "answer": "Monitoring temperature helps farmers plan irrigation, fertilizer application, and pest and disease management."
+    }
+  ],
+  "keywords": [
+    "temperature",
+    "heat wave",
+    "cold wave",
+    "frost",
+    "crop temperature",
+    "heat stress",
+    "weather advisory",
+    "IMD",
+    "crop protection"
+  ],
+  "references": [
+    "India Meteorological Department (IMD)",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Gramin Krishi Mausam Sewa (GKMS)",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

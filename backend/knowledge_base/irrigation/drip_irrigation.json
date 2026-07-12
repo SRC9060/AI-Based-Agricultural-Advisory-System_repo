@@ -1,0 +1,94 @@
+{
+  "irrigation_id": "IRR001",
+  "method_name": "Drip Irrigation",
+  "category": "Micro Irrigation",
+  "description": "Drip irrigation is a water-efficient irrigation method that delivers water directly to the root zone of plants through pipes, emitters, and valves.",
+  "objective": [
+    "Save water",
+    "Improve irrigation efficiency",
+    "Reduce weed growth",
+    "Increase crop yield"
+  ],
+  "working_principle": "Water is supplied slowly and continuously near the plant roots using emitters.",
+  "suitable_crops": [
+    "Tomato",
+    "Cotton",
+    "Sugarcane",
+    "Banana",
+    "Chilli",
+    "Brinjal",
+    "Grapes",
+    "Pomegranate",
+    "Mango",
+    "Papaya"
+  ],
+  "major_components": [
+    "Water Source",
+    "Pump",
+    "Main Pipe",
+    "Sub-main Pipe",
+    "Laterals",
+    "Drippers (Emitters)",
+    "Filters",
+    "Pressure Regulator",
+    "Control Valves",
+    "Fertilizer Tank"
+  ],
+  "advantages": [
+    "Saves 30-70% water",
+    "Higher water-use efficiency",
+    "Reduces weed growth",
+    "Reduces soil erosion",
+    "Suitable for water-scarce regions",
+    "Improves fertilizer use efficiency",
+    "Increases crop yield",
+    "Reduces labor requirement"
+  ],
+  "disadvantages": [
+    "High initial installation cost",
+    "Emitters may clog",
+    "Requires regular maintenance",
+    "Needs filtration system"
+  ],
+  "water_use_efficiency": "90-95%",
+  "maintenance": [
+    "Clean filters regularly",
+    "Flush laterals periodically",
+    "Check emitters for clogging",
+    "Repair damaged pipes"
+  ],
+  "fertigation": {
+    "supported": true,
+    "description": "Water-soluble fertilizers can be applied directly through the drip system."
+  },
+  "recommended_for": [
+    "Water-scarce areas",
+    "Orchards",
+    "Vegetable cultivation",
+    "Commercial crops"
+  ],
+  "government_support": [
+    "PMKSY - Per Drop More Crop",
+    "State Micro Irrigation Subsidy Schemes"
+  ],
+  "precautions": [
+    "Use clean water.",
+    "Install proper filters.",
+    "Maintain operating pressure.",
+    "Inspect emitters regularly."
+  ],
+  "keywords": [
+    "drip irrigation",
+    "micro irrigation",
+    "fertigation",
+    "water saving",
+    "emitters",
+    "PMKSY"
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "PMKSY",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

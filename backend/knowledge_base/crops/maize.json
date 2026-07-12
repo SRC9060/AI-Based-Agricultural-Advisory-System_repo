@@ -1,0 +1,289 @@
+{
+  "crop_id": "crop_maize_001",
+  "crop_name": "Maize",
+  "scientific_name": "Zea mays L.",
+  "family": "Poaceae",
+  "crop_type": "Cereal",
+  "life_cycle": "Annual",
+  "common_names": {
+    "english": "Maize",
+    "hindi": "Makka",
+    "telugu": "Mokkajonna",
+    "tamil": "Makka Cholam",
+    "kannada": "Musukina Jola"
+  },
+  "description": "Maize is one of the world's major cereal crops grown for food, feed, fodder and industrial purposes.",
+  "origin": "Central America",
+  "economic_importance": [
+    "Human food",
+    "Animal feed",
+    "Starch industry",
+    "Biofuel production",
+    "Export crop"
+  ],
+  "growing_seasons": [
+    "Kharif",
+    "Rabi",
+    "Spring"
+  ],
+  "crop_duration": {
+    "early": "80-90 days",
+    "medium": "95-110 days",
+    "late": "120-135 days"
+  },
+  "climate": {
+    "temperature": "18-32°C",
+    "rainfall": "500-800 mm",
+    "humidity": "60-75%",
+    "sunlight": "6-8 hours/day"
+  },
+  "soil": {
+    "types": [
+      "Loam",
+      "Sandy loam",
+      "Clay loam"
+    ],
+    "ph": "5.5-7.5",
+    "drainage": "Well drained"
+  },
+  "major_states": [
+    "Karnataka",
+    "Madhya Pradesh",
+    "Bihar",
+    "Telangana",
+    "Andhra Pradesh",
+    "Rajasthan",
+    "Maharashtra"
+  ],
+  "popular_varieties": [
+    "DHM-117",
+    "DHM-121",
+    "HQPM-1",
+    "HQPM-5",
+    "PMH-1",
+    "African Tall"
+  ],
+  "seed_rate": {
+    "grain": "18-20 kg/ha",
+    "fodder": "40-50 kg/ha"
+  },
+  "seed_treatment": [
+    {
+      "chemical": "Carbendazim",
+      "dose": "2 g/kg seed"
+    },
+    {
+      "bio_agent": "Trichoderma viride",
+      "dose": "10 g/kg seed"
+    }
+  ],
+  "land_preparation": [
+    "2-3 ploughings",
+    "Fine tilth",
+    "Field leveling",
+    "Apply FYM before sowing"
+  ],
+  "sowing": {
+    "method": [
+      "Line sowing",
+      "Dibbling"
+    ],
+    "spacing": "60 × 20 cm",
+    "depth": "4-5 cm"
+  },
+  "fertilizer_schedule": {
+    "recommended_npk": "150:75:40 kg/ha",
+    "basal": [
+      "Full Phosphorus",
+      "Full Potassium",
+      "25% Nitrogen"
+    ],
+    "top_dressing": [
+      "25% at knee-high stage",
+      "25% at tasseling",
+      "25% at silking"
+    ]
+  },
+  "organic_nutrients": [
+    "Farmyard Manure",
+    "Vermicompost",
+    "Azospirillum",
+    "Phosphate Solubilizing Bacteria"
+  ],
+  "irrigation": {
+    "method": [
+      "Furrow",
+      "Drip",
+      "Sprinkler"
+    ],
+    "critical_stages": [
+      "Germination",
+      "Knee-high",
+      "Tasseling",
+      "Silking",
+      "Grain filling"
+    ]
+  },
+  "weed_management": {
+    "manual": "2 hand weedings",
+    "chemical": [
+      "Atrazine",
+      "Pendimethalin"
+    ]
+  },
+  "growth_stages": [
+    "Germination",
+    "Seedling",
+    "Vegetative",
+    "Knee-high",
+    "Tasseling",
+    "Silking",
+    "Grain Filling",
+    "Maturity"
+  ],
+  "major_diseases": [
+    {
+      "name": "Turcicum Leaf Blight",
+      "symptoms": "Long grey lesions on leaves.",
+      "management": "Resistant varieties and fungicide spray."
+    },
+    {
+      "name": "Maydis Leaf Blight",
+      "symptoms": "Brown elongated spots.",
+      "management": "Crop rotation and fungicides."
+    },
+    {
+      "name": "Common Rust",
+      "symptoms": "Brown pustules on leaves.",
+      "management": "Use resistant hybrids."
+    },
+    {
+      "name": "Downy Mildew",
+      "symptoms": "Yellow stripes and stunted plants.",
+      "management": "Seed treatment and fungicide."
+    }
+  ],
+  "major_pests": [
+    {
+      "name": "Fall Armyworm",
+      "damage": "Feeds on leaves and whorl.",
+      "management": "Pheromone traps and recommended insecticides."
+    },
+    {
+      "name": "Stem Borer",
+      "damage": "Dead hearts and stem tunneling.",
+      "management": "Release Trichogramma and spray insecticide."
+    },
+    {
+      "name": "Shoot Fly",
+      "damage": "Dead heart symptom.",
+      "management": "Early sowing and seed treatment."
+    }
+  ],
+  "nutrient_deficiencies": [
+    {
+      "nutrient": "Nitrogen",
+      "symptom": "Yellowing of lower leaves."
+    },
+    {
+      "nutrient": "Phosphorus",
+      "symptom": "Purple coloration."
+    },
+    {
+      "nutrient": "Potassium",
+      "symptom": "Leaf edge scorching."
+    },
+    {
+      "nutrient": "Zinc",
+      "symptom": "White bands on leaves."
+    }
+  ],
+  "harvesting": {
+    "maturity": "Physiological maturity after husks dry.",
+    "moisture": "20-25%"
+  },
+  "post_harvest": {
+    "drying": "Dry grain to 12-14% moisture.",
+    "storage": "Store in dry, ventilated bins."
+  },
+  "average_yield": {
+    "rainfed": "3-5 t/ha",
+    "irrigated": "6-9 t/ha"
+  },
+  "market_information": {
+    "major_markets": [
+      "eNAM",
+      "APMC Markets",
+      "Private Buyers"
+    ],
+    "uses": [
+      "Food",
+      "Feed",
+      "Starch",
+      "Ethanol"
+    ]
+  },
+  "government_schemes": [
+    "PM-KISAN",
+    "PMFBY",
+    "Kisan Credit Card",
+    "eNAM",
+    "Soil Health Card",
+    "PMKSY"
+  ],
+  "do_and_dont": {
+    "do": [
+      "Use certified seeds.",
+      "Follow soil test recommendations.",
+      "Monitor Fall Armyworm regularly.",
+      "Maintain proper spacing."
+    ],
+    "dont": [
+      "Avoid waterlogging.",
+      "Do not overuse nitrogen.",
+      "Do not delay harvesting."
+    ]
+  },
+  "faqs": [
+    {
+      "question": "Best season for maize?",
+      "answer": "Kharif is the primary season, though Rabi and Spring crops are also cultivated."
+    },
+    {
+      "question": "Ideal soil pH?",
+      "answer": "5.5 to 7.5."
+    },
+    {
+      "question": "Most damaging pest?",
+      "answer": "Fall Armyworm."
+    },
+    {
+      "question": "Can drip irrigation be used?",
+      "answer": "Yes, it improves water-use efficiency."
+    }
+  ],
+  "keywords": [
+    "maize",
+    "corn",
+    "makka",
+    "mokkajonna",
+    "zea mays",
+    "fertilizer",
+    "irrigation",
+    "fall armyworm",
+    "turcicum leaf blight",
+    "nitrogen deficiency",
+    "harvesting",
+    "yield"
+  ],
+  "references": [
+    "ICAR-Indian Institute of Maize Research (IIMR)",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Ministry of Agriculture & Farmers Welfare",
+    "Krishi Vigyan Kendras (KVKs)",
+    "eNAM",
+    "PM-KISAN",
+    "PMFBY"
+  ]
+}

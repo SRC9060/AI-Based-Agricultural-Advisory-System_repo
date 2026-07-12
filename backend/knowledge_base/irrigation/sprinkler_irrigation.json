@@ -1,0 +1,88 @@
+{
+  "irrigation_id": "IRR002",
+  "method_name": "Sprinkler Irrigation",
+  "category": "Pressurized Irrigation",
+  "description": "Sprinkler irrigation distributes water over crops in the form of rainfall using pipes and rotating sprinkler heads.",
+  "objective": [
+    "Uniform water distribution",
+    "Reduce labor",
+    "Increase irrigation efficiency",
+    "Suitable for uneven land"
+  ],
+  "working_principle": "Water is pumped through pipes and sprayed into the air by sprinkler nozzles, simulating natural rainfall.",
+  "suitable_crops": [
+    "Wheat",
+    "Maize",
+    "Groundnut",
+    "Millets",
+    "Vegetables",
+    "Fodder Crops",
+    "Lawn Grass",
+    "Pulses"
+  ],
+  "major_components": [
+    "Water Source",
+    "Pump",
+    "Main Pipeline",
+    "Lateral Pipes",
+    "Sprinkler Heads",
+    "Control Valves",
+    "Pressure Regulator",
+    "Nozzles"
+  ],
+  "advantages": [
+    "Uniform irrigation",
+    "Suitable for sandy soils",
+    "Can irrigate uneven land",
+    "Reduces soil erosion",
+    "Less labor required",
+    "Can be used for fertilizer application",
+    "Improves crop growth"
+  ],
+  "disadvantages": [
+    "Higher energy requirement",
+    "Water loss due to wind",
+    "Evaporation losses",
+    "High installation cost"
+  ],
+  "water_use_efficiency": "70-85%",
+  "maintenance": [
+    "Clean sprinkler nozzles regularly",
+    "Inspect pipes for leakage",
+    "Maintain proper pressure",
+    "Replace damaged sprinkler heads"
+  ],
+  "fertigation": {
+    "supported": true,
+    "description": "Water-soluble fertilizers can be applied through sprinkler systems."
+  },
+  "recommended_for": [
+    "Field crops",
+    "Pastures",
+    "Vegetables",
+    "Undulating land"
+  ],
+  "government_support": [
+    "PMKSY - Per Drop More Crop",
+    "State Irrigation Subsidy Schemes"
+  ],
+  "precautions": [
+    "Avoid irrigation during strong winds.",
+    "Use recommended operating pressure.",
+    "Do not over-irrigate.",
+    "Inspect nozzles frequently."
+  ],
+  "keywords": [
+    "sprinkler irrigation",
+    "rainfall irrigation",
+    "pressurized irrigation",
+    "water management",
+    "PMKSY"
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "PMKSY",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

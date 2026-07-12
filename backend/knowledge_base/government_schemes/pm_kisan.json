@@ -1,0 +1,71 @@
+{
+  "scheme_id": "GOV001",
+  "scheme_name": "Pradhan Mantri Kisan Samman Nidhi (PM-KISAN)",
+  "short_name": "PM-KISAN",
+  "launch_year": 2019,
+  "implemented_by": "Ministry of Agriculture & Farmers Welfare",
+  "scheme_type": "Income Support",
+  "description": "PM-KISAN provides financial assistance of ₹6,000 per year to eligible farmer families in three equal installments through Direct Benefit Transfer (DBT).",
+  "objective": [
+    "Provide income support to farmers.",
+    "Reduce financial burden.",
+    "Support agricultural expenses."
+  ],
+  "benefits": {
+    "financial_assistance": "₹6,000 per year",
+    "installments": 3,
+    "amount_per_installment": "₹2,000"
+  },
+  "eligibility": [
+    "Indian citizen.",
+    "Landholding farmer family.",
+    "Valid Aadhaar number.",
+    "Bank account linked with Aadhaar."
+  ],
+  "not_eligible": [
+    "Income tax payers.",
+    "Institutional landholders.",
+    "Government employees (except eligible categories).",
+    "Doctors, Engineers, Chartered Accountants with professional practice."
+  ],
+  "required_documents": [
+    "Aadhaar Card",
+    "Bank Passbook",
+    "Land Ownership Documents",
+    "Mobile Number"
+  ],
+  "application_methods": [
+    "PM-KISAN Portal",
+    "Common Service Centre (CSC)",
+    "Agriculture Department"
+  ],
+  "application_steps": [
+    "Visit the PM-KISAN portal.",
+    "Choose New Farmer Registration.",
+    "Enter Aadhaar details.",
+    "Fill land and bank information.",
+    "Submit application."
+  ],
+  "important_services": [
+    "Beneficiary Status",
+    "e-KYC",
+    "Installment Status",
+    "Farmer Registration"
+  ],
+  "official_website": "https://pmkisan.gov.in",
+  "helpline": [
+    "155261",
+    "1800-115-526"
+  ],
+  "keywords": [
+    "PM-KISAN",
+    "Farmer Scheme",
+    "Income Support",
+    "DBT",
+    "Farmer Registration"
+  ],
+  "references": [
+    "PM-KISAN Portal",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

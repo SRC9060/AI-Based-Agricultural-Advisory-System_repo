@@ -1,0 +1,168 @@
+{
+  "faq_category": "General Agriculture",
+  "questions": [
+    {
+      "id": "FAQ001",
+      "question": "What fertilizer is best for paddy?",
+      "intent": "fertilizer_recommendation",
+      "crop": "Rice",
+      "answer": {
+        "summary": "The best fertilizer depends on the soil test, but a balanced NPK application along with organic manure is generally recommended.",
+        "recommended_fertilizers": [
+          {
+            "name": "Urea",
+            "purpose": "Nitrogen source for vegetative growth"
+          },
+          {
+            "name": "DAP (Diammonium Phosphate)",
+            "purpose": "Provides phosphorus and nitrogen during early growth"
+          },
+          {
+            "name": "MOP (Muriate of Potash)",
+            "purpose": "Improves grain filling and disease resistance"
+          },
+          {
+            "name": "Farmyard Manure (FYM)",
+            "purpose": "Improves soil fertility and structure"
+          },
+          {
+            "name": "Vermicompost",
+            "purpose": "Enhances microbial activity and nutrient availability"
+          }
+        ],
+        "recommended_npk": "120:60:40 kg/ha (may vary by state and soil test)",
+        "application_schedule": [
+          "Apply FYM before land preparation.",
+          "Apply full phosphorus and potassium as basal dose.",
+          "Split nitrogen into 2-3 applications during crop growth."
+        ],
+        "tips": [
+          "Conduct a soil test before fertilizer application.",
+          "Avoid excessive nitrogen as it increases pest and disease incidence.",
+          "Maintain proper irrigation after fertilizer application."
+        ]
+      },
+      "keywords": [
+        "paddy fertilizer",
+        "rice fertilizer",
+        "urea",
+        "DAP",
+        "potash",
+        "NPK",
+        "rice nutrients"
+      ],
+      "references": [
+        "ICAR-IIRR",
+        "TNAU Agritech Portal",
+        "Soil Health Card Scheme"
+      ]
+    },
+    {
+      "id": "FAQ002",
+      "question": "How can I control pests naturally?",
+      "intent": "organic_pest_control",
+      "crop": "General",
+      "answer": {
+        "summary": "Integrated Pest Management (IPM) and biological control methods are recommended before using chemical pesticides.",
+        "natural_methods": [
+          "Neem oil spray (3-5 ml/L of water)",
+          "Neem Seed Kernel Extract (NSKE 5%)",
+          "Release Trichogramma parasitoids",
+          "Install pheromone traps",
+          "Install yellow sticky traps for sucking pests",
+          "Use light traps where recommended",
+          "Remove and destroy infected plant parts",
+          "Encourage beneficial insects like ladybird beetles and lacewings",
+          "Practice crop rotation",
+          "Maintain field sanitation"
+        ],
+        "avoid": [
+          "Unnecessary pesticide spraying",
+          "Mixing multiple pesticides without recommendation",
+          "Ignoring economic threshold levels"
+        ],
+        "tips": [
+          "Inspect crops weekly.",
+          "Use biological methods first.",
+          "Spray chemicals only when pest population exceeds threshold."
+        ]
+      },
+      "keywords": [
+        "organic pest control",
+        "natural pest control",
+        "IPM",
+        "neem oil",
+        "sticky traps",
+        "pheromone trap"
+      ],
+      "references": [
+        "ICAR",
+        "TNAU Agritech Portal",
+        "National IPM Programme"
+      ]
+    },
+    {
+      "id": "FAQ003",
+      "question": "My tomato leaves are turning yellow.",
+      "intent": "tomato_diagnosis",
+      "crop": "Tomato",
+      "answer": {
+        "summary": "Yellowing of tomato leaves may result from nutrient deficiency, overwatering, diseases, pests, or environmental stress.",
+        "possible_causes": [
+          {
+            "cause": "Nitrogen deficiency",
+            "symptoms": "Older leaves turn uniformly yellow."
+          },
+          {
+            "cause": "Overwatering",
+            "symptoms": "Yellow leaves with poor root growth."
+          },
+          {
+            "cause": "Underwatering",
+            "symptoms": "Yellow leaves with wilting."
+          },
+          {
+            "cause": "Early Blight",
+            "symptoms": "Yellow leaves with dark concentric spots."
+          },
+          {
+            "cause": "Fusarium Wilt",
+            "symptoms": "Yellowing starts on one side of the plant."
+          },
+          {
+            "cause": "Whiteflies or Aphids",
+            "symptoms": "Yellow leaves with curling and sticky honeydew."
+          }
+        ],
+        "recommended_actions": [
+          "Check soil moisture before watering.",
+          "Apply balanced fertilizer if nutrient deficiency is suspected.",
+          "Inspect leaves for insects regularly.",
+          "Remove infected leaves.",
+          "Ensure proper field drainage.",
+          "Consult local agricultural experts if symptoms persist."
+        ],
+        "prevention": [
+          "Use disease-resistant varieties.",
+          "Avoid waterlogging.",
+          "Follow crop rotation.",
+          "Maintain recommended spacing.",
+          "Apply fertilizers based on soil test."
+        ]
+      },
+      "keywords": [
+        "yellow tomato leaves",
+        "tomato disease",
+        "tomato nutrient deficiency",
+        "tomato pests",
+        "early blight",
+        "fusarium wilt"
+      ],
+      "references": [
+        "ICAR-IIHR",
+        "TNAU Agritech Portal",
+        "KVK Advisory"
+      ]
+    }
+  ]
+}

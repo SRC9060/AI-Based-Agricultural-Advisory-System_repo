@@ -1,0 +1,99 @@
+{
+  "id": "FAQ_WHEAT_001",
+  "crop": "Wheat",
+  "category": "Crop Management",
+  "question": "Why are my wheat leaves turning yellow?",
+  "intent": "wheat_yellow_leaves",
+  "keywords": [
+    "wheat yellow leaves",
+    "wheat disease",
+    "wheat nutrient deficiency",
+    "yellow wheat",
+    "wheat leaves drying",
+    "wheat rust",
+    "wheat crop problem"
+  ],
+  "possible_causes": [
+    {
+      "cause": "Nitrogen Deficiency",
+      "symptoms": [
+        "Older leaves turn pale green to yellow.",
+        "Stunted plant growth.",
+        "Reduced tillering."
+      ],
+      "solution": [
+        "Apply recommended dose of urea.",
+        "Follow soil test recommendations.",
+        "Split nitrogen application for better uptake."
+      ]
+    },
+    {
+      "cause": "Sulphur Deficiency",
+      "symptoms": [
+        "Young leaves become yellow.",
+        "Thin and weak plants."
+      ],
+      "solution": [
+        "Apply gypsum or sulphur-containing fertilizers."
+      ]
+    },
+    {
+      "cause": "Water Stress",
+      "symptoms": [
+        "Leaves become yellow and dry.",
+        "Poor grain development."
+      ],
+      "solution": [
+        "Maintain proper irrigation at critical growth stages.",
+        "Avoid prolonged drought conditions."
+      ]
+    },
+    {
+      "cause": "Yellow Rust",
+      "symptoms": [
+        "Yellow stripes on leaves.",
+        "Powdery yellow spores.",
+        "Reduced photosynthesis."
+      ],
+      "solution": [
+        "Use resistant wheat varieties.",
+        "Apply recommended fungicides.",
+        "Remove severely infected plants."
+      ]
+    },
+    {
+      "cause": "Aphid Infestation",
+      "symptoms": [
+        "Leaf yellowing.",
+        "Curling leaves.",
+        "Sticky honeydew."
+      ],
+      "solution": [
+        "Monitor aphid population.",
+        "Encourage ladybird beetles.",
+        "Spray insecticides only if ETL is crossed."
+      ]
+    }
+  ],
+  "general_recommendations": [
+    "Conduct soil testing before fertilizer application.",
+    "Inspect crop regularly for disease symptoms.",
+    "Avoid excess nitrogen application.",
+    "Use certified disease-resistant varieties.",
+    "Maintain proper irrigation schedule."
+  ],
+  "prevention": [
+    "Practice crop rotation.",
+    "Use certified seeds.",
+    "Maintain field sanitation.",
+    "Apply balanced fertilizers.",
+    "Monitor fields weekly."
+  ],
+  "references": [
+    "ICAR-Indian Institute of Wheat and Barley Research (IIWBR)",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendras (KVKs)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

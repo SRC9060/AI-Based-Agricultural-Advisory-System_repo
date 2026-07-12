@@ -1,0 +1,40 @@
+{
+  "faq_category": "Crop Diseases",
+  "questions": [
+    {
+      "id": "CD001",
+      "question": "How can I identify crop diseases?",
+      "answer": "Look for symptoms like yellowing, spots, wilting, curling, mold growth, or stunted growth. Compare symptoms with agricultural guides or consult local extension officers.",
+      "keywords": ["crop disease", "identify disease", "plant disease"]
+    },
+    {
+      "id": "CD002",
+      "question": "What causes plant diseases?",
+      "answer": "Plant diseases are caused by fungi, bacteria, viruses, nematodes, and unfavorable environmental conditions such as excessive moisture or poor drainage.",
+      "keywords": ["disease causes", "fungus", "virus", "bacteria"]
+    },
+    {
+      "id": "CD003",
+      "question": "How can I prevent crop diseases?",
+      "answer": "Use certified seeds, follow crop rotation, maintain field sanitation, avoid waterlogging, and monitor crops regularly.",
+      "keywords": ["prevent diseases", "crop protection"]
+    },
+    {
+      "id": "CD004",
+      "question": "Can diseases spread from one plant to another?",
+      "answer": "Yes. Diseases can spread through wind, rain, insects, contaminated tools, soil, irrigation water, and infected planting material.",
+      "keywords": ["disease spread", "infection"]
+    },
+    {
+      "id": "CD005",
+      "question": "Should I remove infected plants?",
+      "answer": "Yes. Removing severely infected plants helps prevent disease spread to healthy crops.",
+      "keywords": ["infected plants", "field sanitation"]
+    }
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "KVK"
+  ]
+}

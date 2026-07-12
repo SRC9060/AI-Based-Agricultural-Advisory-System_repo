@@ -1,0 +1,100 @@
+{
+  "id": "DIS_LEAF_CURL_001",
+  "disease_name": "Tomato Leaf Curl Disease",
+  "scientific_name": "Tomato Yellow Leaf Curl Virus (TYLCV)",
+  "disease_type": "Viral",
+  "affected_crops": [
+    "Tomato"
+  ],
+  "common_names": {
+    "english": "Tomato Leaf Curl",
+    "hindi": "टमाटर पत्ती मुड़न रोग",
+    "telugu": "టమాటా ఆకు ముడత వ్యాధి"
+  },
+  "description": "Tomato Leaf Curl Disease is a serious viral disease transmitted mainly by whiteflies. It causes severe yield reduction by affecting plant growth and fruit development.",
+  "vector": {
+    "name": "Whitefly",
+    "scientific_name": "Bemisia tabaci"
+  },
+  "symptoms": [
+    "Upward curling of leaves",
+    "Yellowing of leaf margins",
+    "Reduced leaf size",
+    "Stunted plant growth",
+    "Short internodes",
+    "Reduced flowering",
+    "Poor fruit set",
+    "Small fruits"
+  ],
+  "favorable_conditions": {
+    "temperature": "25-35°C",
+    "humidity": "Moderate",
+    "vector_population": "High whitefly infestation"
+  },
+  "spread": [
+    "Whiteflies",
+    "Infected seedlings",
+    "Volunteer tomato plants",
+    "Alternate weed hosts"
+  ],
+  "management": {
+    "cultural_practices": [
+      "Use virus-free seedlings.",
+      "Remove infected plants immediately.",
+      "Control weeds around the field.",
+      "Use reflective mulch.",
+      "Avoid overlapping crops."
+    ],
+    "organic_control": [
+      "Neem oil spray",
+      "Yellow sticky traps",
+      "Biological control of whiteflies"
+    ],
+    "chemical_control": [
+      {
+        "insecticide": "Imidacloprid",
+        "purpose": "Whitefly management"
+      },
+      {
+        "insecticide": "Thiamethoxam",
+        "purpose": "Vector control"
+      },
+      {
+        "insecticide": "Acetamiprid",
+        "purpose": "Control whitefly population"
+      }
+    ]
+  },
+  "prevention": [
+    "Grow resistant tomato hybrids.",
+    "Use certified seedlings.",
+    "Monitor whitefly population weekly.",
+    "Install yellow sticky traps.",
+    "Maintain field sanitation."
+  ],
+  "economic_impact": {
+    "yield_loss": "20-100%",
+    "severity": "Very High"
+  },
+  "recommended_monitoring": [
+    "Inspect young leaves weekly.",
+    "Monitor whitefly population.",
+    "Remove infected plants immediately."
+  ],
+  "keywords": [
+    "tomato leaf curl",
+    "TYLCV",
+    "whitefly",
+    "viral disease",
+    "yellow leaves",
+    "leaf curling",
+    "tomato virus"
+  ],
+  "references": [
+    "ICAR-IIHR",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

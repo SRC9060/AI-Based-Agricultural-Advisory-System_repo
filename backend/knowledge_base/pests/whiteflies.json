@@ -1,0 +1,135 @@
+{
+  "soil_health_id": "SOIL001",
+  "topic": "Soil pH Management",
+  "category": "Soil Health",
+  "description": "Soil pH management is the practice of maintaining soil acidity or alkalinity within the optimum range for healthy crop growth and efficient nutrient availability.",
+  "what_is_ph": {
+    "definition": "Soil pH measures the acidity or alkalinity of soil on a scale of 0 to 14.",
+    "scale": {
+      "strongly_acidic": "Below 5.5",
+      "moderately_acidic": "5.5 - 6.5",
+      "neutral": "6.5 - 7.5",
+      "moderately_alkaline": "7.5 - 8.5",
+      "strongly_alkaline": "Above 8.5"
+    }
+  },
+  "ideal_ph_ranges": {
+    "Rice": "5.5 - 7.0",
+    "Wheat": "6.0 - 7.5",
+    "Maize": "5.8 - 7.0",
+    "Cotton": "5.8 - 8.0",
+    "Tomato": "6.0 - 7.0",
+    "Potato": "5.0 - 6.5",
+    "Groundnut": "6.0 - 7.0",
+    "Sugarcane": "6.5 - 7.5",
+    "Banana": "6.0 - 7.5"
+  },
+  "effects_of_low_ph": [
+    "Aluminum toxicity",
+    "Poor root growth",
+    "Reduced nutrient availability",
+    "Calcium deficiency",
+    "Magnesium deficiency",
+    "Low crop yield"
+  ],
+  "effects_of_high_ph": [
+    "Iron deficiency",
+    "Zinc deficiency",
+    "Phosphorus fixation",
+    "Poor nutrient uptake",
+    "Stunted crop growth",
+    "Leaf chlorosis"
+  ],
+  "symptoms": {
+    "acidic_soil": [
+      "Yellow leaves",
+      "Poor root development",
+      "Slow plant growth",
+      "Reduced tillering"
+    ],
+    "alkaline_soil": [
+      "Interveinal chlorosis",
+      "Small leaves",
+      "Nutrient deficiency symptoms",
+      "Poor flowering"
+    ]
+  },
+  "management": {
+    "acidic_soil": [
+      "Apply agricultural lime.",
+      "Use dolomite if magnesium is deficient.",
+      "Add compost or farmyard manure.",
+      "Avoid excessive nitrogen fertilizers."
+    ],
+    "alkaline_soil": [
+      "Apply gypsum where recommended.",
+      "Add organic matter.",
+      "Use elemental sulphur if advised.",
+      "Apply micronutrients such as zinc and iron."
+    ]
+  },
+  "soil_amendments": [
+    {
+      "material": "Agricultural Lime",
+      "purpose": "Raises soil pH"
+    },
+    {
+      "material": "Dolomite",
+      "purpose": "Raises pH and supplies magnesium"
+    },
+    {
+      "material": "Gypsum",
+      "purpose": "Improves sodic soils"
+    },
+    {
+      "material": "Organic Compost",
+      "purpose": "Improves soil structure and buffering capacity"
+    }
+  ],
+  "testing_frequency": "Once every 2 years or before each major crop season.",
+  "best_practices": [
+    "Conduct soil testing before fertilizer application.",
+    "Use balanced fertilizers.",
+    "Maintain organic matter in soil.",
+    "Avoid excessive chemical fertilizer use.",
+    "Follow crop rotation."
+  ],
+  "common_farmer_mistakes": [
+    "Ignoring soil test results.",
+    "Applying lime without recommendation.",
+    "Overusing urea.",
+    "Growing unsuitable crops for the soil pH."
+  ],
+  "faqs": [
+    {
+      "question": "What is the ideal soil pH for most crops?",
+      "answer": "Between 6.0 and 7.5."
+    },
+    {
+      "question": "How can acidic soil be corrected?",
+      "answer": "By applying agricultural lime or dolomite based on soil test recommendations."
+    },
+    {
+      "question": "How can alkaline soil be improved?",
+      "answer": "By adding gypsum, organic matter, and recommended micronutrients."
+    }
+  ],
+  "keywords": [
+    "soil pH",
+    "acidic soil",
+    "alkaline soil",
+    "lime",
+    "gypsum",
+    "soil health",
+    "soil amendment",
+    "soil fertility"
+  ],
+  "references": [
+    "ICAR",
+    "ICAR-Indian Institute of Soil Science",
+    "TNAU Agritech Portal",
+    "Soil Health Card Scheme",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

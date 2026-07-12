@@ -1,0 +1,40 @@
+{
+  "faq_category": "Fertilizers",
+  "questions": [
+    {
+      "id": "F001",
+      "question": "Why should I perform a soil test before applying fertilizer?",
+      "answer": "A soil test determines nutrient deficiencies and helps apply the correct fertilizer in the right quantity.",
+      "keywords": ["soil test", "fertilizer recommendation"]
+    },
+    {
+      "id": "F002",
+      "question": "What is the difference between organic and chemical fertilizers?",
+      "answer": "Organic fertilizers improve soil health and release nutrients slowly, while chemical fertilizers provide nutrients quickly for immediate crop growth.",
+      "keywords": ["organic fertilizer", "chemical fertilizer"]
+    },
+    {
+      "id": "F003",
+      "question": "Can excess fertilizer damage crops?",
+      "answer": "Yes. Overuse of fertilizers may burn roots, reduce yield, increase pest attacks, and pollute groundwater.",
+      "keywords": ["excess fertilizer", "fertilizer damage"]
+    },
+    {
+      "id": "F004",
+      "question": "Which fertilizer supplies nitrogen?",
+      "answer": "Urea is the most commonly used nitrogen fertilizer containing 46% nitrogen.",
+      "keywords": ["urea", "nitrogen"]
+    },
+    {
+      "id": "F005",
+      "question": "How often should fertilizers be applied?",
+      "answer": "Application depends on the crop and soil test. Nitrogen fertilizers are usually applied in split doses.",
+      "keywords": ["fertilizer schedule", "split application"]
+    }
+  ],
+  "references": [
+    "ICAR",
+    "Soil Health Card Scheme",
+    "TNAU Agritech Portal"
+  ]
+}

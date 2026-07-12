@@ -1,0 +1,136 @@
+{
+  "weather_id": "WEATHER001",
+  "topic": "Rainfall",
+  "category": "Weather Advisory",
+  "description": "Rainfall is one of the most important climatic factors affecting crop growth, irrigation scheduling, fertilizer application, pest incidence, and overall agricultural productivity.",
+  "importance": [
+    "Provides water for crop growth.",
+    "Recharges groundwater.",
+    "Improves soil moisture.",
+    "Supports seed germination.",
+    "Reduces irrigation requirements."
+  ],
+  "types_of_rainfall": [
+    {
+      "name": "Convectional Rainfall",
+      "description": "Occurs due to heating of the earth's surface."
+    },
+    {
+      "name": "Orographic Rainfall",
+      "description": "Occurs when moist air rises over mountains."
+    },
+    {
+      "name": "Cyclonic Rainfall",
+      "description": "Occurs due to cyclones and low-pressure systems."
+    }
+  ],
+  "rainfall_levels": {
+    "very_light": "< 2.5 mm/day",
+    "light": "2.5 - 15.5 mm/day",
+    "moderate": "15.6 - 64.4 mm/day",
+    "heavy": "64.5 - 115.5 mm/day",
+    "very_heavy": "115.6 - 204.4 mm/day",
+    "extremely_heavy": "> 204.4 mm/day"
+  },
+  "crop_benefits": [
+    "Maintains soil moisture.",
+    "Promotes healthy plant growth.",
+    "Improves nutrient absorption.",
+    "Supports flowering and grain filling.",
+    "Increases groundwater availability."
+  ],
+  "negative_effects": [
+    "Waterlogging.",
+    "Soil erosion.",
+    "Root rot.",
+    "Crop lodging.",
+    "Nutrient leaching.",
+    "Disease outbreaks.",
+    "Delayed harvesting."
+  ],
+  "recommended_farmer_actions": {
+    "before_rain": [
+      "Avoid fertilizer spraying.",
+      "Ensure drainage channels are clear.",
+      "Harvest mature crops if possible.",
+      "Protect stored grains."
+    ],
+    "during_rain": [
+      "Avoid pesticide spraying.",
+      "Prevent livestock from entering flooded areas.",
+      "Monitor drainage."
+    ],
+    "after_rain": [
+      "Drain excess water.",
+      "Inspect crops for diseases.",
+      "Apply fungicides if recommended.",
+      "Check for nutrient deficiency symptoms."
+    ]
+  },
+  "crop_specific_advisory": {
+    "Rice": "Maintain standing water only as recommended; avoid prolonged flooding.",
+    "Maize": "Drain excess water immediately to prevent root damage.",
+    "Wheat": "Avoid waterlogging during flowering and grain filling.",
+    "Tomato": "Ensure proper drainage to reduce fungal diseases.",
+    "Cotton": "Prevent stagnant water around roots."
+  },
+  "impact_on_fertilizers": [
+    "Heavy rain may wash away fertilizers.",
+    "Avoid urea application before heavy rainfall.",
+    "Split fertilizer doses during rainy season."
+  ],
+  "impact_on_pests_and_diseases": [
+    "High humidity favors fungal diseases.",
+    "Waterlogging increases root diseases.",
+    "Rainfall may reduce some insect populations but increase others."
+  ],
+  "rainwater_management": [
+    "Rainwater harvesting.",
+    "Farm ponds.",
+    "Contour bunding.",
+    "Check dams.",
+    "Mulching to conserve moisture."
+  ],
+  "government_support": [
+    "PMKSY",
+    "PMFBY",
+    "State Agriculture Advisory Services",
+    "IMD Weather Advisory"
+  ],
+  "faqs": [
+    {
+      "question": "Should fertilizers be applied before heavy rainfall?",
+      "answer": "No. Heavy rainfall can wash away fertilizers, reducing their effectiveness."
+    },
+    {
+      "question": "What should farmers do after heavy rain?",
+      "answer": "Drain excess water, inspect crops for diseases, and apply recommended plant protection measures if needed."
+    },
+    {
+      "question": "How does rainfall affect crop diseases?",
+      "answer": "High humidity and prolonged leaf wetness encourage fungal and bacterial diseases."
+    },
+    {
+      "question": "How can excess rainwater be managed?",
+      "answer": "Construct drainage channels, farm ponds, and rainwater harvesting structures."
+    }
+  ],
+  "keywords": [
+    "rainfall",
+    "monsoon",
+    "heavy rain",
+    "waterlogging",
+    "crop advisory",
+    "rain forecast",
+    "soil moisture",
+    "drainage"
+  ],
+  "references": [
+    "India Meteorological Department (IMD)",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "PMKSY",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

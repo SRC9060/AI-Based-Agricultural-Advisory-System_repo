@@ -1,0 +1,47 @@
+{
+  "category": "General Agriculture FAQs",
+  "faqs": [
+    {
+      "id": "FAQ001",
+      "question": "What fertilizer is best for paddy?",
+      "answer": "The best fertilizer depends on the soil test. Commonly recommended fertilizers for paddy include Urea (Nitrogen), DAP (Phosphorus), MOP (Potassium), and Zinc Sulphate where zinc deficiency exists. Apply fertilizers in split doses as recommended by ICAR or your local agriculture department.",
+      "related_topics": [
+        "rice",
+        "urea",
+        "dap",
+        "mop",
+        "soil testing"
+      ]
+    },
+    {
+      "id": "FAQ002",
+      "question": "How can I control pests naturally?",
+      "answer": "Natural pest control methods include spraying neem oil (3-5 ml/L), Neem Seed Kernel Extract (5%), using yellow sticky traps, releasing beneficial insects like ladybird beetles and lacewings, maintaining field sanitation, practicing crop rotation, and removing infected plants.",
+      "related_topics": [
+        "aphids",
+        "whiteflies",
+        "armyworm",
+        "integrated pest management",
+        "neem oil"
+      ]
+    },
+    {
+      "id": "FAQ003",
+      "question": "My tomato leaves are turning yellow. What should I do?",
+      "answer": "Yellow leaves may be caused by nutrient deficiency, overwatering, fungal diseases, bacterial wilt, or Tomato Leaf Curl Virus. Check soil moisture, inspect for pests and disease symptoms, and apply appropriate fertilizer or plant protection measures after proper diagnosis.",
+      "related_topics": [
+        "tomato",
+        "early blight",
+        "late blight",
+        "leaf curl",
+        "fertilizers"
+      ]
+    }
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+backend/.env
+
+# Databases
+*.db
+
+# Audio files
+*.wav
+*.webm
+
+# Python cache
+backend/**/__pycache__/
+
+# Node.js
+node_modules/
+.next/

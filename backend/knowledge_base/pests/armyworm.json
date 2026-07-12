@@ -1,0 +1,133 @@
+{
+  "pest_id": "PEST002",
+  "name": "Fall Armyworm",
+  "scientific_name": "Spodoptera frugiperda",
+  "category": "Leaf Feeding Caterpillar",
+  "description": "Fall Armyworm (FAW) is a highly destructive invasive pest that feeds on leaves, stems, tassels, and cobs of maize and several other crops, causing significant yield losses.",
+  "common_names": {
+    "english": "Fall Armyworm",
+    "hindi": "फॉल आर्मीवर्म",
+    "telugu": "ఫాల్ ఆర్మీవార్మ్",
+    "tamil": "பால் ஆர்மிவோம்"
+  },
+  "affected_crops": [
+    "Maize",
+    "Rice",
+    "Sorghum",
+    "Millets",
+    "Sugarcane",
+    "Cotton",
+    "Wheat",
+    "Vegetables"
+  ],
+  "identification": {
+    "egg": "Egg masses covered with greyish scales.",
+    "larva": "Brown to green caterpillar with an inverted white 'Y' mark on the head.",
+    "pupa": "Found in the soil.",
+    "adult": "Grey-brown moth with spotted forewings."
+  },
+  "life_cycle": {
+    "egg_period": "2-5 days",
+    "larval_period": "14-22 days",
+    "pupal_period": "8-15 days",
+    "adult_lifespan": "10-21 days"
+  },
+  "symptoms": [
+    "Window-pane feeding on young leaves.",
+    "Irregular holes in leaves.",
+    "Large ragged leaf damage.",
+    "Frass (sawdust-like excreta) inside the whorl.",
+    "Damaged tassels and cobs.",
+    "Dead heart in severe infestation."
+  ],
+  "damage": [
+    "Feeds on leaf whorls.",
+    "Destroys growing points.",
+    "Reduces photosynthesis.",
+    "Damages developing cobs.",
+    "Causes severe yield reduction."
+  ],
+  "favorable_conditions": {
+    "temperature": "20-30°C",
+    "humidity": "Moderate to High",
+    "weather": "Warm and humid conditions favor multiplication."
+  },
+  "monitoring": [
+    "Inspect maize whorls every week.",
+    "Install pheromone traps.",
+    "Check for egg masses.",
+    "Look for fresh frass inside the whorl."
+  ],
+  "economic_threshold_level": {
+    "maize": "Treat if more than 10% of plants are infested during early crop stages."
+  },
+  "natural_control": [
+    "Release Trichogramma parasitoids.",
+    "Encourage predatory birds.",
+    "Use Bacillus thuringiensis (Bt).",
+    "Apply Neem Seed Kernel Extract (5%).",
+    "Spray Neem oil."
+  ],
+  "chemical_control": [
+    {
+      "insecticide": "Emamectin Benzoate",
+      "purpose": "Controls young larvae."
+    },
+    {
+      "insecticide": "Chlorantraniliprole",
+      "purpose": "Highly effective against FAW."
+    },
+    {
+      "insecticide": "Spinetoram",
+      "purpose": "Recommended for severe infestation."
+    },
+    {
+      "insecticide": "Spinosad",
+      "purpose": "Controls caterpillars."
+    }
+  ],
+  "integrated_pest_management": [
+    "Install pheromone traps for monitoring.",
+    "Destroy egg masses manually.",
+    "Encourage natural predators.",
+    "Avoid continuous maize cultivation.",
+    "Use resistant hybrids whenever available.",
+    "Apply insecticides only after ETL is reached."
+  ],
+  "prevention": [
+    "Timely sowing.",
+    "Crop rotation.",
+    "Field sanitation.",
+    "Balanced fertilizer application.",
+    "Regular crop monitoring."
+  ],
+  "affected_plant_parts": [
+    "Leaves",
+    "Whorl",
+    "Stem",
+    "Tassel",
+    "Cob"
+  ],
+  "yield_loss": {
+    "estimated": "20-70%",
+    "severity": "High"
+  },
+  "keywords": [
+    "fall armyworm",
+    "FAW",
+    "spodoptera",
+    "maize pest",
+    "caterpillar",
+    "leaf damage",
+    "whorl feeding",
+    "armyworm"
+  ],
+  "references": [
+    "ICAR-Indian Institute of Maize Research (IIMR)",
+    "ICAR-NCIPM",
+    "TNAU Agritech Portal",
+    "FAO Fall Armyworm Management Guide",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "faq_category": "Government Schemes",
+  "questions": [
+    {
+      "id": "GS001",
+      "question": "What is PM-KISAN?",
+      "answer": "PM-KISAN provides eligible farmer families with ₹6,000 per year in three equal installments through Direct Benefit Transfer (DBT).",
+      "keywords": ["PM-KISAN", "farmer income support"]
+    },
+    {
+      "id": "GS002",
+      "question": "What is PMFBY?",
+      "answer": "Pradhan Mantri Fasal Bima Yojana (PMFBY) provides crop insurance against natural calamities, pests, and diseases.",
+      "keywords": ["PMFBY", "crop insurance"]
+    },
+    {
+      "id": "GS003",
+      "question": "What is a Kisan Credit Card (KCC)?",
+      "answer": "KCC provides farmers with affordable short-term credit for crop cultivation and allied agricultural activities.",
+      "keywords": ["KCC", "agriculture loan"]
+    },
+    {
+      "id": "GS004",
+      "question": "What is eNAM?",
+      "answer": "eNAM is the National Agriculture Market, an online trading platform that connects farmers with buyers across India.",
+      "keywords": ["eNAM", "online market"]
+    },
+    {
+      "id": "GS005",
+      "question": "What is a Soil Health Card?",
+      "answer": "The Soil Health Card provides farmers with soil nutrient status and fertilizer recommendations based on laboratory analysis.",
+      "keywords": ["soil health card", "soil testing"]
+    },
+    {
+      "id": "GS006",
+      "question": "Who can apply for PM-KISAN?",
+      "answer": "Eligible landholding farmer families meeting the government's criteria can apply through the PM-KISAN portal or Common Service Centres.",
+      "keywords": ["PM-KISAN eligibility"]
+    }
+  ],
+  "references": [
+    "PM-KISAN",
+    "PMFBY",
+    "eNAM",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

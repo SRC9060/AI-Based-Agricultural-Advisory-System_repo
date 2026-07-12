@@ -1,0 +1,152 @@
+{
+  "soil_health_id": "SOIL002",
+  "topic": "Soil Testing",
+  "category": "Soil Health",
+  "description": "Soil testing is the scientific analysis of soil to determine its nutrient status, pH, organic matter, salinity, and other properties. It helps farmers apply the right fertilizer in the right amount for better crop productivity.",
+  "objectives": [
+    "Determine soil fertility.",
+    "Identify nutrient deficiencies.",
+    "Recommend suitable fertilizers.",
+    "Improve crop yield.",
+    "Maintain long-term soil health.",
+    "Reduce unnecessary fertilizer costs.",
+    "Prevent environmental pollution."
+  ],
+  "importance": [
+    "Improves fertilizer efficiency.",
+    "Reduces input costs.",
+    "Prevents over-fertilization.",
+    "Enhances crop productivity.",
+    "Improves soil fertility.",
+    "Supports sustainable agriculture."
+  ],
+  "parameters_tested": {
+    "physical": [
+      "Soil Texture",
+      "Soil Structure",
+      "Bulk Density",
+      "Water Holding Capacity"
+    ],
+    "chemical": [
+      "pH",
+      "Electrical Conductivity (EC)",
+      "Organic Carbon",
+      "Available Nitrogen",
+      "Available Phosphorus",
+      "Available Potassium",
+      "Sulphur"
+    ],
+    "micronutrients": [
+      "Zinc",
+      "Iron",
+      "Copper",
+      "Manganese",
+      "Boron"
+    ]
+  },
+  "sample_collection": {
+    "best_time": "15-30 days before sowing or fertilizer application.",
+    "depth": {
+      "field_crops": "0-15 cm",
+      "fruit_crops": "30-60 cm"
+    },
+    "steps": [
+      "Remove stones, weeds and surface debris.",
+      "Collect soil from 8-10 random spots.",
+      "Mix samples thoroughly.",
+      "Remove stones and roots.",
+      "Prepare about 500 g composite sample.",
+      "Dry the sample in shade.",
+      "Pack in a clean labeled bag."
+    ]
+  },
+  "label_information": [
+    "Farmer Name",
+    "Village",
+    "Survey Number",
+    "Crop",
+    "Date of Collection",
+    "Mobile Number"
+  ],
+  "where_to_test": [
+    "Government Soil Testing Laboratory",
+    "Krishi Vigyan Kendra (KVK)",
+    "Agriculture Department",
+    "ICAR Institutes",
+    "Agricultural Universities",
+    "Private NABL Accredited Laboratories"
+  ],
+  "recommended_frequency": {
+    "normal_soil": "Once every 2 years",
+    "intensive_farming": "Every crop season if possible",
+    "orchards": "Once every 2-3 years"
+  },
+  "benefits": [
+    "Balanced fertilizer recommendation.",
+    "Better nutrient management.",
+    "Improved crop quality.",
+    "Higher yield.",
+    "Reduced cultivation cost.",
+    "Improved soil health."
+  ],
+  "common_mistakes": [
+    "Collecting wet soil samples.",
+    "Taking samples immediately after fertilizer application.",
+    "Collecting soil from only one location.",
+    "Using dirty containers.",
+    "Mixing different field samples."
+  ],
+  "interpretation": {
+    "low_nitrogen": "Apply nitrogen fertilizers like Urea based on recommendations.",
+    "low_phosphorus": "Apply DAP or SSP as recommended.",
+    "low_potassium": "Apply MOP or NPK fertilizers.",
+    "acidic_soil": "Apply agricultural lime if recommended.",
+    "alkaline_soil": "Apply gypsum and organic matter where appropriate."
+  },
+  "government_support": [
+    "Soil Health Card Scheme",
+    "State Agriculture Department",
+    "Krishi Vigyan Kendra"
+  ],
+  "faqs": [
+    {
+      "question": "Why should I test my soil?",
+      "answer": "To know the nutrient status and apply the correct fertilizers for better crop yield."
+    },
+    {
+      "question": "How often should soil be tested?",
+      "answer": "At least once every two years or before major crop cultivation."
+    },
+    {
+      "question": "Can soil testing reduce fertilizer cost?",
+      "answer": "Yes. It helps avoid unnecessary fertilizer application and improves nutrient-use efficiency."
+    },
+    {
+      "question": "What is the ideal time for soil sampling?",
+      "answer": "Before sowing and before applying fertilizers."
+    },
+    {
+      "question": "Which government scheme supports soil testing?",
+      "answer": "The Soil Health Card Scheme provides soil testing and fertilizer recommendations."
+    }
+  ],
+  "keywords": [
+    "soil testing",
+    "soil analysis",
+    "soil sample",
+    "soil health card",
+    "fertility",
+    "nutrient deficiency",
+    "NPK",
+    "soil laboratory",
+    "soil report"
+  ],
+  "references": [
+    "ICAR - Indian Institute of Soil Science",
+    "ICAR",
+    "Soil Health Card Scheme",
+    "TNAU Agritech Portal",
+    "Krishi Vigyan Kendra (KVK)",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

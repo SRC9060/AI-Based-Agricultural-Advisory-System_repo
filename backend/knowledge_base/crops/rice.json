@@ -1,0 +1,367 @@
+{
+  "crop_id": "crop_rice_001",
+  "crop_name": "Rice",
+  "scientific_name": "Oryza sativa L.",
+  "family": "Poaceae",
+  "kingdom": "Plantae",
+  "division": "Magnoliophyta",
+  "class": "Liliopsida",
+  "order": "Poales",
+  "genus": "Oryza",
+  "species": "Oryza sativa",
+  "common_names": {
+    "english": "Rice",
+    "hindi": "Dhan",
+    "telugu": "Vari",
+    "tamil": "Nel",
+    "kannada": "Bhatta",
+    "malayalam": "Nellu",
+    "marathi": "Bhat",
+    "bengali": "Dhan",
+    "odia": "Dhana",
+    "punjabi": "Chawal"
+  },
+  "description": {
+    "overview": "Rice is the staple food crop of India and one of the world's most important cereal crops. It is cultivated under irrigated, rainfed lowland, upland and flood-prone ecosystems.",
+    "importance": [
+      "Primary staple food for over half of the world's population.",
+      "Major contributor to India's food security.",
+      "Provides employment to millions of farmers.",
+      "Important source of carbohydrates.",
+      "Supports livestock through rice bran and straw."
+    ],
+    "origin": "South and Southeast Asia",
+    "domestication": "Approximately 8000-10000 years ago.",
+    "economic_significance": "Rice contributes significantly to India's agricultural GDP and export earnings."
+  },
+  "crop_type": {
+    "category": "Cereal",
+    "life_cycle": "Annual",
+    "photosynthesis": "C3",
+    "pollination": "Self-pollinated"
+  },
+  "growing_seasons": {
+    "kharif": {
+      "available": true,
+      "sowing_months": [
+        "June",
+        "July"
+      ],
+      "harvesting_months": [
+        "October",
+        "November"
+      ]
+    },
+    "rabi": {
+      "available": true,
+      "sowing_months": [
+        "November",
+        "December"
+      ],
+      "harvesting_months": [
+        "March",
+        "April"
+      ]
+    },
+    "summer": {
+      "available": true,
+      "sowing_months": [
+        "January",
+        "February"
+      ],
+      "harvesting_months": [
+        "May",
+        "June"
+      ]
+    }
+  },
+  "agro_climatic_zones": [
+    "Eastern Himalayan Region",
+    "Lower Gangetic Plains",
+    "Middle Gangetic Plains",
+    "Upper Gangetic Plains",
+    "Trans Gangetic Plains",
+    "Eastern Plateau and Hills",
+    "Central Plateau",
+    "Western Plateau",
+    "Southern Plateau",
+    "East Coast Plains",
+    "West Coast Plains",
+    "Gujarat Plains"
+  ],
+  "major_producing_states": [
+    {
+      "state": "West Bengal",
+      "rank": 1
+    },
+    {
+      "state": "Uttar Pradesh",
+      "rank": 2
+    },
+    {
+      "state": "Punjab",
+      "rank": 3
+    },
+    {
+      "state": "Telangana",
+      "rank": 4
+    },
+    {
+      "state": "Andhra Pradesh",
+      "rank": 5
+    },
+    {
+      "state": "Tamil Nadu",
+      "rank": 6
+    },
+    {
+      "state": "Chhattisgarh",
+      "rank": 7
+    },
+    {
+      "state": "Odisha",
+      "rank": 8
+    },
+    {
+      "state": "Bihar",
+      "rank": 9
+    },
+    {
+      "state": "Assam",
+      "rank": 10
+    }
+  ],
+  "climate_requirements": {
+    "temperature": {
+      "minimum": "20°C",
+      "optimum": "25°C-35°C",
+      "maximum": "38°C"
+    },
+    "rainfall": {
+      "minimum": "1000 mm",
+      "optimum": "1200-2000 mm"
+    },
+    "relative_humidity": {
+      "ideal": "70-85%"
+    },
+    "sunlight": {
+      "daily_requirement": "6-8 hours"
+    },
+    "altitude": {
+      "recommended": "Sea level to 2000 meters"
+    }
+  },
+  "soil_requirements": {
+    "preferred_soils": [
+      "Clay",
+      "Clay loam",
+      "Silty clay",
+      "Alluvial soil",
+      "Loam"
+    ],
+    "soil_ph": {
+      "minimum": 5.5,
+      "optimum": "6.0-7.5",
+      "maximum": 8.0
+    },
+    "drainage": "Good water retention with proper drainage facility.",
+    "organic_carbon": "Above 0.75%",
+    "electrical_conductivity": "Less than 2 dS/m"
+  },
+  "nutritional_value": {
+    "carbohydrates": "78%",
+    "protein": "6.5-8%",
+    "fat": "0.5-2%",
+    "fiber": "0.2-0.5%",
+    "minerals": [
+      "Iron",
+      "Zinc",
+      "Magnesium",
+      "Phosphorus",
+      "Potassium"
+    ],
+    "vitamins": [
+      "Vitamin B1",
+      "Vitamin B2",
+      "Vitamin B3",
+      "Vitamin B6"
+    ]
+  },
+  "uses": [
+    "Human food",
+    "Rice flour production",
+    "Rice bran oil extraction",
+    "Livestock feed",
+    "Poultry feed",
+    "Mushroom cultivation using straw",
+    "Paper industry",
+    "Biofuel production",
+    "Traditional food products",
+    "Export commodity"
+  ],
+  "land_preparation": {
+    "primary_tillage": {
+      "operations": [
+        "Deep ploughing",
+        "Removal of crop residues",
+        "Field leveling"
+      ]
+    },
+    "secondary_tillage": {
+      "operations": [
+        "2-3 harrowings",
+        "Puddling under irrigated conditions",
+        "Final leveling"
+      ]
+    },
+    "recommended_equipment": [
+      "Mould board plough",
+      "Disc harrow",
+      "Rotavator",
+      "Laser land leveler",
+      "Power tiller"
+    ]
+  },
+  "seed_information": {
+    "seed_rate": {
+      "transplanted": "30-40 kg/ha",
+      "direct_seeded": "60-80 kg/ha",
+      "SRI": "5-8 kg/ha"
+    },
+    "germination_percentage": "Minimum 80%",
+    "seed_purity": "Minimum 98%",
+    "seed_moisture": "Below 13%"
+  },
+  "seed_treatment": {
+    "purpose": [
+      "Improve germination",
+      "Prevent seed-borne diseases",
+      "Protect against fungal infections",
+      "Improve seedling vigor"
+    ],
+    "fungicide_treatment": [
+      {
+        "chemical": "Carbendazim",
+        "dose": "2 g/kg seed",
+        "purpose": "Controls seed-borne fungal diseases"
+      },
+      {
+        "chemical": "Thiram",
+        "dose": "2.5 g/kg seed",
+        "purpose": "Broad-spectrum fungal protection"
+      }
+    ],
+    "bio_agents": [
+      {
+        "organism": "Trichoderma viride",
+        "dose": "10 g/kg seed"
+      },
+      {
+        "organism": "Pseudomonas fluorescens",
+        "dose": "10 g/kg seed"
+      }
+    ],
+    "salt_water_test": {
+      "purpose": "Remove chaffy and immature seeds",
+      "procedure": [
+        "Prepare 10% salt solution.",
+        "Immerse seeds.",
+        "Discard floating seeds.",
+        "Wash healthy seeds with clean water."
+      ]
+    }
+  },
+  "nursery_management": {
+    "nursery_types": [
+      "Wet bed nursery",
+      "Dry bed nursery",
+      "DAPOG nursery",
+      "Mat nursery"
+    ],
+    "nursery_area_per_hectare": "800-1000 square meters",
+    "seedling_age": {
+      "normal": "20-25 days",
+      "SRI": "12-15 days"
+    },
+    "watering": "Maintain moist soil without prolonged water stagnation.",
+    "fertilizer_application": {
+      "nitrogen": "1 kg urea per 100 m²",
+      "phosphorus": "1 kg DAP per 100 m²"
+    }
+  },
+  "transplanting": {
+    "ideal_spacing": {
+      "normal": "20 cm × 15 cm",
+      "hybrid": "20 cm × 20 cm",
+      "SRI": "25 cm × 25 cm"
+    },
+    "seedlings_per_hill": {
+      "normal": "2-3",
+      "SRI": "1"
+    },
+    "recommended_depth": "2-3 cm"
+  },
+  "crop_duration": {
+    "short_duration": "90-110 days",
+    "medium_duration": "120-135 days",
+    "long_duration": "140-160 days"
+  },
+  "growth_stages": [
+    {
+      "stage": "Germination",
+      "duration": "0-7 days"
+    },
+    {
+      "stage": "Seedling",
+      "duration": "8-25 days"
+    },
+    {
+      "stage": "Tillering",
+      "duration": "25-50 days"
+    },
+    {
+      "stage": "Panicle initiation",
+      "duration": "50-70 days"
+    },
+    {
+      "stage": "Booting",
+      "duration": "70-85 days"
+    },
+    {
+      "stage": "Flowering",
+      "duration": "85-100 days"
+    },
+    {
+      "stage": "Milk stage",
+      "duration": "100-110 days"
+    },
+    {
+      "stage": "Dough stage",
+      "duration": "110-120 days"
+    },
+    {
+      "stage": "Physiological maturity",
+      "duration": "120-150 days"
+    }
+  ],
+  "crop_calendar": {
+    "january": [
+      "Summer nursery preparation",
+      "Field irrigation planning"
+    ],
+    "february": [
+      "Summer transplanting",
+      "Nutrient management"
+    ],
+    "march": [
+      "Weed management",
+      "Pest surveillance"
+    ],
+    "april": [
+      "Disease monitoring",
+      "Irrigation scheduling"
+    ],
+    "may": [
+      "Harvest summer crop",
+      "Storage preparation"
+    ]

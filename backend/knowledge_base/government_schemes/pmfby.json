@@ -1,0 +1,65 @@
+{
+  "scheme_id": "GOV002",
+  "scheme_name": "Pradhan Mantri Fasal Bima Yojana",
+  "short_name": "PMFBY",
+  "launch_year": 2016,
+  "implemented_by": "Ministry of Agriculture & Farmers Welfare",
+  "scheme_type": "Crop Insurance",
+  "description": "PMFBY provides insurance coverage to farmers against crop losses due to natural calamities, pests and diseases.",
+  "objective": [
+    "Protect farmers from crop losses.",
+    "Provide financial support after disasters.",
+    "Encourage modern farming."
+  ],
+  "premium_rates": {
+    "kharif": "2%",
+    "rabi": "1.5%",
+    "commercial_horticulture": "5%"
+  },
+  "coverage": [
+    "Drought",
+    "Flood",
+    "Cyclone",
+    "Heavy Rainfall",
+    "Hailstorm",
+    "Pests",
+    "Diseases",
+    "Landslides"
+  ],
+  "eligibility": [
+    "All farmers growing notified crops.",
+    "Loanee and non-loanee farmers."
+  ],
+  "required_documents": [
+    "Aadhaar Card",
+    "Bank Passbook",
+    "Land Records",
+    "Sowing Certificate",
+    "Passport Size Photo"
+  ],
+  "application_methods": [
+    "PMFBY Portal",
+    "Banks",
+    "CSC Centres"
+  ],
+  "claim_process": [
+    "Inform crop loss within 72 hours.",
+    "Field verification.",
+    "Assessment by authorities.",
+    "Claim settlement."
+  ],
+  "official_website": "https://pmfby.gov.in",
+  "helpline": [
+    "14447"
+  ],
+  "keywords": [
+    "Crop Insurance",
+    "PMFBY",
+    "Insurance Claim",
+    "Crop Loss"
+  ],
+  "references": [
+    "PMFBY Portal",
+    "Ministry of Agriculture & Farmers Welfare"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "fertilizer_id": "FERT002",
+  "name": "DAP",
+  "full_name": "Diammonium Phosphate",
+  "chemical_formula": "(NH4)2HPO4",
+  "type": "Nitrogen and Phosphorus Fertilizer",
+  "nutrient_content": {
+    "nitrogen": "18%",
+    "phosphorus": "46%",
+    "potassium": "0%"
+  },
+  "description": "DAP is a concentrated phosphorus fertilizer commonly used during basal application.",
+  "suitable_crops": [
+    "Rice",
+    "Maize",
+    "Wheat",
+    "Cotton",
+    "Pulses",
+    "Oilseeds",
+    "Vegetables"
+  ],
+  "application_method": [
+    "Basal application",
+    "Placement near seed",
+    "Band placement"
+  ],
+  "recommended_usage": {
+    "rice": "Apply before transplanting.",
+    "maize": "Apply at sowing.",
+    "wheat": "Apply as basal fertilizer.",
+    "vegetables": "Mix with soil before planting."
+  },
+  "benefits": [
+    "Promotes root development",
+    "Improves flowering",
+    "Enhances seed formation",
+    "Supports early crop growth"
+  ],
+  "deficiency_corrected": [
+    "Phosphorus deficiency",
+    "Nitrogen deficiency"
+  ],
+  "precautions": [
+    "Do not place fertilizer in direct contact with seeds.",
+    "Apply based on soil test.",
+    "Avoid excessive application."
+  ],
+  "storage": [
+    "Store in cool and dry conditions.",
+    "Protect from moisture."
+  ],
+  "compatible_with": [
+    "Urea",
+    "MOP",
+    "Organic manure"
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "FCO"
+  ]
+}

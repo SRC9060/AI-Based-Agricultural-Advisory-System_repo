@@ -1,0 +1,319 @@
+{
+  "crop_id": "crop_cotton_001",
+  "crop_name": "Cotton",
+  "scientific_name": "Gossypium hirsutum L.",
+  "family": "Malvaceae",
+  "crop_type": "Fiber Crop",
+  "life_cycle": "Annual",
+  "common_names": {
+    "english": "Cotton",
+    "hindi": "Kapas",
+    "telugu": "Patti",
+    "tamil": "Paruthi",
+    "kannada": "Hatti"
+  },
+  "description": "Cotton is India's principal fiber crop and an important commercial crop used for textile production, edible oil, and animal feed.",
+  "origin": "Mexico and Central America",
+  "economic_importance": [
+    "Textile industry",
+    "Cottonseed oil",
+    "Livestock feed",
+    "Export earnings",
+    "Employment generation"
+  ],
+  "growing_seasons": [
+    "Kharif"
+  ],
+  "crop_duration": {
+    "early": "150-160 days",
+    "medium": "170-180 days",
+    "late": "180-200 days"
+  },
+  "climate": {
+    "temperature": "21-30°C",
+    "rainfall": "500-1000 mm",
+    "humidity": "50-70%",
+    "sunlight": "Bright sunshine throughout growth"
+  },
+  "soil": {
+    "types": [
+      "Black Cotton Soil",
+      "Deep Loam",
+      "Clay Loam"
+    ],
+    "ph": "6.0-8.0",
+    "drainage": "Well drained"
+  },
+  "major_states": [
+    "Gujarat",
+    "Maharashtra",
+    "Telangana",
+    "Punjab",
+    "Haryana",
+    "Rajasthan",
+    "Andhra Pradesh",
+    "Karnataka"
+  ],
+  "popular_varieties": [
+    "Bt Cotton Hybrids",
+    "Suraj",
+    "RCH-2",
+    "Bunny Bt",
+    "NCS-145",
+    "LRA-5166"
+  ],
+  "seed_rate": {
+    "hybrid": "2-2.5 kg/ha",
+    "variety": "15-20 kg/ha"
+  },
+  "seed_treatment": [
+    {
+      "chemical": "Carbendazim",
+      "dose": "2 g/kg seed"
+    },
+    {
+      "bio_agent": "Trichoderma viride",
+      "dose": "10 g/kg seed"
+    },
+    {
+      "biofertilizer": "Azospirillum",
+      "dose": "25 g/kg seed"
+    }
+  ],
+  "land_preparation": [
+    "Deep summer ploughing",
+    "2-3 harrowings",
+    "Apply FYM",
+    "Prepare ridges and furrows"
+  ],
+  "sowing": {
+    "season": "June-July",
+    "method": [
+      "Dibbling",
+      "Line sowing"
+    ],
+    "spacing": "120 × 60 cm",
+    "depth": "4-5 cm"
+  },
+  "fertilizer_schedule": {
+    "recommended_npk": "120:60:60 kg/ha",
+    "basal": [
+      "Full Phosphorus",
+      "Full Potassium",
+      "25% Nitrogen"
+    ],
+    "top_dressing": [
+      "50% Nitrogen at square formation",
+      "25% Nitrogen at flowering"
+    ]
+  },
+  "organic_nutrients": [
+    "Farmyard Manure",
+    "Vermicompost",
+    "Neem Cake",
+    "Azotobacter",
+    "PSB"
+  ],
+  "irrigation": {
+    "method": [
+      "Drip",
+      "Furrow"
+    ],
+    "critical_stages": [
+      "Germination",
+      "Square formation",
+      "Flowering",
+      "Boll development"
+    ]
+  },
+  "weed_management": {
+    "manual": "Two intercultivations",
+    "chemical": [
+      "Pendimethalin",
+      "Quizalofop"
+    ]
+  },
+  "growth_stages": [
+    "Germination",
+    "Seedling",
+    "Vegetative",
+    "Square Formation",
+    "Flowering",
+    "Boll Formation",
+    "Boll Opening",
+    "Harvest"
+  ],
+  "major_diseases": [
+    {
+      "name": "Bacterial Blight",
+      "symptoms": "Angular leaf spots and stem lesions.",
+      "management": "Use resistant varieties and certified seeds."
+    },
+    {
+      "name": "Alternaria Leaf Spot",
+      "symptoms": "Brown circular spots on leaves.",
+      "management": "Apply recommended fungicides."
+    },
+    {
+      "name": "Fusarium Wilt",
+      "symptoms": "Wilting and yellowing.",
+      "management": "Crop rotation and resistant varieties."
+    },
+    {
+      "name": "Grey Mildew",
+      "symptoms": "White fungal growth on leaves.",
+      "management": "Maintain field sanitation."
+    }
+  ],
+  "major_pests": [
+    {
+      "name": "Pink Bollworm",
+      "damage": "Damages developing bolls.",
+      "management": "Pheromone traps and timely insecticide application."
+    },
+    {
+      "name": "American Bollworm",
+      "damage": "Feeds on squares and bolls.",
+      "management": "Integrated Pest Management."
+    },
+    {
+      "name": "Whitefly",
+      "damage": "Sap sucking and virus transmission.",
+      "management": "Yellow sticky traps and insecticides."
+    },
+    {
+      "name": "Aphids",
+      "damage": "Leaf curling and honeydew formation.",
+      "management": "Biological control and need-based spraying."
+    },
+    {
+      "name": "Thrips",
+      "damage": "Silvering of leaves.",
+      "management": "Recommended insecticides."
+    }
+  ],
+  "beneficial_insects": [
+    "Ladybird Beetle",
+    "Green Lacewing",
+    "Trichogramma",
+    "Spider"
+  ],
+  "nutrient_deficiencies": [
+    {
+      "nutrient": "Nitrogen",
+      "symptom": "Yellow lower leaves."
+    },
+    {
+      "nutrient": "Potassium",
+      "symptom": "Leaf scorching."
+    },
+    {
+      "nutrient": "Magnesium",
+      "symptom": "Interveinal chlorosis."
+    },
+    {
+      "nutrient": "Boron",
+      "symptom": "Poor boll development."
+    }
+  ],
+  "harvesting": {
+    "method": "Hand picking",
+    "number_of_pickings": "3-5",
+    "maturity_indicator": "Fully opened bolls"
+  },
+  "post_harvest": {
+    "drying": "Sun dry before storage.",
+    "ginning": "Separate lint from seed.",
+    "storage": "Store in dry and ventilated place."
+  },
+  "average_yield": {
+    "rainfed": "15-20 quintals/ha",
+    "irrigated": "25-35 quintals/ha"
+  },
+  "quality_parameters": [
+    "Staple Length",
+    "Micronaire",
+    "Fiber Strength",
+    "Uniformity Index",
+    "Color Grade"
+  ],
+  "market_information": {
+    "major_buyers": [
+      "Cotton Corporation of India",
+      "Textile Mills",
+      "Private Traders",
+      "eNAM Markets"
+    ]
+  },
+  "government_schemes": [
+    "PM-KISAN",
+    "PMFBY",
+    "Kisan Credit Card",
+    "eNAM",
+    "Soil Health Card",
+    "PMKSY"
+  ],
+  "common_farmer_mistakes": [
+    "Excess nitrogen application",
+    "Delayed pest monitoring",
+    "Improper spacing",
+    "Continuous cotton cultivation",
+    "Late harvesting"
+  ],
+  "do_and_dont": {
+    "do": [
+      "Use certified Bt seeds.",
+      "Monitor bollworms weekly.",
+      "Adopt drip irrigation.",
+      "Maintain field sanitation."
+    ],
+    "dont": [
+      "Do not over-irrigate.",
+      "Avoid unnecessary pesticide sprays.",
+      "Do not store wet kapas."
+    ]
+  },
+  "faqs": [
+    {
+      "question": "Which soil is best for cotton?",
+      "answer": "Deep black cotton soil with good drainage."
+    },
+    {
+      "question": "Which is the major pest?",
+      "answer": "Pink Bollworm."
+    },
+    {
+      "question": "Can cotton be grown under drip irrigation?",
+      "answer": "Yes, drip irrigation improves water-use efficiency and yield."
+    },
+    {
+      "question": "When is cotton harvested?",
+      "answer": "When bolls open completely."
+    }
+  ],
+  "keywords": [
+    "cotton",
+    "kapas",
+    "patti",
+    "gossypium",
+    "pink bollworm",
+    "whitefly",
+    "bt cotton",
+    "boll formation",
+    "fiber crop",
+    "drip irrigation",
+    "fertilizer",
+    "cotton diseases"
+  ],
+  "references": [
+    "ICAR-Central Institute for Cotton Research (CICR)",
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Ministry of Agriculture & Farmers Welfare",
+    "Cotton Corporation of India",
+    "Krishi Vigyan Kendras (KVKs)",
+    "eNAM",
+    "PM-KISAN",
+    "PMFBY"
+  ]
+}

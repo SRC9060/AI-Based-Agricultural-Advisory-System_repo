@@ -1,0 +1,63 @@
+{
+  "fertilizer_id": "FERT001",
+  "name": "Urea",
+  "chemical_name": "Carbamide",
+  "chemical_formula": "CO(NH2)2",
+  "type": "Nitrogen Fertilizer",
+  "nutrient_content": {
+    "nitrogen": "46%",
+    "phosphorus": "0%",
+    "potassium": "0%"
+  },
+  "description": "Urea is the most widely used nitrogen fertilizer for improving vegetative growth in crops.",
+  "suitable_crops": [
+    "Rice",
+    "Wheat",
+    "Maize",
+    "Cotton",
+    "Sugarcane",
+    "Tomato",
+    "Chilli",
+    "Groundnut"
+  ],
+  "application_method": [
+    "Basal application",
+    "Top dressing",
+    "Fertigation (completely soluble grade)"
+  ],
+  "recommended_usage": {
+    "rice": "Split application at transplanting, tillering and panicle initiation.",
+    "maize": "Apply in 3-4 split doses.",
+    "wheat": "Apply half at sowing and half at first irrigation.",
+    "cotton": "Apply during vegetative and flowering stages."
+  },
+  "benefits": [
+    "Promotes vegetative growth",
+    "Increases chlorophyll formation",
+    "Improves yield",
+    "Supports protein synthesis"
+  ],
+  "deficiency_corrected": [
+    "Nitrogen deficiency"
+  ],
+  "precautions": [
+    "Do not overapply.",
+    "Avoid application before heavy rainfall.",
+    "Incorporate into soil to reduce nitrogen loss."
+  ],
+  "storage": [
+    "Store in a dry place.",
+    "Protect from moisture.",
+    "Keep bags tightly closed."
+  ],
+  "compatible_with": [
+    "DAP",
+    "MOP",
+    "Organic manure"
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Fertilizer Control Order (FCO)"
+  ]
+}

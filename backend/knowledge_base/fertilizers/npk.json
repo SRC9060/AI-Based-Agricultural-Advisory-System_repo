@@ -1,0 +1,68 @@
+{
+  "fertilizer_id": "FERT003",
+  "name": "NPK Complex Fertilizer",
+  "type": "Compound Fertilizer",
+  "common_grades": [
+    "10:26:26",
+    "12:32:16",
+    "19:19:19",
+    "20:20:0:13",
+    "15:15:15"
+  ],
+  "description": "NPK fertilizers supply Nitrogen, Phosphorus and Potassium in balanced proportions for healthy crop growth.",
+  "major_nutrients": {
+    "nitrogen": "Vegetative growth",
+    "phosphorus": "Root and flower development",
+    "potassium": "Grain filling, disease resistance and water regulation"
+  },
+  "suitable_crops": [
+    "Rice",
+    "Maize",
+    "Wheat",
+    "Cotton",
+    "Tomato",
+    "Potato",
+    "Banana",
+    "Sugarcane",
+    "Chilli"
+  ],
+  "application_method": [
+    "Basal application",
+    "Side dressing",
+    "Fertigation (water-soluble grades)"
+  ],
+  "benefits": [
+    "Balanced nutrient supply",
+    "Improves crop yield",
+    "Enhances root growth",
+    "Increases disease resistance",
+    "Improves fruit quality"
+  ],
+  "recommended_grades": {
+    "rice": "10:26:26",
+    "maize": "12:32:16",
+    "tomato": "19:19:19",
+    "banana": "20:20:0:13",
+    "vegetables": "19:19:19"
+  },
+  "precautions": [
+    "Use according to soil test.",
+    "Do not overapply.",
+    "Apply with adequate soil moisture."
+  ],
+  "storage": [
+    "Store in a dry place.",
+    "Keep away from direct sunlight.",
+    "Seal bags properly."
+  ],
+  "compatible_with": [
+    "Organic manure",
+    "Micronutrient fertilizers",
+    "Biofertilizers"
+  ],
+  "references": [
+    "ICAR",
+    "TNAU Agritech Portal",
+    "Fertilizer Control Order (FCO)"
+  ]
+}

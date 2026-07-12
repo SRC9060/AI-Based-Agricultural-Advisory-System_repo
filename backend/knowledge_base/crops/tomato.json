@@ -1,0 +1,105 @@
+{
+  "id": "FAQ_TOMATO_001",
+  "crop": "Tomato",
+  "category": "Disease Diagnosis",
+  "question": "My tomato leaves are turning yellow.",
+  "intent": "tomato_yellow_leaves",
+  "keywords": [
+    "yellow tomato leaves",
+    "tomato leaves yellow",
+    "tomato disease",
+    "tomato nutrient deficiency",
+    "yellow leaves",
+    "tomato plant problem",
+    "tomato leaves curling"
+  ],
+  "possible_causes": [
+    {
+      "cause": "Nitrogen Deficiency",
+      "symptoms": [
+        "Older leaves turn light green then yellow.",
+        "Slow plant growth.",
+        "Small leaves."
+      ],
+      "solution": [
+        "Apply recommended nitrogen fertilizer.",
+        "Use well-decomposed FYM or compost.",
+        "Follow soil test recommendations."
+      ]
+    },
+    {
+      "cause": "Overwatering",
+      "symptoms": [
+        "Yellow leaves.",
+        "Root rot.",
+        "Poor plant vigor."
+      ],
+      "solution": [
+        "Reduce irrigation frequency.",
+        "Improve drainage.",
+        "Avoid waterlogging."
+      ]
+    },
+    {
+      "cause": "Underwatering",
+      "symptoms": [
+        "Yellowing with wilting.",
+        "Dry soil."
+      ],
+      "solution": [
+        "Maintain regular irrigation.",
+        "Use mulching."
+      ]
+    },
+    {
+      "cause": "Early Blight",
+      "symptoms": [
+        "Brown concentric spots.",
+        "Yellowing around lesions.",
+        "Lower leaves affected first."
+      ],
+      "solution": [
+        "Remove infected leaves.",
+        "Apply recommended fungicide.",
+        "Practice crop rotation."
+      ]
+    },
+    {
+      "cause": "Fusarium Wilt",
+      "symptoms": [
+        "Yellowing on one side.",
+        "Plant wilting."
+      ],
+      "solution": [
+        "Grow resistant varieties.",
+        "Improve drainage.",
+        "Rotate crops."
+      ]
+    },
+    {
+      "cause": "Whiteflies or Aphids",
+      "symptoms": [
+        "Leaf yellowing.",
+        "Leaf curling.",
+        "Sticky honeydew."
+      ],
+      "solution": [
+        "Install yellow sticky traps.",
+        "Use neem oil spray.",
+        "Encourage beneficial insects."
+      ]
+    }
+  ],
+  "general_recommendations": [
+    "Check soil moisture before watering.",
+    "Inspect plants regularly.",
+    "Use balanced fertilizers.",
+    "Remove infected leaves.",
+    "Avoid overcrowding."
+  ],
+  "references": [
+    "ICAR-IIHR",
+    "TNAU Agritech Portal",
+    "KVK Advisory"
+  ]
+}
