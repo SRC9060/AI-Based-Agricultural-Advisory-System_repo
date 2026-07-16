@@ -1,0 +1,88 @@
+/* ---------------- Register Page ---------------- */
+
+.register-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #d4fc79, #96e6a1);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.register-box {
+    width: 420px;
+    background: white;
+    padding: 35px;
+    border-radius: 15px;
+
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+
+    display: flex;
+    flex-direction: column;
+}
+
+.register-box h1 {
+    text-align: center;
+    color: #2d6a4f;
+    margin-bottom: 10px;
+}
+
+.register-box p {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.register-box input {
+    margin-bottom: 18px;
+    padding: 14px;
+
+    border: 1px solid #ccc;
+    border-radius: 8px;
+
+    font-size: 16px;
+
+    color: #222;          /* Typed text */
+    background: white;
+}
+
+.register-box input::placeholder {
+    color: #777;
+}
+
+.register-box input:focus {
+    outline: none;
+    border-color: #2d6a4f;
+    box-shadow: 0 0 6px rgba(45, 106, 79, 0.3);
+}
+
+.register-box button {
+    padding: 14px;
+
+    background: #2d6a4f;
+    color: white;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.register-box button:hover {
+    background: #1b4332;
+}
+
+.register-box a {
+    color: #2d6a4f;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.register-box a:hover {
+    text-decoration: underline;
+}

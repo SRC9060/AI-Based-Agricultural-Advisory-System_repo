@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite3
+
+venv/
+.venv/
+
+.env
+
+*.wav
+*.webm
+
+node_modules/
+.next/
+
+*.log
+Thumbs.db
+.DS_Store
