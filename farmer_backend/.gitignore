@@ -1,0 +1,8 @@
+venv/
+.env
+__pycache__/
+output_audio/
+uploads/
+knowledge_base/
+chroma_db/
+test_audio/

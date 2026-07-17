@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+requests
+langchain
+chromadb
+langdetect
+transformers
+torch
