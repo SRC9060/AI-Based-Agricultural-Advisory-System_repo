@@ -1,0 +1,199 @@
+/* ---------------- Login Page ---------------- */
+
+.login-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #d4fc79, #96e6a1);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-box {
+    width: 400px;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+    display: flex;
+    flex-direction: column;
+}
+
+.login-box h1 {
+    text-align: center;
+    color: #2d6a4f;
+    margin-bottom: 10px;
+}
+
+.login-box p {
+    text-align: center;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.login-box input {
+    margin-bottom: 18px;
+    padding: 14px;
+
+    border: 1px solid #ccc;
+    border-radius: 8px;
+
+    font-size: 16px;
+}
+
+.login-box input:focus {
+    outline: none;
+    border-color: #2d6a4f;
+}
+
+.login-box button {
+    padding: 14px;
+
+    background: #2d6a4f;
+    color: white;
+
+    border: none;
+    border-radius: 8px;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.login-box button:hover {
+    background: #1b4332;
+}
+
+.login-box a {
+    color: #2d6a4f;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-box a:hover {
+    text-decoration: underline;
+}
+
+.login-box input::placeholder {
+    color: #999;
+}
+/* ==========================================
+   Footer
+========================================== */
+
+.footer {
+  background: linear-gradient(135deg, #123524, #1b5e3a);
+  color: white;
+  padding: 65px 40px 0;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 45px;
+
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 80px;
+  align-items: start;
+}
+
+/* Project Summary */
+
+.footer-summary h2 {
+  color: #a5d66a;
+  font-size: 27px;
+  margin-bottom: 20px;
+}
+
+.footer-summary p {
+  max-width: 650px;
+  color: #d7e6d8;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.footer-tag {
+  display: inline-block;
+  margin-top: 20px;
+
+  padding: 9px 18px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  border-radius: 30px;
+
+  color: #b9e27c;
+  font-size: 14px;
+}
+
+/* Contact */
+
+.footer-contact h3 {
+  color: #a5d66a;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.footer-contact h3::after {
+  content: "";
+  display: block;
+
+  width: 45px;
+  height: 3px;
+
+  background: #8bc34a;
+
+  margin-top: 8px;
+  border-radius: 10px;
+}
+
+.footer-contact p {
+  color: #d7e6d8;
+  margin: 15px 0;
+  font-size: 15px;
+}
+
+/* Copyright */
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+
+  padding: 22px 0;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+
+  color: #c5d8c8;
+  font-size: 14px;
+}
+
+.footer-bottom p {
+  margin: 0;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+
+}
