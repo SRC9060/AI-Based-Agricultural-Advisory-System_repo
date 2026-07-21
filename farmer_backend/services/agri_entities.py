@@ -36,8 +36,10 @@ def extract_agri_entities(text):
         "pmfby",
         "kisan credit card"
     ]
+    words = text.split()
+
     for crop in crops:
-        if crop in text:
+        if crop in words:
             entities["crop"] = crop
             break
     for disease in diseases:
