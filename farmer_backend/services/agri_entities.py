@@ -32,9 +32,14 @@ def extract_agri_entities(text):
         "compost"
     ]
     schemes = [
-        "pm-kisan",
-        "pmfby",
-        "kisan credit card"
+    "pm kisan",
+    "pm-kisan",
+    "pm kisan yojana",
+    "pmfby",
+    "pradhan mantri fasal bima yojana",
+    "kisan credit card",
+    "kcc",
+    "soil health card"
     ]
     words = text.split()
 
@@ -55,7 +60,7 @@ def extract_agri_entities(text):
             entities["fertilizer"] = fertilizer
             break
     for scheme in schemes:
-        if scheme in text:
+        if scheme.lower() in text:
             entities["government_scheme"] = scheme
             break
     return entities

@@ -33,27 +33,65 @@ def classify_intent(text):
 
     query = text.lower()
 
+    # ---------- Weather ----------
     weather_phrases = [
-    "what is the weather",
-    "weather today",
-    "today weather",
-    "today's weather",
-    "weather forecast",
-    "forecast",
-    "temperature in",
-    "humidity in",
-    "wind speed",
-    "rain today",
-    "will it rain",
-    "weather in"
-]
+        "what is the weather",
+        "weather today",
+        "today weather",
+        "today's weather",
+        "weather forecast",
+        "forecast",
+        "temperature in",
+        "humidity in",
+        "wind speed",
+        "rain today",
+        "will it rain",
+        "weather in"
+    ]
 
     if any(phrase in query for phrase in weather_phrases):
-       return {
-        "intent": "weather_query",
-        "score": 1.0
-    }
+        return {
+            "intent": "weather_query",
+            "score": 1.0
+        }
 
+    # ---------- Government Schemes ----------
+    government_keywords = [
+        "pm kisan",
+        "pm-kisan",
+        "kisan credit card",
+        "kcc",
+        "pmfby",
+        "pradhan mantri fasal bima",
+        "soil health card",
+        "government scheme",
+        "subsidy",
+        "yojana",
+        "scheme"
+    ]
+
+    if any(keyword in query for keyword in government_keywords):
+        return {
+            "intent": "government_scheme_query",
+            "score": 1.0
+        }
+
+    # ---------- Market ----------
+    market_keywords = [
+        "market price",
+        "mandi",
+        "apmc",
+        "price today",
+        "commodity price"
+    ]
+
+    if any(keyword in query for keyword in market_keywords):
+        return {
+            "intent": "market_price_query",
+            "score": 1.0
+        }
+
+    # ---------- Zero-shot fallback ----------
     result = classifier(text, candidate_labels)
 
     return {

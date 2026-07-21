@@ -16,7 +16,7 @@ from services.rag_pipeline import generate_response
 from services.weather_service import get_weather
 from services.agri_entities import extract_agri_entities
 from services.router import route_query
-
+from services.response_quality import calculate_response_quality
 app = FastAPI()
 
 class ChatRequest(BaseModel):
@@ -35,13 +35,10 @@ def home():
 @app.post("/chat")
 def chat(request: ChatRequest):
     user_message = request.message
-
     language = detect_language(user_message)
-
     create_session(request.user_id, language)
     add_message(request.user_id, user_message)
     session = get_session(request.user_id)
-
     lang_map = {
         "en": "en-IN",
         "hi": "hi-IN",
@@ -58,59 +55,44 @@ def chat(request: ChatRequest):
         "ur": "ur-IN",
         "ne": "ne-IN"
     }
-
     translated_text = user_message
-
-    if language != "en":
-        source_language = lang_map.get(language, "en-IN")
+    source_language = lang_map.get(language, "en-IN")
+    if source_language != "en-IN":
         result = translate_text(
             user_message,
             source_language,
             "en-IN"
         )
         translated_text = result.translated_text
-
     intent_result = classify_intent(translated_text)
-
-    entities = extract_entities(translated_text)
+    if intent_result["intent"] == "government_scheme_query":
+        entities = []
+    else:
+        entities = extract_entities(translated_text)
     agri_entities = extract_agri_entities(translated_text)
-
-    # ------------------ Extract Market Location ------------------
     market_state = None
     market_district = None
-
     locs = []
-
     for entity in entities:
         if entity["entity_group"] == "LOC":
             locs.append(entity["word"].replace(".", "").strip())
-
     if len(locs) >= 2:
         market_district = locs[0]
         market_state = locs[1]
     elif len(locs) == 1:
         market_district = locs[0]
-
-    # -------------------------------------------------------------
-
     if intent_result["intent"] == "weather_query":
-
         city = None
-
         for entity in entities:
             if entity["entity_group"] == "LOC":
                 city = entity["word"].replace(".", "").strip()
                 break
-
         if city is None:
             response_text = "Please tell me the city name to get the weather information."
-
         else:
             weather = get_weather(city)
-
             if "error" in weather:
                 response_text = weather["error"]
-
             else:
                 response_text = (
                     f"Current weather in {weather['city']}.\n"
@@ -119,30 +101,22 @@ def chat(request: ChatRequest):
                     f"Weather: {weather['weather']}.\n"
                     f"Wind Speed: {weather['wind_speed']} m/s."
                 )
-
     else:
-
         if intent_result["intent"] == "crop_management_query":
-
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "pest_control_query":
-
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "government_scheme_query":
-
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "market_price_query":
 
             response_text = route_query(
@@ -151,35 +125,30 @@ def chat(request: ChatRequest):
                 state=market_state,
                 district=market_district
             )
-
         else:
 
             response_text = generate_response(translated_text)
-
     english_response = response_text
     translated_response = response_text
-
-    if language != "en":
-
-        target_language = lang_map.get(language, "en-IN")
-
+    target_language = lang_map.get(language, "en-IN")
+    if target_language != "en-IN":
         result = translate_text(
             response_text,
             "en-IN",
             target_language
         )
-
         translated_response = result.translated_text
-
     print("\n================ RESPONSE TEXT ================\n")
     print(translated_response)
     print("\n===============================================\n")
     print("Character Count:", len(translated_response))
-
     tts_result = text_to_speech(translated_response)
-
     print("TTS Result:", tts_result)
-
+    # Calculate response quality
+    quality_result = calculate_response_quality(
+        intent_result["score"],
+        english_response
+    )
     return {
         "user_id": str(request.user_id),
         "message": str(user_message),
@@ -192,7 +161,8 @@ def chat(request: ChatRequest):
         "english_response": str(english_response),
         "response_in_user_language": str(translated_response),
         "audio_file": tts_result.get("audio_file"),
-        "session": session
+        "session": session,
+        "response_quality": quality_result
     }
 @app.post("/voice-chat")
 async def voice_chat(
@@ -200,27 +170,20 @@ async def voice_chat(
     audio: UploadFile = File(...)
 ):
     os.makedirs("uploads", exist_ok=True)
-
     upload_path = os.path.join("uploads", audio.filename)
     with open(upload_path, "wb") as buffer:
         buffer.write(await audio.read())
-
     stt_result = speech_to_text(upload_path)
-
     if isinstance(stt_result, str):
         return {
             "status": "error",
             "details": stt_result
         }
-
     user_message = stt_result.transcript
-
     language = detect_language(user_message)
-
     create_session(user_id, language)
     add_message(user_id, user_message)
     session = get_session(user_id)
-
     lang_map = {
         "en": "en-IN",
         "hi": "hi-IN",
@@ -237,52 +200,42 @@ async def voice_chat(
         "ur": "ur-IN",
         "ne": "ne-IN"
     }
-
     translated_text = user_message
-
-    if language != "en":
-        source_language = lang_map.get(language, "en-IN")
+    source_language = lang_map.get(language, "en-IN")
+    if source_language != "en-IN":
         result = translate_text(
             user_message,
             source_language,
             "en-IN"
         )
         translated_text = result.translated_text
-
     intent_result = classify_intent(translated_text)
-
-    entities = extract_entities(translated_text)
+    if intent_result["intent"] == "government_scheme_query":
+        entities = []
+    else:
+        entities = extract_entities(translated_text)
     agri_entities = extract_agri_entities(translated_text)
-
     market_state = None
     market_district = None
-
     locs = []
-
     for entity in entities:
         if entity["entity_group"] == "LOC":
             locs.append(entity["word"].replace(".", "").strip())
-
     if len(locs) >= 2:
         market_district = locs[0]
         market_state = locs[1]
     elif len(locs) == 1:
         market_district = locs[0]
-
     if intent_result["intent"] == "weather_query":
-
         city = None
-
         for entity in entities:
             if entity["entity_group"] == "LOC":
                 city = entity["word"].replace(".", "").strip()
                 break
-
         if city is None:
             response_text = "Please tell me the city name to get the weather information."
         else:
             weather = get_weather(city)
-
             if "error" in weather:
                 response_text = weather["error"]
             else:
@@ -293,27 +246,22 @@ async def voice_chat(
                     f"Weather: {weather['weather']}.\n"
                     f"Wind Speed: {weather['wind_speed']} m/s."
                 )
-
     else:
-
         if intent_result["intent"] == "crop_management_query":
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "pest_control_query":
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "government_scheme_query":
             response_text = route_query(
                 intent=intent_result["intent"],
                 query=translated_text
             )
-
         elif intent_result["intent"] == "market_price_query":
             response_text = route_query(
                 intent=intent_result["intent"],
@@ -321,30 +269,29 @@ async def voice_chat(
                 state=market_state,
                 district=market_district
             )
-
         else:
             response_text = generate_response(translated_text)
-
     english_response = response_text
     translated_response = response_text
-
-    if language != "en":
-        target_language = lang_map.get(language, "en-IN")
+    target_language = lang_map.get(language, "en-IN")
+    if target_language != "en-IN":
         result = translate_text(
             response_text,
             "en-IN",
             target_language
         )
         translated_response = result.translated_text
-
     print("\n================ RESPONSE TEXT ================\n")
     print(translated_response)
     print("\n===============================================\n")
     print("Character Count:", len(translated_response))
-
     tts_result = text_to_speech(translated_response)
     print("TTS Result:", tts_result)
-
+    # Calculate response quality
+    quality_result = calculate_response_quality(
+        intent_result["score"],
+        english_response
+    )
     return {
         "user_id": user_id,
         "message": user_message,
@@ -357,5 +304,6 @@ async def voice_chat(
         "english_response": english_response,
         "response_in_user_language": translated_response,
         "audio_file": tts_result.get("audio_file"),
-        "session": session
+        "session": session,
+        "response_quality": quality_result
     }

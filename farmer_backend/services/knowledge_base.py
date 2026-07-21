@@ -115,7 +115,25 @@ def search_knowledge_base(query):
         if len(crop_results) > 0:
             return crop_results[:5]
     return results[:5]
+def search_government_schemes(query):
+    """
+    Search only Government Scheme documents.
+    """
+    vector_db = load_vector_database()
 
+    results_with_scores = vector_db.similarity_search_with_score(query, k=10)
+
+    scheme_results = []
+
+    for doc, score in results_with_scores:
+
+        if (
+            doc.metadata.get("folder") == "Government_Schemes"
+            and score < 1.2
+        ):
+            scheme_results.append(doc)
+
+    return scheme_results[:5]
 if __name__ == "__main__":
 
     if os.path.exists("chroma_db"):

@@ -50,10 +50,14 @@ if __name__ == "__main__":
     state = None
     district = None
 
-    if intent in ["crop_advisory", "pest_control", "government_scheme"]:
+    if intent in [
+    "crop_management_query",
+    "pest_control_query",
+    "government_scheme_query",
+    ]:
         query = input("Enter query: ")
 
-    elif intent == "weather":
+    elif intent == "weather_query":
         city = input("Enter city: ")
 
     elif intent == "market_price_query":
