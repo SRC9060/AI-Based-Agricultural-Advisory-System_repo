@@ -1,468 +1,109 @@
-"use client";
+import Sidebar from "@/components/dashboard/Sidebar";
+import TopNavbar from "@/components/dashboard/TopNavbar";
+import StatsSection from "@/components/dashboard/StatsSection";
+import Link from "next/link";
 
-import { useState } from "react";
-
-declare global {
-  interface Window {
-    webkitSpeechRecognition: any;
-    SpeechRecognition: any;
-  }
-}
-
-export default function Dashboard() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [language, setLanguage] = useState("en");
-  const [loading, setLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [status, setStatus] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  
-  async function askAI() {
-  if (!question.trim()) {
-    alert("Please enter a question.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    setAnswer("");
-    setStatus("📤 Sending your question...");
-
-    const response = await fetch("http://127.0.0.1:8000/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: question,
-        language: language,
-      }),
-    });
-
-
-    setStatus("🧠 Understanding your question...");
-    await new Promise(resolve => setTimeout(resolve,500));
-
-    const data = await response.json();
-
-    setStatus("🌾 Preparing agricultural recommendation...");
-    await new Promise(resolve => setTimeout(resolve,500));
-
-    setAnswer(data.answer);
-    setStatus("✅ Recommendation Ready");
-  } catch (error) {
-    setStatus("❌ Unable to connect to AI server.");
-    console.log(error);
-  } finally {
-    setTimeout(() => {
-      setLoading(false);
-      setStatus("");
-  }, 1200);
-  }
-}
-
-  async function recordAudio() {
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    setStatus("❌ Please use Google Chrome for voice input.");
-    return;
-  }
-
-  const recognition = new SpeechRecognition();
-
-  recognition.lang =
-    language === "te"
-      ? "te-IN"
-      : language === "hi"
-      ? "hi-IN"
-      : "en-IN";
-
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-
-  setIsRecording(true);
-
-  recognition.start();
-
-  recognition.onresult = (event: any) => {
-    const transcript = event.results[0][0].transcript;
-    setQuestion(transcript);
-  };
-
-  recognition.onerror = (event:any)=>{
-
-  console.log(event.error);
-
-  if(
-  event.error==="no-speech" ||
-  event.error==="aborted"
-  ){
-
-  setIsRecording(false);
-
-  return;
-
-  }
-
-  setStatus("⚠ Please speak again.");
-
-    setTimeout(()=>{
-
-  setStatus("");
-
-  },2000);
-
-  setIsRecording(false);
-
-  };
-
-  recognition.onend = () => {
-    setIsRecording(false);
-  };
-}
-
-  async function speakAnswer() {
-    setIsSpeaking(true);
-
-    setStatus("🔊 Generating voice...");
-    try {
-      const cleanText = answer
-        .replace(/\*\*/g, "")
-        .replace(/#/g, "")
-        .replace(/\n/g, " ");
-
-      const response = await fetch("http://127.0.0.1:8000/speak", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: cleanText,
-          language: language,
-        }),
-      });
-
-      if (!response.ok) {
-        alert("Failed to generate speech.");
-        return;
-      }
-
-      const audioBlob = await response.blob();
-
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(audioUrl);
-
-      setStatus("▶ Playing response...");
-      audio.play();
-
-      audio.onended = () => {
-
-        URL.revokeObjectURL(audioUrl);
-
-        setStatus("✅ Voice Finished");
-
-        setIsSpeaking(false);
-
-        setTimeout(()=>{
-
-        setStatus("");
-
-        },1500);
-
-      };
-    } catch (error) {
-      console.error(error);
-      setStatus("❌ Unable to generate voice.");
-      setIsSpeaking(false);
-    }
-  }
-
-
+export default function DashboardPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg,#d8f3dc,#b7e4c7,#95d5b2)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "30px",
-      }}
-    >
-      <div
-        style={{
-          width: "850px",
-          maxWidth: "95%",
-          background: "#ffffff",
-          padding: "35px",
-          borderRadius: "18px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "25px",
-          }}
-        >
-          <h1
-            style={{
-              color: "#1b5e20",
-              fontSize: "38px",
-              marginBottom: "5px",
-            }}
-          >
-            🌾 AI Agricultural Advisor
-          </h1>
+    <div className="min-h-screen bg-gray-100 flex">
 
-          <p
-            style={{
-              color: "#2d6a4f",
-              fontSize: "18px",
-            }}
-          >
-            Smart Farming Assistant
-          </p>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <main className="flex-1 p-8">
+
+        {/* Top Navbar */}
+        <TopNavbar />
+
+        {/* Stats Cards */}
+        <div className="mt-8">
+          <StatsSection />
         </div>
 
-        <div
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <label
-            style={{
-              fontWeight: "bold",
-              color: "#1b5e20",
-              fontSize: "17px",
-            }}
-          >
-            🌐 Language
-          </label>
+        {/* AI Assistant + Quick Access */}
+        <div className="grid grid-cols-3 gap-6 mt-8">
 
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "8px",
-              border: "2px solid #2E7D32",
-              color: "#222",
-              background: "#fff",
-              fontWeight: "600",
-            }}
-          >
-            <option value="en">English</option>
-            <option value="hi">Hindi</option>
-            <option value="te">Telugu</option>
-          </select>
-        </div>
+          <div className="col-span-2 bg-white rounded-2xl shadow p-6">
+            <h2 className="text-xl font-bold mb-4">
+              🤖 AI Farming Assistant
+            </h2>
 
-        <input
-          type="text"
-          placeholder={
-            language === "te"
-              ? "మీ ప్రశ్నను ఇక్కడ టైప్ చేయండి..."
-              : language === "hi"
-              ? "अपना प्रश्न यहाँ लिखें..."
-              : "Ask your agriculture question..."
-          }
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "15px",
-            borderRadius: "10px",
-            border: "2px solid #2E7D32",
-            marginBottom: "20px",
-            fontSize: "17px",
-            color: "#111",
-            background: "#ffffff",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
+            <p className="text-gray-600">
+              Ask questions about crops, weather, fertilizers, diseases,
+              government schemes and market prices.
+            </p>
 
-        <div
+            import Link from "next/link";
+          </div>
 
-          style={{
+          <div className="bg-white rounded-2xl shadow p-6">
+            <h2 className="font-bold text-xl mb-4">
+              ⚡ Quick Access
+            </h2>
 
-            background:"#FFFFFF",
-            color: "#111111",
+            <div className="space-y-3">
 
-            padding:"18px",
+             <Link
+             href="/chat"
+             className="block w-full text-center bg-green-50 rounded-xl py-3 hover:bg-green-100"
+             >
+             🌦 Weather
+             </Link>
 
-            borderRadius:"10px",
+              <Link
+               href="/market-prices"
+                className="block w-full text-center bg-green-50 rounded-xl py-3 hover:bg-green-100"
+                >
+             📈 Market Prices
+                </Link>
 
-            marginBottom:"20px",
+              <button className="w-full bg-green-50 rounded-xl py-3 hover:bg-green-100">
+                🌱 Soil Health
+              </button>
 
-            border:"2px solid #66BB6A",
-
-            boxShadow:"0 4px 12px rgba(0,0,0,0.08)",
-
-          }}
-
-          >
-
-          
-
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            marginBottom: "20px",
-          }}
-        >
-          <button
-            onClick={askAI}
-            style={{
-              flex: 1,
-              padding: "14px",
-              backgroundColor: "#2E7D32",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "18px",
-              fontWeight: "bold",
-            }}
-           disabled={loading}>
-            {loading ? "⏳ Thinking..." : "📤 Send"}
-          </button>
-
-          <button
-            onClick={recordAudio}
-            disabled={loading || isRecording || isSpeaking}
-            style={{
-              width: "170px",
-              padding: "14px",
-              backgroundColor: isRecording ? "#C62828" : "#1565C0",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "bold",
-            }}
-          >
-            {
-              isRecording
-              ?
-              "🎙 Listening..."
-              :
-              "🎤 Speak"
-              }
-          </button>
-        </div>
-
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "25px",
-            background:"linear-gradient(135deg,#F8FFF5,#ECFFF0)",
-            borderRadius: "12px",
-            border:"2px solid #81C784",
-          }}
-        >
-          <h2
-            style={{
-              color: "#1b5e20",
-              marginBottom: "15px",
-            }}
-          >
-            🌱 AI Recommendation
-          </h2>
-            
-          {
-            status &&
-
-            <div
-
-            style={{
-
-              padding:"12px",
-
-              background:"#E8F5E9",
-
-              borderRadius:"10px",
-
-              marginBottom:"15px",
-
-              fontWeight:"bold",
-
-              color:"#1565C0"
-
-            }}
-
-            >
-
-              {status}
+              <button className="w-full bg-green-50 rounded-xl py-3 hover:bg-green-100">
+                🏛 Government Schemes
+              </button>
 
             </div>
+          </div>
 
-          }
-
-          <p
-            style={{
-              whiteSpace: "pre-wrap",
-              lineHeight: "1.8",
-              color: "#111111",
-              fontSize: "17px",
-              fontWeight: "500",
-            }}
-          
-            >
-            {loading ? "🤖 AI is analysing your question..." : answer}
-          </p>
-                    {answer && (
-            <button
-              onClick={speakAnswer}
-              disabled={loading || isRecording || isSpeaking}
-              style={{
-                marginTop: "20px",
-                padding: "12px 24px",
-                backgroundColor: "#1565C0",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "bold",
-              }}
-            >
-              {
-                isSpeaking
-                ?
-                "⏳ Generating Voice..."
-                :
-                "🔊 Speak"
-              }
-            </button>
-          )}
-
-          <p
-            style={{
-              marginTop: "20px",
-              color: "#2E7D32",
-              fontSize: "13px",
-            }}
-          >
-            🌱 AI recommendations are generated using agricultural knowledge
-            and should be verified before making important farming decisions.
-          </p>
         </div>
-      </div>
+
+        {/* Bottom Section */}
+        <div className="grid grid-cols-2 gap-6 mt-8">
+
+          <div className="bg-white rounded-2xl shadow p-6">
+            <h2 className="text-xl font-bold mb-4">
+              🏛 Latest Government Schemes
+            </h2>
+
+            <ul className="space-y-3 text-gray-700">
+              <li>• PM-KISAN</li>
+              <li>• PMFBY Crop Insurance</li>
+              <li>• Soil Health Card</li>
+              <li>• Kisan Credit Card</li>
+            </ul>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow p-6">
+            <h2 className="text-xl font-bold mb-4">
+              🕒 Recent Activity
+            </h2>
+
+            <ul className="space-y-3 text-gray-700">
+              <li>✅ Asked about Tomato Disease</li>
+              <li>✅ Checked Paddy Prices</li>
+              <li>✅ Viewed Weather Forecast</li>
+              <li>✅ Applied for PM-KISAN</li>
+            </ul>
+          </div>
+
+        </div>
+
+      </main>
+
     </div>
   );
 }
