@@ -3,20 +3,17 @@ venv/
 __pycache__/
 *.pyc
 
-# Environment files
+# Environment
 .env
 backend/.env
 
-# Databases
+# Database
 *.db
 
-# Audio files
+# Audio
 *.wav
 *.webm
 
-# Python cache
-backend/**/__pycache__/
-
-# Node.js
+# Node
 node_modules/
 .next/
