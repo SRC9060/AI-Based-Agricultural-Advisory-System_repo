@@ -1,14 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import "@/app/globals.css";
+import Sidebar from "@/components/dashboard/Sidebar";
+import TopNavbar from "@/components/dashboard/TopNavbar";
 import "./chat.css";
 
-declare global {
-  interface Window {
-    webkitSpeechRecognition: any;
-    SpeechRecognition: any;
-  }
+interface SpeechRecognitionWindow {
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  SpeechRecognition?: SpeechRecognitionConstructor;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): BrowserSpeechRecognition;
+}
+
+interface BrowserSpeechRecognition {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionResultEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+}
+
+interface SpeechRecognitionResultEvent {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
 }
 
 interface Message {
@@ -19,7 +41,7 @@ interface Message {
 export default function ChatPage() {
 
   const [question, setQuestion] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language] = useState("en");
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -27,11 +49,18 @@ export default function ChatPage() {
       text: "Hello! 👋 I am your AI Agricultural Advisor. Ask me anything about crops, farming, weather, diseases, market information or government schemes.",
     },
   ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   // ==========================================
   // ASK AI
@@ -141,9 +170,11 @@ export default function ChatPage() {
 
   function recordAudio() {
 
+    const speechRecognitionWindow =
+      window as unknown as SpeechRecognitionWindow;
     const SpeechRecognition =
-      window.SpeechRecognition ||
-      window.webkitSpeechRecognition;
+      speechRecognitionWindow.SpeechRecognition ||
+      speechRecognitionWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
 
@@ -174,7 +205,7 @@ export default function ChatPage() {
 
     recognition.start();
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionResultEvent) => {
 
       const transcript =
         event.results[0][0].transcript;
@@ -185,7 +216,7 @@ export default function ChatPage() {
 
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
 
       console.log(event.error);
 
@@ -299,143 +330,14 @@ export default function ChatPage() {
 
 
   return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
 
-    <div className="chat-dashboard">
+      <div className="flex-1 flex flex-col">
+        <TopNavbar />
 
-      {/* ================= SIDEBAR ================= */}
-
-      <aside className="chat-sidebar">
-
-        <div>
-
-          <div className="sidebar-logo">
-
-            <span>🌾</span>
-
-            <div>
-              <h2>AgriAI</h2>
-              <p>Smart Farming</p>
-            </div>
-
-          </div>
-
-
-          <div className="sidebar-menu">
-
-            <Link
-              href="/dashboard"
-              className="sidebar-link"
-            >
-              🏠 Dashboard
-            </Link>
-
-
-            <div className="sidebar-link active">
-              💬 AI Assistant
-            </div>
-
-
-            <div className="sidebar-link">
-              🎤 Voice Advisory
-            </div>
-
-
-            <div className="sidebar-link">
-              🌦 Weather
-            </div>
-
-
-            <div className="sidebar-link">
-              🌾 Crop Advisory
-            </div>
-
-
-            <div className="sidebar-link">
-              💰 Market Prices
-            </div>
-
-
-            <div className="sidebar-link">
-              🏛 Government Schemes
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="sidebar-bottom">
-
-          <Link
-            href="/"
-            className="sidebar-home"
-          >
-            ← Back to Home
-          </Link>
-
-        </div>
-
-      </aside>
-
-
-      {/* ================= MAIN ================= */}
-
-      <main className="chat-main">
-
-
-        {/* HEADER */}
-
-        <header className="chat-header">
-
-          <div>
-
-            <h1>
-              🤖 Agricultural AI Assistant
-            </h1>
-
-            <p>
-              Ask farming questions and receive
-              intelligent agricultural guidance.
-            </p>
-
-          </div>
-
-
-          <div className="header-controls">
-
-            <label>
-              🌐 Language
-            </label>
-
-            <select
-              value={language}
-              onChange={(e) =>
-                setLanguage(e.target.value)
-              }
-            >
-
-              <option value="en">
-                English
-              </option>
-
-              <option value="hi">
-                Hindi
-              </option>
-
-              <option value="te">
-                Telugu
-              </option>
-
-            </select>
-
-          </div>
-
-        </header>
-
-
-        {/* CHAT AREA */}
-
-        <section className="chat-area">
+        <main className="flex-1 p-6">
+          <section className="chat-area">
 
 
           <div className="chat-messages">
@@ -534,6 +436,8 @@ export default function ChatPage() {
 
             )}
 
+            <div ref={messagesEndRef} />
+
           </div>
 
 
@@ -549,6 +453,14 @@ export default function ChatPage() {
 
 
           {/* INPUT AREA */}
+
+          <p className="ai-disclaimer">
+
+            🌱 AI recommendations should be
+            verified before making important
+            farming decisions.
+
+          </p>
 
           <div className="chat-input-container">
 
@@ -615,22 +527,11 @@ export default function ChatPage() {
             </button>
 
           </div>
-
-
-          <p className="ai-disclaimer">
-
-            🌱 AI recommendations should be
-            verified before making important
-            farming decisions.
-
-          </p>
-
         </section>
-
-      </main>
-
+        </main>
+      </div>
     </div>
-
   );
+
 
 }

@@ -27,7 +27,7 @@ export default function StatCard({
   linkColor,
 }: StatCardProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 p-5 min-h-35 flex flex-col justify-between bg-gradient-to-br from-white to-green-50/60">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 p-5 min-h-35 flex flex-col justify-between bg-linear-to-br from-white to-green-50/60">
       <div className="flex justify-between items-start gap-4">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-500">{title}</p>
