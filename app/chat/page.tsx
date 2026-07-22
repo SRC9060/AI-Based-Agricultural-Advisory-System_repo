@@ -296,7 +296,14 @@ export default function ChatPage() {
     }
 
   }
+// ==========================================
+// LOGOUT
+// ==========================================
 
+function handleLogout() {
+  sessionStorage.clear();
+  window.location.href = "/login";
+}
 
   return (
 
@@ -322,44 +329,35 @@ export default function ChatPage() {
 
           <div className="sidebar-menu">
 
-            <Link
-              href="/dashboard"
-              className="sidebar-link"
-            >
-              🏠 Dashboard
-            </Link>
+  <Link href="/dashboard" className="sidebar-link">
+    🏠 Dashboard
+  </Link>
 
+  <Link href="/chat" className="sidebar-link active">
+    💬 AI Assistant
+  </Link>
 
-            <div className="sidebar-link active">
-              💬 AI Assistant
-            </div>
+  <Link href="/voice" className="sidebar-link">
+    🎤 Voice Advisory
+  </Link>
 
+  <Link href="/weather" className="sidebar-link">
+    🌦 Weather
+  </Link>
 
-            <div className="sidebar-link">
-              🎤 Voice Advisory
-            </div>
+  <Link href="/crop" className="sidebar-link">
+    🌾 Crop Advisory
+  </Link>
 
+  <Link href="/market" className="sidebar-link">
+    💰 Market Prices
+  </Link>
 
-            <div className="sidebar-link">
-              🌦 Weather
-            </div>
+  <Link href="/schemes" className="sidebar-link">
+    🏛 Government Schemes
+  </Link>
 
-
-            <div className="sidebar-link">
-              🌾 Crop Advisory
-            </div>
-
-
-            <div className="sidebar-link">
-              💰 Market Prices
-            </div>
-
-
-            <div className="sidebar-link">
-              🏛 Government Schemes
-            </div>
-
-          </div>
+</div>
 
         </div>
 
