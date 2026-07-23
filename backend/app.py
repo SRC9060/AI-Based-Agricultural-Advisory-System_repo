@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -19,13 +21,17 @@ from services.router import route_query
 from services.response_quality import calculate_response_quality
 from config import Config
 from models import LoginRequest, ChatRequest
+from services.agmarknet import get_market_price
+from services.agmarknet import get_market_options
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -334,3 +340,41 @@ async def voice_chat(
         "session": session,
         "response_quality": quality_result
     }
+
+class MarketRequest(BaseModel):
+    commodity: str
+    state: str
+    district: str
+
+@app.post("/market-price")
+def market_price(request: MarketRequest):
+
+    try:
+
+        response = get_market_price(
+        commodity=request.commodity,
+        state=request.state,
+        district=request.district
+        )
+
+        return {
+    "commodity": response.commodity,
+    "state": response.state,
+    "district": response.district,
+    "market": response.market,
+    "min_price": response.min_price,
+    "max_price": response.max_price,
+    "modal_price": response.modal_price,
+    "arrival_date": response.arrival_date
+}
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+@app.get("/market-options")
+def market_options():
+
+    return get_market_options()
