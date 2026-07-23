@@ -11,3 +11,6 @@ sarvamai
 langchain_text_splitters
 langchain_community
 sentence-transformers
+langchain-chroma
+langchain-huggingface
+python-multipart
