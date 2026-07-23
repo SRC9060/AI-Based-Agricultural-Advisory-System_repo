@@ -54,7 +54,7 @@ export default function MarketResult({
         </h2>
 
         <p className="mt-2 text-gray-500">
-          Please wait while we retrieve today's mandi prices.
+          Please wait while we retrieve Today&apos; market prices.
         </p>
       </div>
     );
@@ -78,7 +78,7 @@ export default function MarketResult({
         </h2>
 
         <p className="mt-2 text-gray-500">
-          Select Commodity, State and District to view today's market prices.
+          Select Commodity, State and District to view Today&apos; market prices.
         </p>
       </div>
     );
@@ -94,7 +94,7 @@ export default function MarketResult({
 
         <div>
           <h2 className="text-3xl font-bold text-green-800">
-            Today's Market Details
+            Today&apos; Market Details
           </h2>
 
           <p className="text-gray-500">
@@ -180,7 +180,7 @@ function InfoCard({
         <span className="font-medium">{title}</span>
       </div>
 
-      <p className="mt-4 text-xl font-bold text-gray-800 break-words">
+      <p className="mt-4 text-xl font-bold text-gray-800 wrap-break-word">
         {value}
       </p>
     </div>
