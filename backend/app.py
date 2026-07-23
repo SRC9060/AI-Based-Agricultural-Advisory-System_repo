@@ -7,6 +7,7 @@ from services.speech_to_text import speech_to_text
 from services.text_to_speech import text_to_speech
 from services.intent_classifier import classify_intent
 from services.ner import extract_entities
+import os
 from services.session_manager import (
     create_session,
     add_message,

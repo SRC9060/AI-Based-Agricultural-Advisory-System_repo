@@ -20,12 +20,61 @@ const utilityItems = [
   { name: "Profile", icon: "👤", href: "/profile" },
 ];
 
-const languages = ["English", "हिंदी", "తెలుగు", "தமிழ்"];
+const languages = [
+  "English",
+  "हिंदी",
+  "తెలుగు",
+];
+
+
+const translations = {
+  English: {
+    dashboard: "Dashboard",
+    assistant: "Ask Assistant",
+    voice: "Voice Assistant",
+    soil: "Soil & Crop Info",
+    schemes: "Government Schemes",
+    weather: "Weather",
+    market: "Market Prices",
+    queries: "My Queries",
+    profile: "Profile",
+    language: "Language",
+  },
+
+  "తెలుగు": {
+    dashboard: "డాష్‌బోర్డ్",
+    assistant: "సహాయకుడిని అడగండి",
+    voice: "వాయిస్ సహాయకుడు",
+    soil: "నేల & పంట సమాచారం",
+    schemes: "ప్రభుత్వ పథకాలు",
+    weather: "వాతావరణం",
+    market: "మార్కెట్ ధరలు",
+    queries: "నా ప్రశ్నలు",
+    profile: "ప్రొఫైల్",
+    language: "భాష",
+  },
+
+  "हिंदी": {
+    dashboard: "डैशबोर्ड",
+    assistant: "सहायक से पूछें",
+    voice: "वॉयस सहायक",
+    soil: "मिट्टी और फसल जानकारी",
+    schemes: "सरकारी योजनाएँ",
+    weather: "मौसम",
+    market: "बाजार भाव",
+    queries: "मेरे प्रश्न",
+    profile: "प्रोफ़ाइल",
+    language: "भाषा",
+  }
+};
+
+
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [langOpen, setLangOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState("English");
+  const t = translations[selectedLang as keyof typeof translations];
 
   return (
     <aside className="w-64 min-h-screen bg-[#166534] text-white flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
@@ -52,7 +101,16 @@ export default function Sidebar() {
               }`}
             >
               <span className="text-lg leading-none">{item.icon}</span>
-              <span className="text-sm">{item.name}</span>
+              <span className="text-sm">
+                {item.name === "Dashboard" && t.dashboard}
+                {item.name === "Ask Assistant" && t.assistant}
+                {item.name === "Voice Assistant" && t.voice}
+                {item.name === "Soil & Crop Info" && t.soil}
+                {item.name === "Government Schemes" && t.schemes}
+                {item.name === "Weather" && t.weather}
+                {item.name === "Market Prices" && t.market}
+                {item.name === "My Queries" && t.queries}
+              </span>
             </Link>
           ))}
 
@@ -69,7 +127,7 @@ export default function Sidebar() {
               }`}
             >
               <span className="text-lg leading-none">{item.icon}</span>
-              <span className="text-sm">{item.name}</span>
+              <span className="text-sm">{t.profile}</span>
             </Link>
           ))}
 
@@ -80,7 +138,7 @@ export default function Sidebar() {
             >
               <span className="flex items-center gap-3">
                 <span className="text-lg leading-none">🌐</span>
-                <span className="text-sm">Language</span>
+                <span className="text-sm">{selectedLang}</span>
               </span>
               <ChevronDown size={16} />
             </button>
