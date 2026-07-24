@@ -15,7 +15,7 @@ from services.session_manager import (
     get_session
 )
 from services.rag_pipeline import generate_response
-from services.weather_service import get_weather
+from services.weather_service import get_weather,get_forecast
 from services.agri_entities import extract_agri_entities
 from services.router import route_query
 from services.response_quality import calculate_response_quality
@@ -43,7 +43,28 @@ def home():
     return {
         "message": "Farmer Advisory Chatbot API is running!"
     }
+@app.get("/weather")
+def weather(city: str):
+    result = get_weather(city)
 
+    if "error" in result:
+        raise HTTPException(
+            status_code=400,
+            detail=result["error"]
+        )
+
+    return result
+@app.get("/weather/forecast")
+def weather_forecast(city: str):
+    result = get_forecast(city)
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=400,
+            detail=result["error"]
+        )
+
+    return result
 @app.post("/login")
 def login(request: LoginRequest):
     user = Config.USERS.get(request.email)
