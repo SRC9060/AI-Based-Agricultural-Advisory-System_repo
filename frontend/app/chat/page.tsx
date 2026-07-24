@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import "@/app/globals.css";
-import Sidebar from "@/components/dashboard/Sidebar";
-import TopNavbar from "@/components/dashboard/TopNavbar";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 import "./chat.css";
 
 interface SpeechRecognitionWindow {
@@ -55,6 +55,8 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [status, setStatus] = useState("");
+  const searchParams = useSearchParams();
+  const hasAutoAsked = useRef(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -66,11 +68,12 @@ export default function ChatPage() {
   // ASK AI
   // ==========================================
 
-  async function askAI() {
-    if (!question.trim()) {
+  const askAI = useCallback(async (customQuestion?: string) => {
+    const currentQuestion = customQuestion ?? question;
+
+    if (!currentQuestion.trim()) {
       return;
     }
-    const currentQuestion = question;
     setMessages((previous) => [
       ...previous,
       {
@@ -78,7 +81,10 @@ export default function ChatPage() {
         text: currentQuestion,
       },
     ]);
-    setQuestion("");
+    if (!customQuestion) {
+      setQuestion("");
+    }
+    window.history.replaceState({}, "", "/chat");
     try {
       setLoading(true);
       setStatus("🧠 AI is analysing your question...");
@@ -123,8 +129,25 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [question]);
+  
+ useEffect(() => {
+  const query = searchParams.get("q");
 
+  if (!query) return;
+
+  if (hasAutoAsked.current) return;
+
+  hasAutoAsked.current = true;
+
+  setQuestion(query);
+
+  askAI(query);
+
+  window.history.replaceState({}, "", "/chat");
+
+}, [searchParams, askAI]);
+  //
   // ==========================================
   // ENTER KEY
   // ==========================================
@@ -307,16 +330,10 @@ export default function ChatPage() {
   }
 
 
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+ return (
+  <DashboardLayout>
 
-      <div className="flex-1 flex flex-col">
-        <TopNavbar />
-
-        <main className="flex-1 p-6">
           <section className="chat-area">
-
 
           <div className="chat-messages">
 
@@ -490,7 +507,7 @@ export default function ChatPage() {
             <button
               className="send-btn"
 
-              onClick={askAI}
+             onClick={() => askAI()}
 
               disabled={
                 loading ||
@@ -506,9 +523,7 @@ export default function ChatPage() {
 
           </div>
         </section>
-        </main>
-      </div>
-    </div>
+           </DashboardLayout>
   );
 
 

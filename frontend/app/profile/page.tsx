@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
-import TopNavbar from "@/components/dashboard/TopNavbar";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
+
 
 export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
@@ -29,17 +29,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-100 flex">
+    <DashboardLayout>
 
-      {/* Sidebar */}
-      <div className="h-screen shrink-0 overflow-y-auto">
-        <Sidebar />
-      </div>
-
-      {/* Main Content */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-6">
-
-        <TopNavbar />
+      <div className="py-6">
 
         {/* Header */}
         <div className="mt-6">
@@ -215,8 +207,9 @@ export default function ProfilePage() {
 
         </div>
 
-      </main>
-    </div>
+      </div>
+
+    </DashboardLayout>
   );
 }
 
