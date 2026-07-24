@@ -1,7 +1,6 @@
 import {
   CloudSun,
   TrendingUp,
-  Sprout,
   MessageSquare,
   Landmark,
 } from "lucide-react";
@@ -35,17 +34,7 @@ export default function StatsSection() {
         linkColor="text-green-600"
       />
 
-      <StatCard
-        title="Soil Health"
-        value="Good"
-        details={["pH: 6.8 | N: Medium", "P: High | K: Medium"]}
-        icon={<Sprout size={16} />}
-        color="bg-emerald-600"
-        linkText="View soil report"
-        linkHref="/soil-crop"
-        linkColor="text-emerald-600"
-      />
-
+    
       <StatCard
         title="My Queries"
         value="12"

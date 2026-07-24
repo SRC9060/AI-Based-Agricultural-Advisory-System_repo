@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
-import TopNavbar from "@/components/dashboard/TopNavbar";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 
 type WeatherData = {
   city: string;
@@ -159,18 +158,7 @@ export default function WeatherPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-100 flex">
-
-      {/* Sidebar */}
-      <div className="h-screen shrink-0 overflow-y-auto">
-        <Sidebar />
-      </div>
-
-      {/* Main Content */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-6">
-
-        {/* Top Navbar */}
-        <TopNavbar />
+  <DashboardLayout>
 
         {/* Header */}
         <div className="mt-6">
@@ -454,8 +442,6 @@ export default function WeatherPage() {
           </div>
         )}
 
-      </main>
-
-    </div>
+      </DashboardLayout>
   );
 }

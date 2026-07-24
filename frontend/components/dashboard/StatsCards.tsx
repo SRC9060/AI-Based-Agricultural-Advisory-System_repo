@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { ReactNode } from "react";
 
 interface StatCardProps {
@@ -27,13 +27,13 @@ export default function StatCard({
   linkColor,
 }: StatCardProps) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 p-5 min-h-35 flex flex-col justify-between bg-linear-to-br from-white to-green-50/60">
+    <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-green-50 shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all duration-300 p-5">
       <div className="flex justify-between items-start gap-4">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-500">{title}</p>
 
           <div className="mt-3 flex items-baseline gap-1 flex-wrap">
-            <h2 className="text-[1.7rem] font-semibold text-slate-900">{value}</h2>
+            <h2 className="text-3xl font-semibold text-slate-900">{value}</h2>
             {valueSuffix ? (
               <span className="text-sm text-slate-500">{valueSuffix}</span>
             ) : null}
@@ -53,7 +53,7 @@ export default function StatCard({
         </div>
 
         <div
-          className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0`}
+          className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0`}
         >
           {icon}
         </div>

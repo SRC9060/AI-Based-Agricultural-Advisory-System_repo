@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import TopNavbar from "@/components/dashboard/TopNavbar";
-import Sidebar from "@/components/dashboard/Sidebar";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 
 import MarketSearch from "@/components/market/MarketSearch";
 import MarketResult from "@/components/market/MarketResult";
@@ -116,12 +115,8 @@ export default function MarketPricesPage() {
     }
   };
 
-  return (
-    <div className="flex bg-gray-100 min-h-screen">
-      <Sidebar />
-
-      <main className="flex-1 p-6">
-        <TopNavbar />
+ return (
+  <DashboardLayout>
 
         <div className="mt-6">
           <h1 className="text-3xl font-bold text-green-800">
@@ -148,7 +143,6 @@ export default function MarketPricesPage() {
             error={error}
           />
         </div>
-      </main>
-    </div>
+      </DashboardLayout>
   );
 }
