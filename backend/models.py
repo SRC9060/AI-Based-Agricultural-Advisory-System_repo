@@ -7,6 +7,7 @@ class LoginRequest(BaseModel):
 class ChatRequest(BaseModel):
     user_id: str
     message: str
+    language: str = "en"
 
 class MarketRequest(BaseModel):
     commodity: str

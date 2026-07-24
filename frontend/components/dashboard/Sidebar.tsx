@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
@@ -20,12 +20,40 @@ const utilityItems = [
   { name: "Profile", icon: "👤", href: "/profile" },
 ];
 
-const languages = ["English", "हिंदी", "తెలుగు", "தமிழ்"];
+const languages = [
+  "English",
+  "हिंदी",
+  "తెలుగు",
+  "ಕನ್ನಡ",
+];
+
+const langMap = {
+  English: "en",
+  "हिंदी": "hi",
+  "తెలుగు": "te",
+  "ಕನ್ನಡ": "kn",
+};
+
+const reverseLangMap = {
+  en: "English",
+  hi: "हिंदी",
+  te: "తెలుగు",
+  kn: "ಕನ್ನಡ",
+};
 
 export default function Sidebar() {
   const pathname = usePathname();
+
   const [langOpen, setLangOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState("English");
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem("language") || "en";
+
+    setSelectedLang(
+      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
+    );
+  }, []);
 
   return (
     <aside className="w-64 min-h-screen bg-[#166534] text-white flex flex-col justify-between shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
@@ -82,6 +110,7 @@ export default function Sidebar() {
                 <span className="text-lg leading-none">🌐</span>
                 <span className="text-sm">Language</span>
               </span>
+
               <ChevronDown size={16} />
             </button>
 
@@ -91,11 +120,22 @@ export default function Sidebar() {
                   <button
                     key={lang}
                     onClick={() => {
+                      const code =
+                        langMap[lang as keyof typeof langMap];
+
+                      console.log("Selected Language:", lang);
+                      console.log("Language Code:", code);
+
                       setSelectedLang(lang);
+
+                      localStorage.setItem("language", code);
+
                       setLangOpen(false);
                     }}
                     className={`w-full text-left px-4 py-2 text-sm hover:bg-green-100 ${
-                      selectedLang === lang ? "font-semibold bg-green-50" : ""
+                      selectedLang === lang
+                        ? "font-semibold bg-green-50"
+                        : ""
                     }`}
                   >
                     {lang}
@@ -118,7 +158,9 @@ export default function Sidebar() {
 
         <div className="bg-[#14532d] rounded-2xl p-4 text-center shadow-sm">
           <p className="text-3xl mb-2">🧑‍🌾</p>
+
           <p className="font-semibold text-sm">Need Help?</p>
+
           <p className="text-xs text-green-200 mt-1.5">
             Click the assistant button to get started
           </p>

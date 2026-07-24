@@ -7,11 +7,11 @@ client = SarvamAI(
     api_subscription_key=Config.SARVAM_API_KEY
 )
 
-def text_to_speech(text):
+def text_to_speech(text, language="en-IN"):
     try:
         response = client.text_to_speech.convert(
             text=text,
-            target_language_code="en-IN",
+            target_language_code=language,
             speaker="anushka"
         )
         audio_bytes = base64.b64decode(response.audios[0])

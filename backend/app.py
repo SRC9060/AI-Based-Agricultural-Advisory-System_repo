@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from services.language_detection import detect_language
@@ -89,7 +90,9 @@ def login(request: LoginRequest):
 @app.post("/chat")
 def chat(request: ChatRequest):
     user_message = request.message
-    language = detect_language(user_message)
+    language = request.language or detect_language(user_message)
+    print("Selected language:", language)
+    print("Selected Language:", request.language)
     create_session(request.user_id, language)
     add_message(request.user_id, user_message)
     session = get_session(request.user_id)
@@ -361,6 +364,42 @@ async def voice_chat(
         "session": session,
         "response_quality": quality_result
     }
+
+class SpeakRequest(BaseModel):
+    text: str
+    language: str = "en"
+
+
+@app.post("/speak")
+def speak(request: SpeakRequest):
+
+    lang_map = {
+        "en": "en-IN",
+        "hi": "hi-IN",
+        "te": "te-IN",
+        "kn": "kn-IN",
+        "ta": "ta-IN",
+    }
+
+    target_language = lang_map.get(request.language, "en-IN")
+
+    result = text_to_speech(
+        request.text,
+        target_language
+    )
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=500,
+            detail=result["error"]
+        )
+
+    return FileResponse(
+        result["audio_file"],
+        media_type="audio/wav",
+        filename="speech.wav"
+    )
+
 
 class MarketRequest(BaseModel):
     commodity: str

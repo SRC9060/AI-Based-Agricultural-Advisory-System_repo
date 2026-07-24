@@ -41,7 +41,14 @@ interface Message {
 export default function ChatPage() {
 
   const [question, setQuestion] = useState("");
-  const [language] = useState("en");
+  const [language, setLanguage] = useState("en");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("language");
+    if (saved) {
+      setLanguage(saved);
+    }
+  }, []);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -82,16 +89,25 @@ export default function ChatPage() {
     try {
       setLoading(true);
       setStatus("🧠 AI is analysing your question...");
+
+      const selectedLanguage =
+            localStorage.getItem("language") || "en";
+
+      console.log("Sending Language:", selectedLanguage);
+
       const response = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify({
           user_id: "guest",
           message: currentQuestion,
+          language: selectedLanguage,
         }),
       });
+
       if (!response.ok) {
         const error = await response.json();
         console.error("Backend Error:", error);
@@ -245,6 +261,11 @@ export default function ChatPage() {
         .replace(/#/g, "")
         .replace(/\n/g, " ");
 
+      const selectedLanguage =
+        localStorage.getItem("language") || "en";
+
+      console.log("TTS Language:", selectedLanguage);
+
       const response = await fetch(
         "http://127.0.0.1:8000/speak",
         {
@@ -256,7 +277,7 @@ export default function ChatPage() {
 
           body: JSON.stringify({
             text: cleanText,
-            language: language,
+            language: selectedLanguage,
           }),
         }
       );
@@ -275,22 +296,32 @@ export default function ChatPage() {
       const audioUrl =
         URL.createObjectURL(audioBlob);
 
-      const audio =
-        new Audio(audioUrl);
-
-      setStatus("🔊 Playing AI response...");
-
-      audio.play();
+      const audio = new Audio(audioUrl);
 
       audio.onended = () => {
-
         URL.revokeObjectURL(audioUrl);
-
         setIsSpeaking(false);
-
         setStatus("");
-
       };
+
+      audio.onerror = (e) => {
+        console.error("Audio Error:", e);
+        URL.revokeObjectURL(audioUrl);
+        setStatus("❌ Audio playback failed.");
+        setIsSpeaking(false);
+      };
+
+      try {
+        setStatus("🔊 Playing AI response...");
+
+        await audio.play();
+
+      } catch (err) {
+        console.error("Play Error:", err);
+        URL.revokeObjectURL(audioUrl);
+        setStatus("❌ Browser blocked audio playback.");
+        setIsSpeaking(false);
+      }
 
     } catch (error) {
 

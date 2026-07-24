@@ -17,3 +17,7 @@ npm i
 npm run dev
 ```
 Navigate to `http://localhost:3000` in Browser
+
+
+git checkout dev
+git pull origin dev
