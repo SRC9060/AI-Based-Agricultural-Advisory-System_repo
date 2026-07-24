@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Link } from "next-view-transitions";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
 import {
   Bell,
@@ -44,6 +45,22 @@ const navItems = [
   },
 ];
 
+const languages = ["English", "हिंदी", "తెలుగు", "ಕನ್ನಡ"];
+
+const langMap = {
+  English: "en",
+  "हिंदी": "hi",
+  "తెలుగు": "te",
+  "ಕన్నడ": "kn",
+};
+
+const reverseLangMap = {
+  en: "English",
+  hi: "हिंदी",
+  te: "తెలుగు",
+  kn: "ಕನ್ನಡ",
+};
+
 interface TopNavbarProps {
   userName?: string;
   userRole?: string;
@@ -58,6 +75,16 @@ export default function TopNavbar({
   onMenuClick,
 }: TopNavbarProps) {
   const pathname = usePathname();
+
+  const [langOpen, setLangOpen] = useState(false);
+  const [selectedLang, setSelectedLang] = useState("English");
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem("language") || "en";
+    setSelectedLang(
+      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
+    );
+  }, []);
 
   return (
     <header className="sticky top-4 z-50 px-6 pt-4">
@@ -124,12 +151,34 @@ export default function TopNavbar({
           <div className="flex items-center gap-4">
 
             {/* Language */}
-            <div id="language-selector-placeholder">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-slate-50">
+            <div className="relative">
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
+              >
                 <Globe size={18} />
-                <span className="text-sm font-medium">English</span>
-                <ChevronDown size={15} />
+                <span className="text-sm font-medium">{selectedLang}</span>
+                <ChevronDown size={16} />
               </button>
+
+              {langOpen && (
+                <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-50 border border-slate-200 overflow-hidden">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        const code = langMap[lang as keyof typeof langMap];
+                        setSelectedLang(lang);
+                        localStorage.setItem("language", code);
+                        setLangOpen(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm hover:bg-green-100 whitespace-nowrap"
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Notification */}

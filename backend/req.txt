@@ -14,3 +14,5 @@ sentence-transformers
 langchain-chroma
 langchain-huggingface
 python-multipart
+pypdf
+typing-extensions
