@@ -41,14 +41,11 @@ interface Message {
 export default function ChatPage() {
 
   const [question, setQuestion] = useState("");
-  const [language, setLanguage] = useState("en");
+const [language] = useState(() => {
+  if (typeof window === "undefined") return "en";
 
-  useEffect(() => {
-    const saved = localStorage.getItem("language");
-    if (saved) {
-      setLanguage(saved);
-    }
-  }, []);
+  return localStorage.getItem("language") || "en";
+});
 
   const [messages, setMessages] = useState<Message[]>([
     {

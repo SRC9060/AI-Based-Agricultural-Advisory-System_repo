@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Link } from "next-view-transitions";
-import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { LogOut } from "lucide-react";
 
 import {
   Bell,
@@ -45,7 +46,7 @@ const navItems = [
   },
 ];
 
-const languages = ["English", "हिंदी", "తెలుగు", "ಕನ್ನಡ"];
+const languages = ["English", "हिंदी", "తెలుగు", "ಕన్నడ"];
 
 const langMap = {
   English: "en",
@@ -58,7 +59,7 @@ const reverseLangMap = {
   en: "English",
   hi: "हिंदी",
   te: "తెలుగు",
-  kn: "ಕನ್ನಡ",
+  kn: "ಕన్నడ",
 };
 
 interface TopNavbarProps {
@@ -75,15 +76,39 @@ export default function TopNavbar({
   onMenuClick,
 }: TopNavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("user_name");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("language");
+
+    router.replace("/login");
+  };
 
   const [langOpen, setLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState("English");
+  const [selectedLang, setSelectedLang] = useState(() => {
 
-  useEffect(() => {
+    if (typeof window === "undefined") return "English";
+
     const savedLang = localStorage.getItem("language") || "en";
-    setSelectedLang(
+
+    return (
       reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
     );
+  });
+  const [displayName, setDisplayName] = useState("Farmer");
+  const [displayRole] = useState("Farmer");
+
+  useEffect(() => {
+
+    const name = localStorage.getItem("user_name");
+
+    if (name) {
+      setDisplayName(name);
+    }
+
   }, []);
 
   return (
@@ -189,33 +214,45 @@ export default function TopNavbar({
               </span>
             </button>
 
-            {/* Profile */}
-            <Link href="/profile">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300 cursor-pointer">
+            {/* Profile + Logout */}
+            <div className="flex items-center gap-3">
 
-                {userAvatar ? (
-                  <Image
-                    src={userAvatar}
-                    alt={userName}
-                    width={42}
-                    height={42}
-                    className="rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center font-bold">
-                    {userName.charAt(0)}
+              <Link href="/profile">
+                <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300 cursor-pointer">
+
+                  {userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      alt={displayName}
+                      width={42}
+                      height={42}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center font-bold">
+                      {displayName.charAt(0)}
+                    </div>
+                  )}
+
+                  <div className="hidden xl:block">
+                    <p className="font-semibold text-sm">{displayName}</p>
+                    <p className="text-xs text-slate-500">{displayRole}</p>
                   </div>
-                )}
 
-                <div className="hidden xl:block">
-                  <p className="font-semibold text-sm">{userName}</p>
-                  <p className="text-xs text-slate-500">{userRole}</p>
+                  <ChevronDown size={16} className="text-slate-500" />
+
                 </div>
+              </Link>
 
-                <ChevronDown size={16} className="text-slate-500" />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
+              >
+                <LogOut size={18} />
+                <span className="hidden xl:inline">Logout</span>
+              </button>
 
-              </div>
-            </Link>
+            </div>
 
           </div>
 

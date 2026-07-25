@@ -15,15 +15,19 @@ from services.session_manager import (
     add_message,
     get_session
 )
+from database import SessionLocal
+from user_model import User
 from services.rag_pipeline import generate_response
 from services.weather_service import get_weather,get_forecast
 from services.agri_entities import extract_agri_entities
 from services.router import route_query
 from services.response_quality import calculate_response_quality
 from config import Config
-from models import LoginRequest, ChatRequest
+from models import (LoginRequest,RegisterRequest,ProfileResponse,ProfileUpdateRequest,ChatRequest,)
 from services.agmarknet import get_market_price
 from services.agmarknet import get_market_options
+from services.agents.scheme_agent import ( scheme_agent,scheme_titles_agent,)
+
 
 app = FastAPI()
 app.add_middleware(
@@ -66,26 +70,281 @@ def weather_forecast(city: str):
         )
 
     return result
+
+@app.post("/register")
+def register(request: RegisterRequest):
+
+    db = SessionLocal()
+
+    existing_user = (
+        db.query(User)
+        .filter(User.email == request.email)
+        .first()
+    )
+
+    if existing_user:
+        db.close()
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+
+    new_user = User(
+        name=request.name,
+        email=request.email,
+        password=request.password,
+        language=request.language
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    db.close()
+
+    return {
+        "message": "Registration Successful"
+    }
+
 @app.post("/login")
 def login(request: LoginRequest):
-    user = Config.USERS.get(request.email)
+
+    db = SessionLocal()
+
+    user = (
+        db.query(User)
+        .filter(User.email == request.email)
+        .first()
+    )
+
     if user is None:
+        db.close()
         raise HTTPException(
             status_code=401,
             detail="Invalid Credentials"
         )
-    if user["password"] != request.password:
+
+    if user.password != request.password:
+        db.close()
         raise HTTPException(
             status_code=401,
             detail="Invalid Credentials"
         )
-    return {
+
+    response = {
         "message": "Login Successful",
         "user": {
-            "email": request.email,
-            "name": user["name"]
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "language": user.language,
+            "phone": user.phone,
+            "state": user.state,
+            "district": user.district,
+            "city": user.city
         }
     }
+
+    db.close()
+
+    return response
+
+@app.get("/profile/{user_id}", response_model=ProfileResponse)
+def get_profile(user_id: int):
+
+    db = SessionLocal()
+
+    user = db.query(User).filter(
+        User.id == user_id
+    ).first()
+
+    if not user:
+
+        db.close()
+
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    response = ProfileResponse(
+
+        id=user.id,
+
+        name=user.name,
+
+        email=user.email,
+
+        phone=user.phone,
+
+        state=user.state,
+
+        district=user.district,
+
+        city=user.city,
+
+        language=user.language,
+
+        farmer_type=user.farmer_type,
+
+        crop=user.crop,
+
+        farm_size=user.farm_size,
+
+        soil_type=user.soil_type
+
+    )
+
+    db.close()
+
+    return response
+
+@app.put("/profile/{user_id}")
+def update_profile(
+    user_id: int,
+    request: ProfileUpdateRequest
+):
+
+    db = SessionLocal()
+
+    user = db.query(User).filter(
+        User.id == user_id
+    ).first()
+
+    if not user:
+
+        db.close()
+
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    user.phone = request.phone
+
+    user.state = request.state
+
+    user.district = request.district
+
+    user.city = request.city
+
+    user.language = request.language
+
+    user.farmer_type = request.farmer_type
+
+    user.crop = request.crop
+
+    user.farm_size = request.farm_size
+
+    user.soil_type = request.soil_type
+
+    db.commit()
+
+    db.close()
+
+    return {
+
+        "message": "Profile Updated Successfully"
+
+    }
+
+@app.get("/profile-status/{user_id}")
+def profile_status(user_id: int):
+
+    db = SessionLocal()
+
+    user = db.query(User).filter(
+        User.id == user_id
+    ).first()
+
+    if not user:
+
+        db.close()
+
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+    print("Phone:", user.phone)
+    print("State:", user.state)
+    print("District:", user.district)
+    print("City:", user.city)
+    print("Language:", user.language)
+    print("Crop:", user.crop)
+
+    completed = all([
+
+        user.phone,
+
+        user.state,
+
+        user.district,
+
+        user.city,
+
+        user.language,
+
+        user.crop
+
+    ])
+
+    db.close()
+
+    return {
+
+        "profile_completed": completed
+
+}
+
+@app.get("/schemes/{user_id}")
+def get_schemes(user_id: int):
+
+    db = SessionLocal()
+
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        query = f"""
+Government schemes for farmers.
+
+Farmer Details:
+State: {user.state}
+Crop: {user.crop}
+Farmer Type: {user.farmer_type}
+Farm Size: {user.farm_size}
+
+Return only the most relevant government scheme names.
+One scheme per line.
+No explanation.
+"""
+
+        answer = scheme_titles_agent(query)
+
+        scheme_list = []
+
+        for line in answer.split("\n"):
+
+            line = line.strip()
+
+            if line:
+                scheme_list.append({
+                    "title": line
+                })
+
+        return {
+            "count": len(scheme_list),
+            "schemes": scheme_list
+        }
+
+    finally:
+        db.close()
+
 
 @app.post("/chat")
 def chat(request: ChatRequest):
@@ -438,3 +697,9 @@ def market_price(request: MarketRequest):
 def market_options():
 
     return get_market_options()
+
+from database import engine
+from user_model import Base
+
+
+Base.metadata.create_all(bind=engine)

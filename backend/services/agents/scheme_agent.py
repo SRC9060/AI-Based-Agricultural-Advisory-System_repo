@@ -1,5 +1,6 @@
 from services.knowledge_base import search_government_schemes
 from services.llm import generate_llm_response
+from services.llm_dashboard import generate_scheme_titles
 
 
 def scheme_agent(query):
@@ -34,3 +35,18 @@ if __name__ == "__main__":
 
     print("\nAI Response:\n")
     print(response)
+
+def scheme_titles_agent(query):
+
+    results = search_government_schemes(query)
+
+    if not results:
+        return ""
+
+    context = ""
+
+    for doc in results:
+        context += doc.page_content + "\n\n"
+
+    answer = generate_scheme_titles(query, context)
+    return generate_scheme_titles(query, context)

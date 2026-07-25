@@ -3,9 +3,13 @@ node_modules/
 package-lock.json
 __pycache__/
 venv/
+.venv/
 .env
 output_audio/
 uploads/
 knowledge_base/
 chroma_db/
 test_audio/
+*.db
+*.sqlite3
+*.sqlite
