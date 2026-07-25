@@ -1,11 +1,15 @@
+"use client";
+
 import {
   CloudSun,
   Sprout,
   MessageCircle,
   Landmark,
 } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function RecentActivity() {
+  const { t } = useTranslation();
   const activities = [
     {
       title: "You asked about Paddy cultivation",
@@ -50,11 +54,11 @@ export default function RecentActivity() {
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm transition-all duration-300 p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <h2 className="text-[1.15rem] font-semibold text-slate-900">
-          Recent Activity
+          {t("Recent Activity")}
         </h2>
 
         <button className="text-green-700 font-semibold hover:underline text-sm">
-          View All
+          {t("View All")}
         </button>
       </div>
 
@@ -76,11 +80,11 @@ export default function RecentActivity() {
 
             <div className="flex-1 pb-5">
               <p className="font-semibold text-gray-900 text-sm">
-                {activity.title}
+                {t(activity.title)}
               </p>
 
               <p className="text-sm text-gray-500 mt-1">
-                {activity.time}
+                {t(activity.time)}
               </p>
             </div>
 

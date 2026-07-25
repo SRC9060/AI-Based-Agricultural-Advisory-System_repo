@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Send } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
 
 const suggestions = [
   "How to control leaf curl?",
@@ -13,6 +14,7 @@ const suggestions = [
 
 export default function AIAssistantCard() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [question, setQuestion] = useState("");
 
@@ -34,11 +36,11 @@ export default function AIAssistantCard() {
 
         <div>
           <h2 className="text-[1.1rem] font-semibold text-slate-900">
-            AI Assistant
+            {t("AI Assistant")}
           </h2>
 
           <p className="mt-1.5 text-sm leading-6 text-slate-500">
-            Ask any question about crops, diseases, schemes, weather and more...
+            {t("Ask any question about crops, diseases, schemes, weather and more...")}
           </p>
         </div>
       </div>
@@ -56,7 +58,7 @@ export default function AIAssistantCard() {
                 goToChat();
               }
             }}
-            placeholder="Type your question here..."
+            placeholder={t("Type your question here...")}
             className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
 
@@ -72,7 +74,7 @@ export default function AIAssistantCard() {
       </div>
 
       <p className="mt-5 text-sm font-medium text-slate-500">
-        Try asking:
+        {t("Try asking:")}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
