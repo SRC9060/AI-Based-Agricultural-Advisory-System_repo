@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
 
 import {
   Bell,
@@ -77,6 +78,7 @@ export default function TopNavbar({
 }: TopNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     localStorage.removeItem("user_id");
@@ -88,26 +90,24 @@ export default function TopNavbar({
   };
 
   const [langOpen, setLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(() => {
-
-    if (typeof window === "undefined") return "English";
-
-    const savedLang = localStorage.getItem("language") || "en";
-
-    return (
-      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
-    );
-  });
+  // Use the same initial value on server and browser. Reading localStorage here
+  // would make the first browser render differ from the server render.
+  const [selectedLang, setSelectedLang] = useState("English");
   const [displayName, setDisplayName] = useState("Farmer");
   const [displayRole] = useState("Farmer");
 
   useEffect(() => {
 
     const name = localStorage.getItem("user_name");
+    const savedLang = localStorage.getItem("language") || "en";
 
     if (name) {
       setDisplayName(name);
     }
+
+    setSelectedLang(
+      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
+    );
 
   }, []);
 
@@ -161,7 +161,7 @@ export default function TopNavbar({
                       className="transition-transform duration-300 group-hover:scale-110"
                     />
                     <span className="transition-all duration-300">
-                      {item.name}
+                      {t(item.name)}
                     </span>
                   </Link>
                 );
@@ -195,6 +195,7 @@ export default function TopNavbar({
                         const code = langMap[lang as keyof typeof langMap];
                         setSelectedLang(lang);
                         localStorage.setItem("language", code);
+                        window.dispatchEvent(new Event("languagechange"));
                         setLangOpen(false);
                       }}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-green-100 whitespace-nowrap"
@@ -236,7 +237,7 @@ export default function TopNavbar({
 
                   <div className="hidden xl:block">
                     <p className="font-semibold text-sm">{displayName}</p>
-                    <p className="text-xs text-slate-500">{displayRole}</p>
+                    <p className="text-xs text-slate-500">{t(displayRole)}</p>
                   </div>
 
                   <ChevronDown size={16} className="text-slate-500" />
@@ -249,7 +250,7 @@ export default function TopNavbar({
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
               >
                 <LogOut size={18} />
-                <span className="hidden xl:inline">Logout</span>
+                <span className="hidden xl:inline">{t("Logout")}</span>
               </button>
 
             </div>

@@ -65,17 +65,32 @@ const extraLabels: Record<LanguageCode, Record<string, string>> = {
 
 // Human-reviewed wording for the dashboard prompts and status text.
 const reviewedUiLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
+  hi: {
+    "Total Queries": "कुल प्रश्न", "View all queries": "सभी प्रश्न देखें", "Matching Schemes": "मिलान करने वाली योजनाएं", "Loading...": "लोड हो रहा है...", "No weather available": "मौसम उपलब्ध नहीं है", "Location unavailable": "स्थान उपलब्ध नहीं है", "Recommended based on your farming profile.": "आपकी कृषि प्रोफ़ाइल के आधार पर अनुशंसित।", "No government schemes available right now.": "अभी कोई सरकारी योजना उपलब्ध नहीं है।", "Complete your profile or check back later.": "अपनी प्रोफ़ाइल पूरी करें या बाद में फिर देखें।", Farmer: "किसान", Logout: "लॉग आउट",
+  },
   te: {
     "How to control leaf curl?": "ఆకు ముడతను ఎలా నియంత్రించాలి?", "Best fertilizer for tomato": "టమాటాకు ఉత్తమ ఎరువు", "PMFBY scheme details": "PMFBY పథకం వివరాలు", "Current weather": "ప్రస్తుత వాతావరణం",
     "Query history will appear here": "ప్రశ్నల చరిత్ర ఇక్కడ కనిపిస్తుంది", "Loading weather...": "వాతావరణం లోడ్ అవుతోంది...", "Loading market price...": "మార్కెట్ ధర లోడ్ అవుతోంది...", "Nearest available record:": "సమీపంలో అందుబాటులో ఉన్న నమోదు:", "No notifications yet.": "ఇంకా నోటిఫికేషన్లు లేవు.",
     "Weather update": "వాతావరణ సమాచారం", "Rain is expected in your selected location.": "మీరు ఎంచుకున్న ప్రాంతంలో వర్షం పడే అవకాశం ఉంది.", "Market price update": "మార్కెట్ ధర సమాచారం", "New mandi prices are available for paddy.": "వరి కోసం కొత్త మండీ ధరలు అందుబాటులో ఉన్నాయి.", "New government scheme": "కొత్త ప్రభుత్వ పథకం", "A scheme may be relevant to your farm profile.": "ఒక పథకం మీ వ్యవసాయ ప్రొఫైల్‌కు సరిపోవచ్చు.",
-    "2 hours ago": "2 గంటల క్రితం", "5 hours ago": "5 గంటల క్రితం", "1 day ago": "1 రోజు క్రితం", "2 days ago": "2 రోజుల క్రితం", "For": "కోసం",
+    "2 hours ago": "2 గంటల క్రితం", "5 hours ago": "5 గంటల క్రితం", "1 day ago": "1 రోజు క్రితం", "2 days ago": "2 రోజుల క్రితం", "For": "కోసం", "Total Queries": "మొత్తం ప్రశ్నలు", "View all queries": "అన్ని ప్రశ్నలు చూడండి", "Matching Schemes": "సరిపోయే పథకాలు", "Loading...": "లోడ్ అవుతోంది...", "No weather available": "వాతావరణ సమాచారం లేదు", "Location unavailable": "స్థలం అందుబాటులో లేదు", "Recommended based on your farming profile.": "మీ వ్యవసాయ ప్రొఫైల్ ఆధారంగా సిఫార్సు చేయబడింది.", "No government schemes available right now.": "ప్రస్తుతం ప్రభుత్వ పథకాలు అందుబాటులో లేవు.", "Complete your profile or check back later.": "మీ ప్రొఫైల్ పూర్తి చేయండి లేదా తర్వాత మళ్లీ చూడండి.", Farmer: "రైతు", Logout: "లాగ్ అవుట్",
   },
   kn: {
     "How to control leaf curl?": "ಎಲೆ ಸುರುಳಿಯನ್ನು ಹೇಗೆ ನಿಯಂತ್ರಿಸುವುದು?", "Best fertilizer for tomato": "ಟೊಮೆಟೊಗೆ ಉತ್ತಮ ಗೊಬ್ಬರ", "PMFBY scheme details": "PMFBY ಯೋಜನೆ ವಿವರಗಳು", "Current weather": "ಪ್ರಸ್ತುತ ಹವಾಮಾನ",
     "Query history will appear here": "ಪ್ರಶ್ನೆಗಳ ಇತಿಹಾಸ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ", "Loading weather...": "ಹವಾಮಾನ ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "Loading market price...": "ಮಾರುಕಟ್ಟೆ ಬೆಲೆ ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "Nearest available record:": "ಹತ್ತಿರದ ಲಭ್ಯ ದಾಖಲೆ:", "No notifications yet.": "ಇನ್ನೂ ಯಾವುದೇ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ.",
     "Weather update": "ಹವಾಮಾನ ಮಾಹಿತಿ", "Rain is expected in your selected location.": "ನೀವು ಆಯ್ಕೆ ಮಾಡಿದ ಸ್ಥಳದಲ್ಲಿ ಮಳೆಯ ನಿರೀಕ್ಷೆಯಿದೆ.", "Market price update": "ಮಾರುಕಟ್ಟೆ ಬೆಲೆ ಮಾಹಿತಿ", "New mandi prices are available for paddy.": "ಭತ್ತಕ್ಕೆ ಹೊಸ ಮಂಡಿ ಬೆಲೆಗಳು ಲಭ್ಯವಿವೆ.", "New government scheme": "ಹೊಸ ಸರ್ಕಾರಿ ಯೋಜನೆ", "A scheme may be relevant to your farm profile.": "ಒಂದು ಯೋಜನೆ ನಿಮ್ಮ ಕೃಷಿ ಪ್ರೊಫೈಲ್‌ಗೆ ಸರಿಹೊಂದಬಹುದು.",
-    "2 hours ago": "2 ಗಂಟೆಗಳ ಹಿಂದೆ", "5 hours ago": "5 ಗಂಟೆಗಳ ಹಿಂದೆ", "1 day ago": "1 ದಿನದ ಹಿಂದೆ", "2 days ago": "2 ದಿನಗಳ ಹಿಂದೆ", "For": "ಗಾಗಿ",
+    "2 hours ago": "2 ಗಂಟೆಗಳ ಹಿಂದೆ", "5 hours ago": "5 ಗಂಟೆಗಳ ಹಿಂದೆ", "1 day ago": "1 ದಿನದ ಹಿಂದೆ", "2 days ago": "2 ದಿನಗಳ ಹಿಂದೆ", "For": "ಗಾಗಿ", "Total Queries": "ಒಟ್ಟು ಪ್ರಶ್ನೆಗಳು", "View all queries": "ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳನ್ನು ನೋಡಿ", "Matching Schemes": "ಹೊಂದಾಣಿಕೆಯ ಯೋಜನೆಗಳು", "Loading...": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "No weather available": "ಹವಾಮಾನ ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ", "Location unavailable": "ಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ", "Recommended based on your farming profile.": "ನಿಮ್ಮ ಕೃಷಿ ಪ್ರೊಫೈಲ್ ಆಧರಿಸಿ ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.", "No government schemes available right now.": "ಈಗ ಯಾವುದೇ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು ಲಭ್ಯವಿಲ್ಲ.", "Complete your profile or check back later.": "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್ ಪೂರ್ಣಗೊಳಿಸಿ ಅಥವಾ ನಂತರ ಮತ್ತೆ ನೋಡಿ.", Farmer: "ರೈತ", Logout: "ಲಾಗ್ ಔಟ್",
+  },
+};
+
+const profileLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
+  hi: {
+    "My Profile": "मेरी प्रोफ़ाइल", "Manage your personal details and farming preferences.": "अपने व्यक्तिगत विवरण और खेती की प्राथमिकताओं को प्रबंधित करें।", "Loading Profile...": "प्रोफ़ाइल लोड हो रही है...", "Unnamed Farmer": "अनाम किसान", "Location not provided": "स्थान उपलब्ध नहीं है", "Personal Information": "व्यक्तिगत जानकारी", "Farming Information": "खेती की जानकारी", "Full Name": "पूरा नाम", Email: "ईमेल", "Phone Number": "फोन नंबर", State: "राज्य", District: "जिला", City: "शहर", "Farmer Type": "किसान का प्रकार", "Primary Crop": "मुख्य फसल", "Farm Size": "खेत का आकार", "Soil Type": "मिट्टी का प्रकार", Preferences: "प्राथमिकताएं", "Preferred Language": "पसंदीदा भाषा", Cancel: "रद्द करें", "Save Changes": "परिवर्तन सहेजें", "Edit Profile": "प्रोफ़ाइल संपादित करें", "cannot be changed": "बदला नहीं जा सकता", "Enter value": "मान दर्ज करें", "Not provided": "उपलब्ध नहीं", "Profile Updated Successfully": "प्रोफ़ाइल सफलतापूर्वक अपडेट हुई", "Profile Update Failed": "प्रोफ़ाइल अपडेट विफल रहा",
+  },
+  te: {
+    "My Profile": "నా ప్రొఫైల్", "Manage your personal details and farming preferences.": "మీ వ్యక్తిగత వివరాలు మరియు వ్యవసాయ ప్రాధాన్యతలను నిర్వహించండి.", "Loading Profile...": "ప్రొఫైల్ లోడ్ అవుతోంది...", "Unnamed Farmer": "పేరు లేని రైతు", "Location not provided": "స్థలం అందుబాటులో లేదు", "Personal Information": "వ్యక్తిగత సమాచారం", "Farming Information": "వ్యవసాయ సమాచారం", "Full Name": "పూర్తి పేరు", Email: "ఇమెయిల్", "Phone Number": "ఫోన్ నంబర్", State: "రాష్ట్రం", District: "జిల్లా", City: "నగరం", "Farmer Type": "రైతు రకం", "Primary Crop": "ప్రధాన పంట", "Farm Size": "పొలం పరిమాణం", "Soil Type": "నేల రకం", Preferences: "ప్రాధాన్యతలు", "Preferred Language": "ఇష్టమైన భాష", Cancel: "రద్దు చేయండి", "Save Changes": "మార్పులు సేవ్ చేయండి", "Edit Profile": "ప్రొఫైల్ సవరించండి", "cannot be changed": "మార్చలేరు", "Enter value": "విలువ నమోదు చేయండి", "Not provided": "అందుబాటులో లేదు", "Profile Updated Successfully": "ప్రొఫైల్ విజయవంతంగా నవీకరించబడింది", "Profile Update Failed": "ప్రొఫైల్ నవీకరణ విఫలమైంది",
+  },
+  kn: {
+    "My Profile": "ನನ್ನ ಪ್ರೊಫೈಲ್", "Manage your personal details and farming preferences.": "ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ವಿವರಗಳು ಮತ್ತು ಕೃಷಿ ಆದ್ಯತೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ.", "Loading Profile...": "ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "Unnamed Farmer": "ಹೆಸರಿಲ್ಲದ ರೈತ", "Location not provided": "ಸ್ಥಳ ಲಭ್ಯವಿಲ್ಲ", "Personal Information": "ವೈಯಕ್ತಿಕ ಮಾಹಿತಿ", "Farming Information": "ಕೃಷಿ ಮಾಹಿತಿ", "Full Name": "ಪೂರ್ಣ ಹೆಸರು", Email: "ಇಮೇಲ್", "Phone Number": "ದೂರವಾಣಿ ಸಂಖ್ಯೆ", State: "ರಾಜ್ಯ", District: "ಜಿಲ್ಲೆ", City: "ನಗರ", "Farmer Type": "ರೈತರ ಪ್ರಕಾರ", "Primary Crop": "ಮುಖ್ಯ ಬೆಳೆ", "Farm Size": "ಹೊಲದ ಗಾತ್ರ", "Soil Type": "ಮಣ್ಣಿನ ವಿಧ", Preferences: "ಆದ್ಯತೆಗಳು", "Preferred Language": "ಆದ್ಯತೆಯ ಭಾಷೆ", Cancel: "ರದ್ದುಮಾಡಿ", "Save Changes": "ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ", "Edit Profile": "ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ", "cannot be changed": "ಬದಲಾಯಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ", "Enter value": "ಮೌಲ್ಯವನ್ನು ನಮೂದಿಸಿ", "Not provided": "ಒದಗಿಸಲಾಗಿಲ್ಲ", "Profile Updated Successfully": "ಪ್ರೊಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ", "Profile Update Failed": "ಪ್ರೊಫೈಲ್ ನವೀಕರಣ ವಿಫಲವಾಗಿದೆ",
   },
 };
 
@@ -91,7 +106,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     sync(); window.addEventListener("languagechange", sync);
     return () => window.removeEventListener("languagechange", sync);
   }, []);
-  return <LanguageContext.Provider value={{ language, t: (text) => reviewedUiLabels[language]?.[text] || extraLabels[language][text] || labels[language][text] || text }}>{children}</LanguageContext.Provider>;
+  return <LanguageContext.Provider value={{ language, t: (text) => profileLabels[language]?.[text] || reviewedUiLabels[language]?.[text] || extraLabels[language][text] || labels[language][text] || text }}>{children}</LanguageContext.Provider>;
 }
 
 export const useTranslation = () => useContext(LanguageContext);
