@@ -63,6 +63,23 @@ const reverseLangMap = {
   kn: "ಕన్నడ",
 };
 
+const additionalLanguages = ["தமிழ்", "മലയാളം", "मराठी", "ગુજરાતી"] as const;
+const languageOptions = [...languages, ...additionalLanguages];
+const languageCodeMap = {
+  ...langMap,
+  "தமிழ்": "ta",
+  "മലയാളം": "ml",
+  "मराठी": "mr",
+  "ગુજરાતી": "gu",
+} as const;
+const languageNameMap = {
+  ...reverseLangMap,
+  ta: "தமிழ்",
+  ml: "മലയാളം",
+  mr: "मराठी",
+  gu: "ગુજરાતી",
+} as const;
+
 interface TopNavbarProps {
   userName?: string;
   userRole?: string;
@@ -106,7 +123,7 @@ export default function TopNavbar({
     }
 
     setSelectedLang(
-      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
+      languageNameMap[savedLang as keyof typeof languageNameMap] || "English"
     );
 
   }, []);
@@ -188,11 +205,11 @@ export default function TopNavbar({
 
               {langOpen && (
                 <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-50 border border-slate-200 overflow-hidden">
-                  {languages.map((lang) => (
+                  {languageOptions.map((lang) => (
                     <button
                       key={lang}
                       onClick={() => {
-                        const code = langMap[lang as keyof typeof langMap];
+                        const code = languageCodeMap[lang as keyof typeof languageCodeMap];
                         setSelectedLang(lang);
                         localStorage.setItem("language", code);
                         window.dispatchEvent(new Event("languagechange"));
