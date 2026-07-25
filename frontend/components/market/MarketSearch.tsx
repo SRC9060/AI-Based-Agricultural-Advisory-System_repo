@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@/components/LanguageProvider";
 
 interface MarketSearchProps {
   onSearch: (
@@ -22,6 +23,7 @@ export default function MarketSearch({
   loading,
   marketOptions,
 }: MarketSearchProps) {
+  const { t } = useTranslation();
   const [commodity, setCommodity] = useState("");
   const [state, setState] = useState("");
   const [district, setDistrict] = useState("");
@@ -47,7 +49,7 @@ export default function MarketSearch({
   return (
     <div className="bg-white rounded-2xl shadow-md p-6">
       <h2 className="text-xl font-semibold text-green-800 mb-5">
-        Search Market Prices
+        {t("Search Market Prices")}
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -55,7 +57,7 @@ export default function MarketSearch({
         {/* Commodity */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Commodity
+            {t("Commodity")}
           </label>
 
           <select
@@ -67,7 +69,7 @@ export default function MarketSearch({
             }}
             className="w-full border rounded-xl px-4 py-3"
           >
-            <option value="">Select Commodity</option>
+            <option value="">{t("Select Commodity")}</option>
 
             {commodities.map((item) => (
               <option key={item} value={item}>
@@ -80,7 +82,7 @@ export default function MarketSearch({
         {/* State */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            State
+            {t("State")}
           </label>
 
           <select
@@ -94,8 +96,8 @@ export default function MarketSearch({
           >
             <option value="">
               {commodity
-                ? "Select State"
-                : "Select Commodity First"}
+                ? t("Select State")
+                : t("Select Commodity First")}
             </option>
 
             {availableStates.map((item) => (
@@ -109,7 +111,7 @@ export default function MarketSearch({
         {/* District */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            District
+            {t("District")}
           </label>
 
           <select
@@ -122,8 +124,8 @@ export default function MarketSearch({
           >
             <option value="">
               {state
-                ? "Select District"
-                : "Select State First"}
+                ? t("Select District")
+                : t("Select State First")}
             </option>
 
             {availableDistricts.map((item) => (
@@ -147,7 +149,7 @@ export default function MarketSearch({
         onClick={() => {
           if (isFormIncomplete) {
             setFormError(
-              "Please fill all fields."
+              t("Please fill all fields.")
             );
             return;
           }
@@ -166,7 +168,7 @@ export default function MarketSearch({
             : "bg-green-600 hover:bg-green-700 text-white"
         }`}
       >
-        {loading ? "Searching..." : "Search"}
+        {loading ? t("Searching...") : t("Search")}
       </button>
     </div>
   );

@@ -16,7 +16,7 @@ from services.session_manager import (
     get_session
 )
 from database import SessionLocal
-from user_model import User
+from user_model import Notification, User
 from services.rag_pipeline import generate_response
 from services.weather_service import get_weather,get_forecast
 from services.agri_entities import extract_agri_entities
@@ -97,6 +97,12 @@ def register(request: RegisterRequest):
     )
 
     db.add(new_user)
+    db.flush()
+    db.add(Notification(
+        user_id=new_user.id,
+        title="Welcome to AgriAdvisor",
+        message="Complete your profile to receive personalised weather, market, and scheme updates."
+    ))
     db.commit()
     db.refresh(new_user)
 
@@ -220,6 +226,17 @@ def update_profile(
             detail="User not found"
         )
 
+    profile_changed = any([
+        user.phone != request.phone,
+        user.state != request.state,
+        user.district != request.district,
+        user.city != request.city,
+        user.crop != request.crop,
+        user.farmer_type != request.farmer_type,
+        user.farm_size != request.farm_size,
+        user.soil_type != request.soil_type,
+    ])
+
     user.phone = request.phone
 
     user.state = request.state
@@ -238,6 +255,13 @@ def update_profile(
 
     user.soil_type = request.soil_type
 
+    if profile_changed:
+        db.add(Notification(
+            user_id=user.id,
+            title="Profile updated",
+            message="Your farming profile has been updated successfully."
+        ))
+
     db.commit()
 
     db.close()
@@ -247,6 +271,71 @@ def update_profile(
         "message": "Profile Updated Successfully"
 
     }
+
+
+@app.get("/notifications/{user_id}")
+def get_notifications(user_id: int):
+
+    db = SessionLocal()
+
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        notifications = (
+            db.query(Notification)
+            .filter(Notification.user_id == user_id)
+            .order_by(Notification.created_at.desc())
+            .limit(20)
+            .all()
+        )
+
+        return [
+            {
+                "id": notification.id,
+                "title": notification.title,
+                "message": notification.message,
+                "is_read": notification.is_read,
+                "created_at": notification.created_at.isoformat(),
+            }
+            for notification in notifications
+        ]
+    finally:
+        db.close()
+
+
+@app.put("/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: int):
+
+    db = SessionLocal()
+
+    try:
+        notification = db.query(Notification).filter(Notification.id == notification_id).first()
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+
+        notification.is_read = True
+        db.commit()
+        return {"message": "Notification marked as read"}
+    finally:
+        db.close()
+
+
+@app.put("/notifications/{user_id}/read-all")
+def mark_all_notifications_read(user_id: int):
+
+    db = SessionLocal()
+
+    try:
+        db.query(Notification).filter(
+            Notification.user_id == user_id,
+            Notification.is_read == False
+        ).update({Notification.is_read: True}, synchronize_session=False)
+        db.commit()
+        return {"message": "All notifications marked as read"}
+    finally:
+        db.close()
 
 @app.get("/profile-status/{user_id}")
 def profile_status(user_id: int):

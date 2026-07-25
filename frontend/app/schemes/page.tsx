@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function SchemesPage() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function SchemesPage() {
     const finalQuery = customQuery || query;
 
     if (!finalQuery.trim()) {
-      setError("Please enter a question about government schemes.");
+      setError(t("Please enter a question about government schemes."));
       return;
     }
 
@@ -100,13 +102,13 @@ export default function SchemesPage() {
         {/* Header */}
         <div className="mt-6">
 
-          <h1 className="text-3xl font-bold text-green-800">
+          <h1 className="text-3xl font-bold text-green-800">{t("Government Schemes")}</h1>
+          <h1 className="sr-only">
             🏛️ Government Schemes
           </h1>
 
           <p className="text-gray-600 mt-2">
-            Discover government schemes, subsidies, insurance and financial
-            support available for farmers.
+            {t("Discover government schemes, subsidies, insurance and financial support available for farmers.")}
           </p>
 
         </div>
@@ -122,11 +124,11 @@ export default function SchemesPage() {
 
             <div>
               <h2 className="text-xl font-semibold text-green-800">
-                Find Government Schemes
+                {t("Find Government Schemes")}
               </h2>
 
               <p className="text-sm text-gray-500 mt-1">
-                Ask any question about agricultural government schemes.
+                {t("Ask any question about agricultural government schemes.")}
               </p>
             </div>
 
@@ -143,7 +145,7 @@ export default function SchemesPage() {
                   searchScheme();
                 }
               }}
-              placeholder="Example: What schemes are available for small farmers?"
+              placeholder={t("Example: What schemes are available for small farmers?")}
               className="flex-1 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:border-green-600 text-gray-800"
             />
 
@@ -152,7 +154,7 @@ export default function SchemesPage() {
               disabled={loading}
               className="bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition"
             >
-              {loading ? "Searching..." : "Find Schemes"}
+              {loading ? t("Searching...") : t("Find Schemes")}
             </button>
 
           </div>
@@ -171,12 +173,13 @@ export default function SchemesPage() {
 
           <div className="mb-4">
 
-            <h2 className="text-2xl font-bold text-green-800">
+            <h2 className="text-2xl font-bold text-green-800">{t("Quick Searches")}</h2>
+            <h2 className="sr-only">
               ⚡ Quick Searches
             </h2>
 
             <p className="text-gray-500 mt-1">
-              Select a category to quickly discover relevant farmer schemes.
+              {t("Select a category to quickly discover relevant farmer schemes.")}
             </p>
 
           </div>
@@ -197,11 +200,11 @@ export default function SchemesPage() {
                 </div>
 
                 <h3 className="font-semibold text-green-800">
-                  {item.title}
+                  {t(item.title)}
                 </h3>
 
                 <p className="text-xs text-gray-500 mt-2">
-                  Explore available schemes
+                  {t("Explore available schemes")}
                 </p>
 
               </button>
@@ -309,12 +312,11 @@ export default function SchemesPage() {
               </div>
 
               <h3 className="font-bold text-green-800">
-                Financial Support
+                {t("Financial Support")}
               </h3>
 
               <p className="text-gray-600 text-sm mt-2 leading-6">
-                Explore financial assistance and farmer support schemes
-                available through government programs.
+                {t("Explore financial assistance and farmer support schemes available through government programs.")}
               </p>
 
             </div>
@@ -326,12 +328,11 @@ export default function SchemesPage() {
               </div>
 
               <h3 className="font-bold text-green-800">
-                Crop Protection
+                {t("Crop Protection")}
               </h3>
 
               <p className="text-gray-600 text-sm mt-2 leading-6">
-                Find information about crop insurance and agricultural risk
-                protection programs.
+                {t("Find information about crop insurance and agricultural risk protection programs.")}
               </p>
 
             </div>
@@ -343,12 +344,11 @@ export default function SchemesPage() {
               </div>
 
               <h3 className="font-bold text-green-800">
-                Farming Assistance
+                {t("Farming Assistance")}
               </h3>
 
               <p className="text-gray-600 text-sm mt-2 leading-6">
-                Ask about irrigation, machinery and other agricultural support
-                programs.
+                {t("Ask about irrigation, machinery and other agricultural support programs.")}
               </p>
 
             </div>
@@ -369,13 +369,11 @@ export default function SchemesPage() {
             <div>
 
               <h3 className="font-semibold text-yellow-800">
-                Important Information
+                {t("Important Information")}
               </h3>
 
               <p className="text-gray-600 text-sm mt-1 leading-6">
-                Scheme eligibility, benefits and application requirements may
-                change. Verify important details through the relevant official
-                government authority before applying.
+                {t("Scheme eligibility, benefits and application requirements may change. Verify important details through the relevant official government authority before applying.")}
               </p>
 
             </div>

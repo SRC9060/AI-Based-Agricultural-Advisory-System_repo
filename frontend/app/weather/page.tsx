@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { useTranslation } from "@/components/LanguageProvider";
 
 type WeatherData = {
   city: string;
@@ -25,6 +26,7 @@ type ForecastData = {
 };
 
 export default function WeatherPage() {
+  const { t } = useTranslation();
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastItem[]>([]);
@@ -162,20 +164,22 @@ export default function WeatherPage() {
 
         {/* Header */}
         <div className="mt-6">
-          <h1 className="text-3xl font-bold text-green-800">
+          <h1 className="text-3xl font-bold text-green-800">{t("Weather Advisory")}</h1>
+          <h1 className="sr-only">
             🌦 Weather Advisory
           </h1>
 
           <p className="text-gray-600 mt-2">
-            Check current weather and upcoming forecast for your farming
-            location.
+            {t("Check current weather and upcoming forecast for your farming location.")}
           </p>
         </div>
 
         {/* Search Section */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mt-6">
 
-          <h2 className="text-xl font-semibold text-green-800 mb-4">
+          <h2 className="text-xl font-semibold text-green-800 mb-4">{t("Select Location")}</h2>
+
+          <h2 className="sr-only">
             📍 Select Location
           </h2>
 
@@ -183,7 +187,7 @@ export default function WeatherPage() {
 
             <input
               type="text"
-              placeholder="Enter city name (e.g. Chennai)"
+              placeholder={t("Enter city name (e.g. Chennai)")}
               value={city}
               onChange={(e) => setCity(e.target.value)}
               onKeyDown={(e) => {
@@ -199,7 +203,7 @@ export default function WeatherPage() {
               disabled={loading}
               className="bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition"
             >
-              {loading ? "Checking..." : "Check Weather"}
+              {loading ? t("Checking...") : t("Check Weather")}
             </button>
 
           </div>

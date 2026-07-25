@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import StatCard from "./StatsCards";
+import { useTranslation } from "@/components/LanguageProvider";
 
 interface Profile {
   city: string;
@@ -28,6 +29,7 @@ export default function StatsSection({
   loading,
   schemeCount,
 }: StatsSectionProps) {
+  const { t } = useTranslation();
 
   const [weather, setWeather] = useState({
     temperature: "--",
@@ -145,49 +147,49 @@ export default function StatsSection({
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
       <StatCard
-        title="Weather Today"
+        title={t("Weather Today")}
         value={loading ? "--" : weather.temperature}
         details={[
-          weather.condition,
-          weather.location,
+          t(weather.condition),
+          t(weather.location),
         ]}
         icon={<CloudSun size={16} />}
         color="bg-blue-500"
-        linkText="View full forecast"
+        linkText={t("View full forecast")}
         linkHref="/weather"
         linkColor="text-blue-600"
       />
 
       <StatCard
-        title="Market Price (Today)"
+        title={t("Market Price (Today)")}
         value={`₹${market.price}`}
         valueSuffix="/ quintal"
-        details={[market.crop]}
+        details={[t(market.crop)]}
         icon={<TrendingUp size={16} />}
         color="bg-green-500"
-        linkText="View all prices"
+        linkText={t("View all prices")}
         linkHref="/market-prices"
         linkColor="text-green-600"
       />
 
       <StatCard
-        title="My Queries"
+        title={t("My Queries")}
         value={queryCount.toString()}
-        details={["Total Queries"]}
+        details={[t("Total Queries")]}
         icon={<MessageSquare size={16} />}
         color="bg-orange-500"
-        linkText="View all queries"
+        linkText={t("View all queries")}
         linkHref="/queries"
         linkColor="text-purple-600"
       />
 
       <StatCard
-        title="Schemes for You"
+        title={t("Schemes for You")}
         value={schemeCount.toString()}
-        details={["Matching Schemes"]}
+        details={[t("Matching Schemes")]}
         icon={<Landmark size={16} />}
         color="bg-purple-500"
-        linkText="View schemes"
+        linkText={t("View schemes")}
         linkHref="/schemes"
         linkColor="text-green-600"
       />

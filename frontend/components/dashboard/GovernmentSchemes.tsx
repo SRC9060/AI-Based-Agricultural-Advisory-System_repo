@@ -7,6 +7,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/components/LanguageProvider";
 
 interface Scheme {
   title: string;
@@ -21,6 +22,7 @@ export default function GovernmentSchemes({
 }: GovernmentSchemesProps) {
 
   const router = useRouter();
+  const { t } = useTranslation();
 
   const icons = [
     {
@@ -42,7 +44,7 @@ export default function GovernmentSchemes({
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
 
         <h2 className="text-2xl font-semibold mb-4 text-slate-900">
-          Government Schemes for You
+          {t("Government Schemes for You")}
         </h2>
 
         <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500">
@@ -50,11 +52,11 @@ export default function GovernmentSchemes({
           <span className="text-4xl mb-3">🌱</span>
 
           <p className="font-semibold">
-            No government schemes available right now.
+            {t("No government schemes available right now.")}
           </p>
 
           <p className="text-sm mt-2">
-            Complete your profile or check back later.
+            {t("Complete your profile or check back later.")}
           </p>
 
         </div>
@@ -69,14 +71,14 @@ export default function GovernmentSchemes({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
 
         <h2 className="text-[1.15rem] font-semibold text-slate-900">
-          Government Schemes for You
+          {t("Government Schemes for You")}
         </h2>
 
         <button
           onClick={() => router.push("/schemes")}
           className="text-green-700 font-semibold hover:underline text-sm"
         >
-          View All
+          {t("View All")}
         </button>
 
       </div>
@@ -106,7 +108,7 @@ export default function GovernmentSchemes({
                   </h3>
 
                   <p className="text-sm text-gray-500 mt-1">
-                    Recommended based on your farming profile.
+                    {t("Recommended based on your farming profile.")}
                   </p>
 
                 </div>
@@ -116,7 +118,7 @@ export default function GovernmentSchemes({
               <div className="flex items-center gap-3">
 
                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                  Eligible
+                  {t("Eligible")}
                 </span>
 
                 <ChevronRight

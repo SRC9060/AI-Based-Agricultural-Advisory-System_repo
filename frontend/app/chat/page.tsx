@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import "@/app/globals.css";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { useTranslation } from "@/components/LanguageProvider";
 import "./chat.css";
 
 interface SpeechRecognitionWindow {
@@ -40,8 +41,10 @@ interface Message {
 
 export default function ChatPage() {
 
+  const { language, t } = useTranslation();
+
   const [question, setQuestion] = useState("");
-const [language] = useState(() => {
+const [storedLanguage] = useState(() => {
   if (typeof window === "undefined") return "en";
 
   return localStorage.getItem("language") || "en";
@@ -61,6 +64,14 @@ const [language] = useState(() => {
   const [status, setStatus] = useState("");
   const searchParams = useSearchParams();
   const hasAutoAsked = useRef(false);
+
+  useEffect(() => {
+    setMessages((previous) =>
+      previous.length === 1 && previous[0].type === "ai"
+        ? [{ type: "ai", text: t("Chat greeting") }]
+        : previous
+    );
+  }, [language, t]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({

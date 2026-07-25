@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
 
 import {
   Bell,
@@ -62,6 +63,23 @@ const reverseLangMap = {
   kn: "ಕన్నడ",
 };
 
+const additionalLanguages = ["தமிழ்", "മലയാളം", "मराठी", "ગુજરાતી"] as const;
+const languageOptions = [...languages, ...additionalLanguages];
+const languageCodeMap = {
+  ...langMap,
+  "தமிழ்": "ta",
+  "മലയാളം": "ml",
+  "मराठी": "mr",
+  "ગુજરાતી": "gu",
+} as const;
+const languageNameMap = {
+  ...reverseLangMap,
+  ta: "தமிழ்",
+  ml: "മലയാളം",
+  mr: "मराठी",
+  gu: "ગુજરાતી",
+} as const;
+
 interface TopNavbarProps {
   userName?: string;
   userRole?: string;
@@ -77,6 +95,7 @@ export default function TopNavbar({
 }: TopNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     localStorage.removeItem("user_id");
@@ -88,25 +107,63 @@ export default function TopNavbar({
   };
 
   const [langOpen, setLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState(() => {
-
-    if (typeof window === "undefined") return "English";
-
-    const savedLang = localStorage.getItem("language") || "en";
-
-    return (
-      reverseLangMap[savedLang as keyof typeof reverseLangMap] || "English"
-    );
-  });
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [userId, setUserId] = useState<number | null>(null);
+  const unreadNotifications = notifications.filter((notification) => !notification.is_read).length;
+  // Use the same initial value on server and browser. Reading localStorage here
+  // would make the first browser render differ from the server render.
+  const [selectedLang, setSelectedLang] = useState("English");
   const [displayName, setDisplayName] = useState("Farmer");
   const [displayRole] = useState("Farmer");
+
+  const loadNotifications = async (id: number) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/notifications/${id}`);
+      if (response.ok) setNotifications(await response.json());
+    } catch {
+      // Keep navigation usable when the backend is unavailable.
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    if (!userId) return;
+    try {
+      await fetch(`http://127.0.0.1:8000/notifications/${userId}/read-all`, { method: "PUT" });
+      setNotifications((items) => items.map((item) => ({ ...item, is_read: true })));
+    } catch {
+      // The next refresh will retrieve the saved database state.
+    }
+  };
+
+  const markNotificationRead = async (notificationId: number) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/notifications/${notificationId}/read`, { method: "PUT" });
+      setNotifications((items) => items.map((item) => item.id === notificationId ? { ...item, is_read: true } : item));
+    } catch {
+      // Leave the item unread if the server request fails.
+    }
+  };
 
   useEffect(() => {
 
     const name = localStorage.getItem("user_name");
+    const savedLang = localStorage.getItem("language") || "en";
+    const savedUserId = Number(localStorage.getItem("user_id"));
 
     if (name) {
       setDisplayName(name);
+    }
+
+    setSelectedLang(
+      languageNameMap[savedLang as keyof typeof languageNameMap] || "English"
+    );
+
+    if (Number.isInteger(savedUserId) && savedUserId > 0) {
+      setUserId(savedUserId);
+      loadNotifications(savedUserId);
+      const pollId = window.setInterval(() => loadNotifications(savedUserId), 30000);
+      return () => window.clearInterval(pollId);
     }
 
   }, []);
@@ -160,9 +217,9 @@ export default function TopNavbar({
                       size={20}
                       className="transition-transform duration-300 group-hover:scale-110"
                     />
-                    <span className=" text-[15px] transition-all duration-300">
-                      {item.name}
-                    </span>
+                <span className="text-[15px] transition-all duration-300">
+                  {t(item.name)}
+                </span>
                   </Link>
                 );
 
@@ -188,13 +245,14 @@ export default function TopNavbar({
 
               {langOpen && (
                 <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-50 border border-slate-200 overflow-hidden">
-                  {languages.map((lang) => (
+                  {languageOptions.map((lang) => (
                     <button
                       key={lang}
                       onClick={() => {
-                        const code = langMap[lang as keyof typeof langMap];
+                        const code = languageCodeMap[lang as keyof typeof languageCodeMap];
                         setSelectedLang(lang);
                         localStorage.setItem("language", code);
+                        window.dispatchEvent(new Event("languagechange"));
                         setLangOpen(false);
                       }}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-green-100 whitespace-nowrap"
@@ -206,13 +264,59 @@ export default function TopNavbar({
               )}
             </div>
 
-            {/* Notification */}
-            <button className="relative w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center hover:bg-green-50 transition-all duration-300">
-              <Bell size={18} />
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
-                3
-              </span>
-            </button>
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label={t("Notifications")}
+                aria-expanded={notificationsOpen}
+                onClick={() => {
+                  const opening = !notificationsOpen;
+                  setNotificationsOpen(opening);
+                  if (opening && userId) loadNotifications(userId);
+                }}
+                className="relative w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center hover:bg-green-50 transition-all duration-300"
+              >
+                <Bell size={18} />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl z-50">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <p className="font-semibold text-slate-800">{t("Notifications")}</p>
+                    {unreadNotifications > 0 && (
+                      <button
+                        type="button"
+                        onClick={markAllNotificationsRead}
+                        className="text-xs font-medium text-green-700 hover:text-green-800"
+                      >
+                        {t("Mark all as read")}
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {notifications.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-sm text-slate-500">{t("No notifications yet.")}</p>
+                    ) : notifications.map((notification) => (
+                      <button
+                        type="button"
+                        key={notification.id}
+                        onClick={() => markNotificationRead(notification.id)}
+                        className={`block w-full px-4 py-3 text-left hover:bg-green-50 ${notification.is_read ? "" : "bg-green-50/70"}`}
+                      >
+                        <p className="text-sm font-semibold text-slate-800">{t(notification.title)}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{t(notification.message)}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile + Logout */}
             <div className="flex items-center gap-3">
@@ -236,7 +340,7 @@ export default function TopNavbar({
 
                   <div className="hidden xl:block">
                     <p className="font-semibold text-sm">{displayName}</p>
-                    <p className="text-xs text-slate-500">{displayRole}</p>
+                    <p className="text-xs text-slate-500">{t(displayRole)}</p>
                   </div>
 
                   <ChevronDown size={16} className="text-slate-500" />
@@ -249,7 +353,7 @@ export default function TopNavbar({
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
               >
                 <LogOut size={18} />
-                <span className="hidden xl:inline">Logout</span>
+                <span className="hidden xl:inline">{t("Logout")}</span>
               </button>
 
             </div>
@@ -260,4 +364,12 @@ export default function TopNavbar({
       </div>
     </header>
   );
+}
+
+interface AppNotification {
+  id: number;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
 }
