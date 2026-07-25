@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-<<<<<<< HEAD
 import {
   Bot,
   Send,
@@ -13,10 +12,8 @@ import {
   Mic,
   Languages,
 } from "lucide-react";
-=======
-import { Bot, Send } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
->>>>>>> b68585a950e226537e822ba9d3c454ec4cdf70df
+
 
 const suggestions = [
   {
@@ -65,16 +62,8 @@ export default function AIAssistantCard() {
         </div>
 
         <div>
-<<<<<<< HEAD
 
-          <h2 className="text-2xl font-bold text-slate-900">
-            AI Assistant
-          </h2>
 
-          <p className="text-slate-500">
-            Your smart farming companion
-          </p>
-=======
           <h2 className="text-[1.1rem] font-semibold text-slate-900">
             {t("AI Assistant")}
           </h2>
@@ -108,48 +97,21 @@ export default function AIAssistantCard() {
           >
             <Send size={18} />
           </button>
->>>>>>> b68585a950e226537e822ba9d3c454ec4cdf70df
+
 
         </div>
 
       </div>
 
-<<<<<<< HEAD
-      {/* Search */}
-=======
-      <p className="mt-5 text-sm font-medium text-slate-500">
-        {t("Try asking:")}
-      </p>
->>>>>>> b68585a950e226537e822ba9d3c454ec4cdf70df
 
-      <div className="mt-6 flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") goToChat();
-          }}
-          placeholder="Ask your farming question..."
-          className="flex-1 bg-transparent outline-none text-base placeholder:text-slate-400"
-        />
-
-        <button
-          onClick={() => goToChat()}
-          className="ml-3 h-11 w-11 rounded-xl bg-green-600 text-white flex items-center justify-center hover:bg-green-700 transition"
-        >
-          <Send size={18} />
-        </button>
-
-      </div>
+  
 
       {/* Popular Topics */}
 
       <div className="mt-6">
 
         <p className="text-sm font-semibold text-slate-500 mb-3">
-          Popular Topics
+          {t("Popular Topics")}
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -198,7 +160,7 @@ export default function AIAssistantCard() {
               className="text-green-600"
             />
 
-            <span>Voice Enabled</span>
+            <span>{t("Voice Enabled")}</span>
 
           </div>
 
@@ -209,7 +171,7 @@ export default function AIAssistantCard() {
               className="text-green-600"
             />
 
-            <span>20+ Languages</span>
+            <span>{t("20+ Languages")}</span>
 
           </div>
 
