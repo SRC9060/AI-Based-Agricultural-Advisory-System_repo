@@ -464,6 +464,9 @@ def chat(request: ChatRequest):
         intent_result["score"],
         english_response
     )
+    print("\n===== RESPONSE QUALITY =====")
+    print(quality_result)
+    print("============================\n")
     return {
         "user_id": str(request.user_id),
         "message": str(user_message),

@@ -8,10 +8,8 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import StatsSection from "@/components/dashboard/StatsSection";
 import FarmBanner from "@/components/dashboard/FarmBanner";
 import AIAssistantCard from "@/components/dashboard/AIAssistantCard";
-import QuickAccess from "@/components/dashboard/QuickAccess";
 import GovernmentSchemes from "@/components/dashboard/GovernmentSchemes";
 import RecentActivity from "@/components/dashboard/RecentActivity";
-import Footer from "@/components/dashboard/Footer";
 
 interface Profile {
   city: string;
@@ -93,7 +91,7 @@ export default function DashboardPage() {
 
     <DashboardLayout>
 
-      <section className="mt-6">
+      <section className="mt-8">
 
         <StatsSection
           profile={profile}
@@ -103,17 +101,18 @@ export default function DashboardPage() {
 
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 items-stretch">
 
         <div className="lg:col-span-2">
           <AIAssistantCard />
         </div>
-
-        <FarmBanner />
+        <div>
+          <FarmBanner />
+        </div>
 
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-stretch">
 
         <GovernmentSchemes
           schemes={schemes}
@@ -121,12 +120,10 @@ export default function DashboardPage() {
 
         <RecentActivity />
 
-        <QuickAccess />
 
       </section>
 
-      <section className="mt-6">
-        <Footer />
+      <section className="mt-8">
       </section>
 
     </DashboardLayout>
