@@ -6,6 +6,7 @@ import { Sprout, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,6 @@ export default function LoginPage() {
       console.log(data);
 
       if (data.message === "Login Successful") {
-
         localStorage.setItem("user_id", data.user.id);
         localStorage.setItem("user_name", data.user.name);
         localStorage.setItem("user_email", data.user.email);
@@ -38,7 +38,9 @@ export default function LoginPage() {
         const statusResponse = await fetch(
           `http://127.0.0.1:8000/profile-status/${data.user.id}`
         );
+
         const statusData = await statusResponse.json();
+
         console.log("Profile Status:", statusData);
 
         if (statusData.profile_completed) {
@@ -46,11 +48,9 @@ export default function LoginPage() {
         } else {
           router.push("/profile");
         }
-
       } else {
         alert(data.message);
       }
-
     } catch (error) {
       console.error(error);
       alert("Cannot connect to backend");
@@ -60,87 +60,230 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-lime-300 via-green-300 to-green-400 px-4">
+    <div
+      className="
+        min-h-screen
+        flex
+        items-center
+        justify-center
+        bg-gradient-to-br
+        from-emerald-900
+        via-green-700
+        to-emerald-500
+        px-5
+        py-10
+      "
+    >
+      {/* Login Card */}
+      <div
+        className="
+          w-full
+          max-w-lg
+          rounded-[32px]
+          border
+          border-emerald-200/70
+          bg-gradient-to-br
+          from-white
+          via-emerald-50
+          to-green-100
+          px-10
+          py-12
+          shadow-2xl
+          shadow-emerald-950/30
+        "
+      >
+        {/* Header */}
+        <div className="text-center mb-9">
+          {/* Logo */}
+          <div
+            className="
+              w-20
+              h-20
+              mx-auto
+              rounded-3xl
+              bg-gradient-to-br
+              from-emerald-400
+              to-green-600
+              flex
+              items-center
+              justify-center
+              mb-5
+              shadow-xl
+              shadow-emerald-500/30
+            "
+          >
+            <Sprout className="text-white" size={36} />
+          </div>
 
-  <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-green-900/20 border border-white/60 p-9">
-
-    <div className="text-center mb-7">
-
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-green-300 to-emerald-400 flex items-center justify-center mb-4 shadow-md shadow-green-400/30">
-        <Sprout className="text-white" size={26} />
-      </div>
-
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold text-emerald-950">
             Welcome Back
           </h1>
-          <p className="text-sm text-slate-500 mt-1.5">
+
+          <p className="text-base text-slate-600 mt-2">
             Sign in to continue to your account
           </p>
         </div>
 
+        {/* Form */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleLogin();
           }}
-          className="space-y-4"
+          className="space-y-5"
         >
-
+          {/* Email */}
           <div className="relative">
-            <Mail size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Mail
+              size={20}
+              className="
+                absolute
+                left-5
+                top-1/2
+                -translate-y-1/2
+                text-emerald-600
+              "
+            />
+
             <input
               type="email"
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:bg-white transition"
+              className="
+                w-full
+                rounded-2xl
+                border
+                border-emerald-200
+                bg-white/80
+                pl-14
+                pr-5
+                py-4
+                text-base
+                text-slate-800
+                placeholder:text-slate-400
+                outline-none
+                transition-all
+                duration-200
+                focus:border-emerald-500
+                focus:bg-white
+                focus:ring-4
+                focus:ring-emerald-500/10
+              "
             />
           </div>
 
+          {/* Password */}
           <div className="relative">
-            <Lock size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Lock
+              size={20}
+              className="
+                absolute
+                left-5
+                top-1/2
+                -translate-y-1/2
+                text-emerald-600
+              "
+            />
+
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl pl-11 pr-11 py-3 text-sm text-slate-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 focus:bg-white transition"
+              className="
+                w-full
+                rounded-2xl
+                border
+                border-emerald-200
+                bg-white/80
+                pl-14
+                pr-14
+                py-4
+                text-base
+                text-slate-800
+                placeholder:text-slate-400
+                outline-none
+                transition-all
+                duration-200
+                focus:border-emerald-500
+                focus:bg-white
+                focus:ring-4
+                focus:ring-emerald-500/10
+              "
             />
+
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+              className="
+                absolute
+                right-5
+                top-1/2
+                -translate-y-1/2
+                text-slate-400
+                transition
+                hover:text-emerald-600
+              "
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
 
+          {/* Login Button */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed shadow-none"
-                : "bg-gradient-to-r from-green-400 to-emerald-500 hover:shadow-xl hover:-translate-y-0.5 shadow-green-400/30"
-            }`}
+            className={`
+              w-full
+              rounded-2xl
+              py-4
+              text-lg
+              font-semibold
+              text-white
+              transition-all
+              duration-300
+              ${
+                loading
+                  ? "bg-slate-400 cursor-not-allowed"
+                  : `
+                    bg-gradient-to-r
+                    from-emerald-600
+                    to-green-500
+                    shadow-lg
+                    shadow-emerald-600/25
+                    hover:from-emerald-700
+                    hover:to-green-600
+                    hover:-translate-y-0.5
+                    hover:shadow-xl
+                  `
+              }
+            `}
           >
             {loading ? "Signing in..." : "Login"}
           </button>
-
         </form>
 
-        <p className="text-center text-sm text-slate-500 mt-6">
+        {/* Register */}
+        <p className="text-center text-base text-slate-600 mt-8">
           Don&apos;t have an account?{" "}
-          <a href="/register" className="font-semibold text-green-600 hover:underline">
+          <a
+            href="/register"
+            className="
+              font-bold
+              text-emerald-700
+              transition
+              hover:text-emerald-900
+              hover:underline
+            "
+          >
             Register
           </a>
         </p>
-
       </div>
-
     </div>
   );
 }
