@@ -152,11 +152,15 @@ export default function ChatPage() {
         {
           type: "ai",
           text:
-          data.response_in_user_language ||
-          data.english_response ||
-          "Sorry, I could not generate a recommendation.",
-  },
-]);
+            data.response_in_user_language ||
+            data.english_response ||
+            "Sorry, I could not generate a recommendation.",
+
+          confidenceScore: data.confidence_score,
+          confidenceLevel: data.response_quality?.confidence_level,
+          needsHumanReview: data.response_quality?.needs_human_review,
+        },
+      ]);
 
 setStatus("");
       } catch (error) {

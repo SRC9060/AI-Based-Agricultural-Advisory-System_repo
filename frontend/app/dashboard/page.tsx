@@ -25,6 +25,7 @@ interface Scheme {
 interface ChatActivity {
   id: number;
   message: string;
+  type: string;
   created_at: string;
 }
 
