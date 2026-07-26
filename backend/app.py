@@ -551,7 +551,7 @@ def market_price(request: MarketRequest):
             detail=str(e)
         )
 
-@app.get("/market-options", response_model=MarketResponse)
+@app.get("/market-options")
 def market_options():
     return get_market_options()
 
