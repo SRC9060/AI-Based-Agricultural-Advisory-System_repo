@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   CloudSun,
   TrendingUp,
@@ -42,7 +42,7 @@ export default function StatsSection({
     crop: "No market data available",
   });
 
-  const [queryCount] = useState(0);
+  const [queryCount, setQueryCount] = useState(0);
 
   // ---------------- WEATHER ----------------
 
@@ -142,6 +142,56 @@ export default function StatsSection({
     fetchMarket();
 
   }, [profile?.crop, profile?.state, profile?.district]);
+
+  // ---------------- QUERY COUNT ----------------
+
+const fetchQueryCount = useCallback(async () => {
+  const userId = localStorage.getItem("user_id");
+
+  if (!userId) return;
+
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:8000/recent-activity/${userId}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) return;
+
+    const data = await response.json();
+
+    setQueryCount(data.count || 0);
+
+  } catch (err) {
+    console.error(err);
+  }
+}, []);
+
+useEffect(() => {
+
+  fetchQueryCount();
+
+  const interval = setInterval(fetchQueryCount, 30000);
+
+  const handleVisibility = () => {
+    if (!document.hidden) {
+      fetchQueryCount();
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibility);
+
+  return () => {
+    clearInterval(interval);
+    document.removeEventListener(
+      "visibilitychange",
+      handleVisibility
+    );
+  };
+
+}, [fetchQueryCount]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

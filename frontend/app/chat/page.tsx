@@ -144,17 +144,21 @@ export default function ChatPage() {
           throw new Error("Backend error");
         }
         const data = await response.json();
+
+        window.dispatchEvent(new Event("activityUpdated"));
+
         setMessages((previous) => [
-          ...previous,
-          {
-            type: "ai",
-            text:
-              data.response_in_user_language ||
-              data.english_response ||
-              "Sorry, I could not generate a recommendation.",
-          },
-        ]);
-        setStatus("");
+        ...previous,
+        {
+          type: "ai",
+          text:
+          data.response_in_user_language ||
+          data.english_response ||
+          "Sorry, I could not generate a recommendation.",
+  },
+]);
+
+setStatus("");
       } catch (error) {
         console.error(error);
         setStatus("❌ Unable to connect to AI server.");

@@ -527,6 +527,54 @@ def speak(request: SpeakRequest):
         filename="speech.wav"
     )
 
+@app.get("/recent-activity/{user_id}")
+def get_recent_activity(user_id: int):
+    db = SessionLocal()
+
+    try:
+        # Get all chat sessions of the user
+        sessions = (
+            db.query(ChatSession)
+            .filter(ChatSession.user_id == user_id)
+            .all()
+        )
+
+        if not sessions:
+            return []
+
+        session_ids = [session.id for session in sessions]
+
+        # Get only USER messages (not AI replies)
+        messages = (
+            db.query(ChatMessage)
+            .filter(
+                ChatMessage.session_id.in_(session_ids),
+                ChatMessage.role == "user"
+            )
+            .order_by(ChatMessage.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+        activities = []
+
+        for message in messages:
+            intent = classify_intent(message.message)
+
+            activities.append({
+                "title": message.message,
+                "type": intent["intent"],
+                "created_at": message.created_at.isoformat()
+            })
+
+        return {
+            "count": len(activities),
+            "activities": activities
+        }
+
+    finally:
+        db.close()
+
 @app.post("/market-price")
 def market_price(request: MarketRequest):
     try:
@@ -556,3 +604,38 @@ def market_options():
     return get_market_options()
 
 Base.metadata.create_all(bind=engine)
+@app.get("/recent-activity/{user_id}")
+def recent_activity(user_id: int):
+    db = SessionLocal()
+
+    try:
+        sessions = (
+            db.query(ChatSession)
+            .filter(ChatSession.user_id == user_id)
+            .all()
+        )
+
+        session_ids = [s.id for s in sessions]
+
+        messages = (
+            db.query(ChatMessage)
+            .filter(
+                ChatMessage.session_id.in_(session_ids),
+                ChatMessage.role == "user"
+            )
+            .order_by(ChatMessage.created_at.desc())
+            .limit(10)
+            .all()
+        )
+
+        return [
+            {
+                "title": msg.message,
+                "type": "chat",
+                "created_at": msg.created_at.isoformat()
+            }
+            for msg in messages
+        ]
+
+    finally:
+        db.close()
