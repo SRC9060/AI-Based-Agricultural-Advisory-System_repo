@@ -378,7 +378,13 @@ Return only the most relevant government scheme names.
 One scheme per line.
 No explanation.
 """
-        answer = scheme_titles_agent(query)
+        try:
+            answer = scheme_titles_agent(query)
+        except Exception as error:
+            # The scheme index is a generated local cache.  Do not let an
+            # index failure break the whole dashboard while it is rebuilt.
+            print(f"Scheme search unavailable: {error}")
+            return {"count": 0, "schemes": [], "available": False}
         scheme_list = []
         for line in answer.split("\n"):
             line = line.strip()
@@ -597,6 +603,7 @@ def market_price(request: MarketRequest):
             district=request.district
         )
         return {
+            "available": True,
             "commodity": response.commodity,
             "state": response.state,
             "district": response.district,
@@ -606,11 +613,21 @@ def market_price(request: MarketRequest):
             "modal_price": response.modal_price,
             "arrival_date": response.arrival_date
         }
-    except Exception as e:
-        raise HTTPException(
-            status_code=404,
-            detail=str(e)
-        )
+    except Exception as error:
+        # Agmarknet may have no record for a valid crop/location/date.  This
+        # is not a client error and should be rendered as an empty result.
+        print(f"Market price unavailable: {error}")
+        return {
+            "available": False,
+            "commodity": request.commodity,
+            "state": request.state,
+            "district": request.district,
+            "market": None,
+            "min_price": None,
+            "max_price": None,
+            "modal_price": None,
+            "arrival_date": None,
+        }
 
 @app.get("/market-options")
 def market_options():

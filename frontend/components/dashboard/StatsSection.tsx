@@ -44,11 +44,8 @@ export default function StatsSection({
     crop: "No market data available",
   });
 
-  const [savedQueryCount, setSavedQueryCount] = useState(queryCount);
-
-  useEffect(() => {
-    setSavedQueryCount(queryCount);
-  }, [queryCount]);
+  const [activityQueryCount, setActivityQueryCount] = useState<number | null>(null);
+  const savedQueryCount = activityQueryCount ?? queryCount;
 
   useEffect(() => {
     const userId = localStorage.getItem("user_id");
@@ -56,7 +53,7 @@ export default function StatsSection({
 
     fetch(`http://127.0.0.1:8000/recent-activity/${userId}?limit=1`)
       .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => setSavedQueryCount(data.count || 0))
+      .then((data) => setActivityQueryCount(data.count || 0))
       .catch(() => {
         // Retain the dashboard value if the activity service is temporarily unavailable.
       });
@@ -162,6 +159,14 @@ export default function StatsSection({
         }
 
         const data = await response.json();
+
+        if (!data.available) {
+          setMarket({
+            price: "--",
+            crop: `No verified market data for ${profile.crop} in ${profile.district} today`,
+          });
+          return;
+        }
 
         setMarket({
           price: data.modal_price,

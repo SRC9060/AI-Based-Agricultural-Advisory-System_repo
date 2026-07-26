@@ -80,6 +80,40 @@ const languageNameMap = {
   gu: "ગુજરાતી",
 } as const;
 
+// Notification records store stable English text in the database.  Keep that
+// data language-neutral, then translate the display text for the user's
+// currently selected language.
+const notificationLabels: Record<string, Record<string, string>> = {
+  hi: {
+    "Profile updated": "प्रोफ़ाइल अपडेट की गई",
+    "Your farming profile has been updated successfully.": "आपकी कृषि प्रोफ़ाइल सफलतापूर्वक अपडेट कर दी गई है।",
+  },
+  te: {
+    "Profile updated": "ప్రొఫైల్ నవీకరించబడింది",
+    "Your farming profile has been updated successfully.": "మీ వ్యవసాయ ప్రొఫైల్ విజయవంతంగా నవీకరించబడింది.",
+  },
+  kn: {
+    "Profile updated": "ಪ್ರೊಫೈಲ್ ನವೀಕರಿಸಲಾಗಿದೆ",
+    "Your farming profile has been updated successfully.": "ನಿಮ್ಮ ಕೃಷಿ ಪ್ರೊಫೈಲ್ ಅನ್ನು ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ.",
+  },
+  ta: {
+    "Profile updated": "சுயவிவரம் புதுப்பிக்கப்பட்டது",
+    "Your farming profile has been updated successfully.": "உங்கள் விவசாய சுயவிவரம் வெற்றிகரமாகப் புதுப்பிக்கப்பட்டது.",
+  },
+  ml: {
+    "Profile updated": "പ്രൊഫൈൽ അപ്ഡേറ്റ് ചെയ്തു",
+    "Your farming profile has been updated successfully.": "നിങ്ങളുടെ കാർഷിക പ്രൊഫൈൽ വിജയകരമായി അപ്ഡേറ്റ് ചെയ്തു.",
+  },
+  mr: {
+    "Profile updated": "प्रोफाइल अद्ययावत केले",
+    "Your farming profile has been updated successfully.": "तुमची कृषी प्रोफाइल यशस्वीरित्या अद्ययावत केली आहे.",
+  },
+  gu: {
+    "Profile updated": "પ્રોફાઇલ અપડેટ કરવામાં આવી",
+    "Your farming profile has been updated successfully.": "તમારી ખેતી પ્રોફાઇલ સફળતાપૂર્વક અપડેટ કરવામાં આવી છે.",
+  },
+};
+
 interface TopNavbarProps {
   userName?: string;
   userRole?: string;
@@ -119,6 +153,8 @@ export default function TopNavbar({
   const [selectedLang, setSelectedLang] = useState("English");
   const [displayName, setDisplayName] = useState("Farmer");
   const [displayRole] = useState("Farmer");
+  const selectedLanguageCode = languageCodeMap[selectedLang as keyof typeof languageCodeMap] ?? "en";
+  const translateNotification = (text: string) => notificationLabels[selectedLanguageCode]?.[text] ?? t(text);
 
   const loadNotifications = async (id: number) => {
     try {
@@ -325,10 +361,10 @@ export default function TopNavbar({
                           className={`block w-full px-4 py-3 text-left hover:bg-green-50 ${notification.is_read ? "" : "bg-green-50/70"}`}
                         >
                           <p className="text-sm font-semibold text-slate-800">
-                            {t(notification.title)}
+                            {translateNotification(notification.title)}
                           </p>
                           <p className="mt-1 text-xs leading-5 text-slate-500">
-                            {t(notification.message)}
+                            {translateNotification(notification.message)}
                           </p>
                         </button>
                       ))
