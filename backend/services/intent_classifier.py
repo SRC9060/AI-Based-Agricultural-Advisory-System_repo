@@ -2,7 +2,9 @@ from transformers import pipeline
 
 classifier = pipeline(
     "zero-shot-classification",
-    model="facebook/bart-large-mnli"
+    model="facebook/bart-large-mnli",
+    # This public model must not use a stale local Hugging Face login token.
+    token=False,
 )
 
 candidate_labels = [

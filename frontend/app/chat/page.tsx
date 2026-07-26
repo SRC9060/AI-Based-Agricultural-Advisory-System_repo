@@ -179,12 +179,15 @@ setStatus("");
   useEffect(() => {
     const query = searchParams.get("q");
     if (!query) return;
+    // A dashboard question can arrive before the new chat session is created.
+    // Wait until it exists so the question is sent and saved reliably.
+    if (!sessionId) return;
     if (hasAutoAsked.current) return;
     hasAutoAsked.current = true;
     setQuestion(query);
     askAI(query);
     window.history.replaceState({}, "", "/chat");
-  }, [searchParams, askAI]);
+  }, [searchParams, askAI, sessionId]);
 
   // Enter Key
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {

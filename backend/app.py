@@ -48,6 +48,59 @@ def home():
         "message": "Farmer Advisory Chatbot API is Running!"
     }
 
+
+@app.get("/feedback/{user_id}")
+def get_feedback(user_id: int):
+    db = SessionLocal()
+    try:
+        entries = (
+            db.query(Feedback)
+            .filter(Feedback.user_id == user_id)
+            .order_by(Feedback.created_at.desc())
+            .all()
+        )
+        return {
+            "feedback": [
+                {
+                    "id": entry.id,
+                    "message": entry.message,
+                    "category": entry.category,
+                    "rating": entry.rating,
+                    "created_at": entry.created_at,
+                }
+                for entry in entries
+            ]
+        }
+    finally:
+        db.close()
+
+
+@app.post("/feedback")
+def create_feedback(request: FeedbackRequest):
+    if len(request.message.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Feedback must contain at least 3 characters")
+    if not 1 <= request.rating <= 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        entry = Feedback(
+            user_id=request.user_id,
+            message=request.message.strip(),
+            category=request.category,
+            rating=request.rating,
+        )
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+        return {"message": "Feedback saved successfully", "id": entry.id}
+    finally:
+        db.close()
+
 @app.get("/weather")
 def weather(city: str):
     result = get_weather(city)
@@ -347,6 +400,34 @@ def create_chat_session(user_id: int):
     return {
         "session_id": session.id
     }
+
+@app.get("/chat/activity/{user_id}")
+def get_chat_activity(user_id: int, limit: int = 20):
+    """Return a user's saved questions for dashboard activity and query history."""
+    db = SessionLocal()
+    try:
+        query = (
+            db.query(ChatMessage)
+            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+            .filter(ChatSession.user_id == user_id, ChatMessage.role == "user")
+            .order_by(ChatMessage.created_at.desc())
+        )
+        total = query.count()
+        messages = query.limit(max(1, min(limit, 100))).all()
+        return {
+            "count": total,
+            "activities": [
+                {
+                    "id": message.id,
+                    "message": message.message,
+                    "created_at": message.created_at,
+                }
+                for message in messages
+            ],
+        }
+    finally:
+        db.close()
+
 
 @app.post("/chat")
 def chat(request: ChatRequest):

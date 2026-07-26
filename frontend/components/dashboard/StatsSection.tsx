@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   CloudSun,
   TrendingUp,
@@ -22,12 +22,14 @@ interface StatsSectionProps {
   profile: Profile | null;
   loading: boolean;
   schemeCount: number;
+  queryCount: number;
 }
 
 export default function StatsSection({
   profile,
   loading,
   schemeCount,
+  queryCount,
 }: StatsSectionProps) {
   const { t } = useTranslation();
 
@@ -42,13 +44,30 @@ export default function StatsSection({
     crop: "No market data available",
   });
 
-  const [queryCount, setQueryCount] = useState(0);
+  const [savedQueryCount, setSavedQueryCount] = useState(queryCount);
+
+  useEffect(() => {
+    setSavedQueryCount(queryCount);
+  }, [queryCount]);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return;
+
+    fetch(`http://127.0.0.1:8000/chat/activity/${userId}?limit=1`)
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data) => setSavedQueryCount(data.count || 0))
+      .catch(() => {
+        // Retain the dashboard value if the activity service is temporarily unavailable.
+      });
+  }, []);
 
   // ---------------- WEATHER ----------------
 
   useEffect(() => {
 
-    if (!profile?.city) return;
+    const weatherLocation = profile?.city || profile?.district;
+    if (!weatherLocation) return;
 
     const fetchWeather = async () => {
 
@@ -61,22 +80,34 @@ export default function StatsSection({
       try {
 
         const response = await fetch(
-          `http://127.0.0.1:8000/weather?city=${encodeURIComponent(profile.city)}`
+          `http://127.0.0.1:8000/weather?city=${encodeURIComponent(weatherLocation)}`
         );
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          setWeather({
+            temperature: "--",
+            condition: "Weather unavailable",
+            location: `${weatherLocation}, ${profile.state}`,
+          });
+          return;
+        }
 
         const data = await response.json();
 
         setWeather({
           temperature: `${Math.round(data.temperature)}°C`,
           condition: data.description,
-          location: `📍 ${profile.city}, ${profile.state}`,
+          location: `📍 ${weatherLocation}, ${profile.state}`,
         });
 
       } catch (err) {
 
         console.error(err);
+        setWeather({
+          temperature: "--",
+          condition: "Weather service is currently unavailable",
+          location: `${weatherLocation}, ${profile.state}`,
+        });
 
       }
 
@@ -84,7 +115,7 @@ export default function StatsSection({
 
     fetchWeather();
 
-  }, [profile?.city, profile?.state]);
+  }, [profile?.city, profile?.district, profile?.state]);
 
   // ---------------- MARKET ----------------
 
@@ -122,7 +153,13 @@ export default function StatsSection({
           }
         );
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          setMarket({
+            price: "--",
+            crop: `No market data available for ${profile.crop} in ${profile.district} today`,
+          });
+          return;
+        }
 
         const data = await response.json();
 
@@ -134,6 +171,10 @@ export default function StatsSection({
       } catch (err) {
 
         console.error(err);
+        setMarket({
+          price: "--",
+          crop: "Market service is currently unavailable",
+        });
 
       }
 
@@ -142,56 +183,6 @@ export default function StatsSection({
     fetchMarket();
 
   }, [profile?.crop, profile?.state, profile?.district]);
-
-  // ---------------- QUERY COUNT ----------------
-
-const fetchQueryCount = useCallback(async () => {
-  const userId = localStorage.getItem("user_id");
-
-  if (!userId) return;
-
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:8000/recent-activity/${userId}`,
-      {
-        cache: "no-store",
-      }
-    );
-
-    if (!response.ok) return;
-
-    const data = await response.json();
-
-    setQueryCount(data.count || 0);
-
-  } catch (err) {
-    console.error(err);
-  }
-}, []);
-
-useEffect(() => {
-
-  fetchQueryCount();
-
-  const interval = setInterval(fetchQueryCount, 30000);
-
-  const handleVisibility = () => {
-    if (!document.hidden) {
-      fetchQueryCount();
-    }
-  };
-
-  document.addEventListener("visibilitychange", handleVisibility);
-
-  return () => {
-    clearInterval(interval);
-    document.removeEventListener(
-      "visibilitychange",
-      handleVisibility
-    );
-  };
-
-}, [fetchQueryCount]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -224,7 +215,7 @@ useEffect(() => {
 
       <StatCard
         title={t("My Queries")}
-        value={queryCount.toString()}
+        value={savedQueryCount.toString()}
         details={[t("Total Queries")]}
         icon={<MessageSquare size={16} />}
         color="bg-orange-500"

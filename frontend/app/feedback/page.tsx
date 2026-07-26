@@ -16,15 +16,22 @@ export default function FeedbackPage() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("accessToken")}` });
-  const loadFeedback = () => fetch("http://127.0.0.1:8000/feedback", { headers: headers() }).then((response) => response.json()).then((data) => setFeedback(data.feedback || []));
+  const loadFeedback = () => {
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return;
+    fetch(`http://127.0.0.1:8000/feedback/${userId}`)
+      .then((response) => response.json())
+      .then((data) => setFeedback(data.feedback || []));
+  };
   useEffect(() => { loadFeedback(); }, []);
 
   async function submitFeedback() {
     if (message.trim().length < 3) { setStatus("Please write at least 3 characters."); return; }
+    const userId = localStorage.getItem("user_id");
+    if (!userId) { setStatus("Please log in before submitting feedback."); return; }
     setSubmitting(true); setStatus("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/feedback", { method: "POST", headers: headers(), body: JSON.stringify({ message, category, rating }) });
+      const response = await fetch("http://127.0.0.1:8000/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: Number(userId), message, category, rating }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Unable to save feedback");
       setMessage(""); setCategory("Suggestion"); setRating(5); setStatus("Thanks! Your feedback was saved successfully."); loadFeedback();

@@ -41,7 +41,7 @@ export default function GovernmentSchemes({
 
   if (schemes.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm p-5">
 
         <h2 className="text-2xl font-semibold mb-4 text-slate-900">
           {t("Government Schemes for You")}
@@ -66,7 +66,7 @@ export default function GovernmentSchemes({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm transition-all duration-300 p-5">
+    <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm transition-all duration-300 p-5">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
 

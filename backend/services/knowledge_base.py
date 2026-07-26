@@ -11,7 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 KNOWLEDGE_BASE_PATH = PROJECT_ROOT / "knowledge_base"
 CHROMA_DB_PATH = PROJECT_ROOT / "chroma_db"
 EMBEDDING_MODEL = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    # This public model must not use a stale local Hugging Face login token.
+    model_kwargs={"token": False},
 )
 
 # Load PDF Documents

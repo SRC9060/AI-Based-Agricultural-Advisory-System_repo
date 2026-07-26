@@ -22,6 +22,12 @@ interface Scheme {
   title: string;
 }
 
+interface ChatActivity {
+  id: number;
+  message: string;
+  created_at: string;
+}
+
 export default function DashboardPage() {
 
   const router = useRouter();
@@ -31,6 +37,8 @@ export default function DashboardPage() {
 
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [schemeCount, setSchemeCount] = useState(0);
+  const [queryCount, setQueryCount] = useState(0);
+  const [activities, setActivities] = useState<ChatActivity[]>([]);
 
   const loadDashboard = useCallback(async () => {
 
@@ -69,6 +77,15 @@ export default function DashboardPage() {
 
       }
 
+      const activityResponse = await fetch(
+        `http://127.0.0.1:8000/chat/activity/${userId}?limit=4`
+      );
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        setQueryCount(activityData.count || 0);
+        setActivities(activityData.activities || []);
+      }
+
     } catch (err) {
 
       console.error("Dashboard Error:", err);
@@ -97,28 +114,29 @@ export default function DashboardPage() {
           profile={profile}
           loading={loading}
           schemeCount={schemeCount}
+          queryCount={queryCount}
         />
 
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5 items-stretch">
 
         <div className="lg:col-span-2">
           <AIAssistantCard />
         </div>
-        <div>
+        <div className="h-full">
           <FarmBanner />
         </div>
 
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 items-stretch">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5 items-stretch">
 
         <GovernmentSchemes
           schemes={schemes}
         />
 
-        <RecentActivity />
+        <RecentActivity activities={activities} />
 
 
       </section>

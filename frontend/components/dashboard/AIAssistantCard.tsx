@@ -49,7 +49,7 @@ export default function AIAssistantCard() {
   }
 
   return (
-    <div className="h-full rounded-2xl border border-slate-200 bg-white shadow-sm p-6 flex flex-col">
+    <div className="h-full rounded-2xl border border-white/90 bg-white/90 backdrop-blur-sm shadow-sm p-6 flex flex-col">
 
       {/* Header */}
 
@@ -64,11 +64,11 @@ export default function AIAssistantCard() {
         <div>
 
 
-          <h2 className="text-[1.1rem] font-semibold text-slate-900">
+          <h2 className="text-xl font-semibold text-slate-900">
             {t("AI Assistant")}
           </h2>
 
-          <p className="mt-1.5 text-sm leading-6 text-slate-500">
+          <p className="mt-1.5 text-base leading-6 text-slate-500">
             {t("Ask any question about crops, diseases, schemes, weather and more...")}
           </p>
         </div>
@@ -88,7 +88,7 @@ export default function AIAssistantCard() {
               }
             }}
             placeholder={t("Type your question here...")}
-            className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
           />
 
           <button
@@ -110,7 +110,7 @@ export default function AIAssistantCard() {
 
       <div className="mt-6">
 
-        <p className="text-sm font-semibold text-slate-500 mb-3">
+        <p className="text-base font-semibold text-slate-500 mb-3">
           {t("Popular Topics")}
         </p>
 
@@ -133,8 +133,8 @@ export default function AIAssistantCard() {
                   className="text-green-600 mb-2"
                 />
 
-                <p className="font-medium text-slate-800">
-                  {item.title}
+                <p className="text-base font-medium text-slate-800">
+                  {t(item.title)}
                 </p>
 
               </button>
@@ -151,7 +151,7 @@ export default function AIAssistantCard() {
 
       <div className="mt-auto pt-5 border-t border-slate-200">
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-base text-slate-600">
 
           <div className="flex items-center gap-2">
 
@@ -171,7 +171,7 @@ export default function AIAssistantCard() {
               className="text-green-600"
             />
 
-            <span>{t("20+ Languages")}</span>
+            <span>{t("8 Languages")}</span>
 
           </div>
 

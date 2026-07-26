@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Pencil, Settings } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
 
 import {
@@ -108,6 +108,7 @@ export default function TopNavbar({
 
   const [langOpen, setLangOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
   const unreadNotifications = notifications.filter((notification) => !notification.is_read).length;
@@ -169,8 +170,8 @@ export default function TopNavbar({
   }, []);
 
   return (
-    <header className="sticky top-4 z-50 px-6 pt-4">
-      <div className="max-w-[1700px] mx-auto bg-gradient-to-r from-green-50 via-white to-green-50 backdrop-blur-xl border border-green-100 shadow-xl rounded-2xl">
+    <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 pt-4">
+      <div className="w-full bg-gradient-to-r from-green-50 via-white to-green-50 backdrop-blur-xl border border-green-100 shadow-xl rounded-2xl">
 
         <div className="flex items-center justify-between h-24 px-10">
 
@@ -184,11 +185,11 @@ export default function TopNavbar({
               </div>
 
               <div>
-                <h2 className="font-bold text-lg text-slate-900">
+                <h2 className="font-bold text-xl tracking-tight text-slate-900">
                   AgriAdvisor
                 </h2>
 
-                <p className="text-sm text-slate-600">
+                <p className="text-[0.9rem] text-slate-600">
                   Smart Farming Platform
                 </p>
               </div>
@@ -217,7 +218,7 @@ export default function TopNavbar({
                       size={20}
                       className="transition-transform duration-300 group-hover:scale-110"
                     />
-                <span className="text-[15px] transition-all duration-300">
+                <span className="text-base transition-all duration-300">
                   {t(item.name)}
                 </span>
                   </Link>
@@ -239,7 +240,7 @@ export default function TopNavbar({
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
               >
                 <Globe size={18} />
-                <span className="text-sm font-medium">{selectedLang}</span>
+                <span className="text-base font-medium">{selectedLang}</span>
                 <ChevronDown size={16} />
               </button>
 
@@ -318,11 +319,15 @@ export default function TopNavbar({
               )}
             </div>
 
-            {/* Profile + Logout */}
-            <div className="flex items-center gap-3">
-
-              <Link href="/profile">
-                <div className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300 cursor-pointer">
+            {/* Profile menu */}
+            <div className="relative">
+              <button
+                type="button"
+                aria-label={t("Open profile menu")}
+                aria-expanded={profileMenuOpen}
+                onClick={() => setProfileMenuOpen((isOpen) => !isOpen)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
+              >
 
                   {userAvatar ? (
                     <Image
@@ -339,23 +344,49 @@ export default function TopNavbar({
                   )}
 
                   <div className="hidden xl:block">
-                    <p className="font-semibold text-sm">{displayName}</p>
-                    <p className="text-xs text-slate-500">{t(displayRole)}</p>
+                    <p className="font-semibold text-base">{displayName}</p>
+                    <p className="text-sm text-slate-500">{t(displayRole)}</p>
                   </div>
 
-                  <ChevronDown size={16} className="text-slate-500" />
+                  <ChevronDown size={16} className={`text-slate-500 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} />
 
-                </div>
-              </Link>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition"
-              >
-                <LogOut size={18} />
-                <span className="hidden xl:inline">{t("Logout")}</span>
               </button>
 
+              {profileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl z-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      router.push("/profile");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-green-50 hover:text-green-800"
+                  >
+                    <Pencil size={17} />
+                    {t("Edit Profile")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      router.push("/settings");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-green-50 hover:text-green-800"
+                  >
+                    <Settings size={17} />
+                    {t("Settings")}
+                  </button>
+                  <div className="my-1 border-t border-slate-100" />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut size={17} />
+                    {t("Logout")}
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>

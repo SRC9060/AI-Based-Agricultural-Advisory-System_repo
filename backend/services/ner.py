@@ -4,7 +4,9 @@ from transformers import pipeline
 ner = pipeline(
     "ner",
     model="dslim/bert-base-NER",
-    aggregation_strategy="simple"
+    aggregation_strategy="simple",
+    # This public model must not use a stale local Hugging Face login token.
+    token=False,
 )
 
 # Ignore words that are often incorrectly detected as person names

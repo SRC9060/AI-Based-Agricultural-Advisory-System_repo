@@ -64,6 +64,12 @@ class SpeakRequest(BaseModel):
     text: str
     language: str = "en"
 
+class FeedbackRequest(BaseModel):
+    user_id: int
+    message: str
+    category: str
+    rating: int
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -108,4 +114,13 @@ class ChatMessage(Base):
     )
     role = Column(String, nullable=False)
     message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    message = Column(Text, nullable=False)
+    category = Column(String, nullable=False, default="Suggestion")
+    rating = Column(Integer, nullable=False, default=5)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
