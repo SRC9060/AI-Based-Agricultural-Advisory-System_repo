@@ -92,6 +92,9 @@ const reviewedUiLabels: Partial<Record<LanguageCode, Record<string, string>>> = 
 };
 
 const profileLabels: Partial<Record<LanguageCode, Record<string, string>>> = {
+  en: {
+    "Chat greeting": "Hello! 👋 I am your AI Agricultural Advisor. Ask me anything about crops, farming, weather, diseases, market information or government schemes.",
+  },
   hi: {
     "Chat greeting": "नमस्ते! मैं आपका एआई कृषि सलाहकार हूँ। फसलों, खेती, मौसम, रोगों, बाजार की जानकारी या सरकारी योजनाओं के बारे में कुछ भी पूछें।",
     "Market Prices": "बाज़ार भाव", "Search today's mandi prices.": "आज के मंडी भाव खोजें।", "Search Market Prices": "बाज़ार भाव खोजें", Commodity: "वस्तु", "Select Commodity": "वस्तु चुनें", "Select Commodity First": "पहले वस्तु चुनें", "Select State": "राज्य चुनें", "Select State First": "पहले राज्य चुनें", "Select District": "जिला चुनें", Search: "खोजें", "Searching...": "खोजा जा रहा है...", "Please fill all fields.": "कृपया सभी फ़ील्ड भरें।", "Unable to load market options.": "बाज़ार विकल्प लोड नहीं हो सके।", "No market data found for this selection.": "इस चयन के लिए बाज़ार डेटा नहीं मिला।", "Unable to fetch market prices.": "बाज़ार भाव प्राप्त नहीं हो सके।",
