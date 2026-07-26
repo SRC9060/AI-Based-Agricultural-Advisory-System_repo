@@ -2,7 +2,9 @@ from pydantic import BaseModel
 from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey
 
-from database import Base
+# ==========================================
+# Data Schema Models
+# ==========================================
 
 class LoginRequest(BaseModel):
     email: str
@@ -70,6 +72,12 @@ class FeedbackRequest(BaseModel):
     category: str
     rating: int
 
+# ==========================================
+# Database Models
+# ==========================================
+
+from database import Base
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -113,6 +121,7 @@ class ChatMessage(Base):
         index=True,
     )
     role = Column(String, nullable=False)
+    intent = Column(String, nullable=True, index=True)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 

@@ -1,4 +1,6 @@
 import os
+# os.environ["HF_HUB_OFFLINE"] = "1"
+# os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 from services.knowledge_base import CHROMA_DB_PATH, rebuild_vector_database
 if os.path.exists(CHROMA_DB_PATH):
@@ -10,6 +12,7 @@ else:
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
 from services.language_detection import detect_language
 from services.translation import translate_text
@@ -48,7 +51,6 @@ def home():
         "message": "Farmer Advisory Chatbot API is Running!"
     }
 
-
 @app.get("/feedback/{user_id}")
 def get_feedback(user_id: int):
     db = SessionLocal()
@@ -74,20 +76,23 @@ def get_feedback(user_id: int):
     finally:
         db.close()
 
-
 @app.post("/feedback")
 def create_feedback(request: FeedbackRequest):
     if len(request.message.strip()) < 3:
-        raise HTTPException(status_code=400, detail="Feedback must contain at least 3 characters")
+        raise HTTPException(
+            status_code=400,
+            detail="Feedback must contain at least 3 characters"
+        )
     if not 1 <= request.rating <= 5:
-        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
-
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5"
+        )
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == request.user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-
         entry = Feedback(
             user_id=request.user_id,
             message=request.message.strip(),
@@ -97,7 +102,9 @@ def create_feedback(request: FeedbackRequest):
         db.add(entry)
         db.commit()
         db.refresh(entry)
-        return {"message": "Feedback saved successfully", "id": entry.id}
+        return {
+            "message": "Feedback saved successfully", "id": entry.id
+        }
     finally:
         db.close()
 
@@ -401,34 +408,6 @@ def create_chat_session(user_id: int):
         "session_id": session.id
     }
 
-@app.get("/chat/activity/{user_id}")
-def get_chat_activity(user_id: int, limit: int = 20):
-    """Return a user's saved questions for dashboard activity and query history."""
-    db = SessionLocal()
-    try:
-        query = (
-            db.query(ChatMessage)
-            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-            .filter(ChatSession.user_id == user_id, ChatMessage.role == "user")
-            .order_by(ChatMessage.created_at.desc())
-        )
-        total = query.count()
-        messages = query.limit(max(1, min(limit, 100))).all()
-        return {
-            "count": total,
-            "activities": [
-                {
-                    "id": message.id,
-                    "message": message.message,
-                    "created_at": message.created_at,
-                }
-                for message in messages
-            ],
-        }
-    finally:
-        db.close()
-
-
 @app.post("/chat")
 def chat(request: ChatRequest):
     db = SessionLocal()
@@ -444,13 +423,6 @@ def chat(request: ChatRequest):
             detail="Session Not Found"
         )
     user_message = request.message
-    user_chat = ChatMessage(
-        session_id=session.id,
-        role="user",
-        message=user_message
-    )
-    db.add(user_chat)
-    db.commit()
     language = request.language or detect_language(user_message)
     print("User Query:", user_message)
     print("Selected Language:", language)
@@ -551,9 +523,17 @@ def chat(request: ChatRequest):
             target_language
         )
         translated_response = result.translated_text
+    user_chat = ChatMessage(
+        session_id=session.id,
+        role="user",
+        intent=str(intent_result["intent"]),
+        message=user_message
+    )
+    db.add(user_chat)
     assistant_chat = ChatMessage(
         session_id=session.id,
         role="assistant",
+        intent=str(intent_result["intent"]),
         message=translated_response
     )
     db.add(assistant_chat)
@@ -608,61 +588,13 @@ def speak(request: SpeakRequest):
         filename="speech.wav"
     )
 
-@app.get("/recent-activity/{user_id}")
-def get_recent_activity(user_id: int):
-    db = SessionLocal()
-
-    try:
-        # Get all chat sessions of the user
-        sessions = (
-            db.query(ChatSession)
-            .filter(ChatSession.user_id == user_id)
-            .all()
-        )
-
-        if not sessions:
-            return []
-
-        session_ids = [session.id for session in sessions]
-
-        # Get only USER messages (not AI replies)
-        messages = (
-            db.query(ChatMessage)
-            .filter(
-                ChatMessage.session_id.in_(session_ids),
-                ChatMessage.role == "user"
-            )
-            .order_by(ChatMessage.created_at.desc())
-            .limit(10)
-            .all()
-        )
-
-        activities = []
-
-        for message in messages:
-            intent = classify_intent(message.message)
-
-            activities.append({
-                "title": message.message,
-                "type": intent["intent"],
-                "created_at": message.created_at.isoformat()
-            })
-
-        return {
-            "count": len(activities),
-            "activities": activities
-        }
-
-    finally:
-        db.close()
-
 @app.post("/market-price")
 def market_price(request: MarketRequest):
     try:
         response = get_market_price(
-        commodity=request.commodity,
-        state=request.state,
-        district=request.district
+            commodity=request.commodity,
+            state=request.state,
+            district=request.district
         )
         return {
             "commodity": response.commodity,
@@ -684,39 +616,45 @@ def market_price(request: MarketRequest):
 def market_options():
     return get_market_options()
 
-Base.metadata.create_all(bind=engine)
 @app.get("/recent-activity/{user_id}")
-def recent_activity(user_id: int):
+def get_chat_activity(user_id: int, limit: int = 20):
     db = SessionLocal()
-
     try:
         sessions = (
             db.query(ChatSession)
             .filter(ChatSession.user_id == user_id)
             .all()
         )
-
-        session_ids = [s.id for s in sessions]
-
-        messages = (
+        if not sessions:
+            return []
+        query = (
             db.query(ChatMessage)
             .filter(
-                ChatMessage.session_id.in_(session_ids),
+                ChatMessage.session_id.in_(
+                    select(ChatSession.id).where(ChatSession.user_id == user_id)
+                ),
                 ChatMessage.role == "user"
             )
-            .order_by(ChatMessage.created_at.desc())
-            .limit(10)
+        )
+        total = query.count()
+        messages = (
+            query.order_by(ChatMessage.created_at.desc())
+            .limit(max(1, min(limit, 100)))
             .all()
         )
-
-        return [
-            {
-                "title": msg.message,
-                "type": "chat",
-                "created_at": msg.created_at.isoformat()
-            }
-            for msg in messages
-        ]
-
+        return {
+            "count": total,
+            "activities": [
+                {
+                    "id": message.id,
+                    "message": message.message,
+                    "type": message.intent,
+                    "created_at": message.created_at.isoformat() + "Z",
+                }
+                for message in messages
+            ],
+        }
     finally:
         db.close()
+
+Base.metadata.create_all(bind=engine)

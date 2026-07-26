@@ -54,7 +54,7 @@ export default function StatsSection({
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
 
-    fetch(`http://127.0.0.1:8000/chat/activity/${userId}?limit=1`)
+    fetch(`http://127.0.0.1:8000/recent-activity/${userId}?limit=1`)
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((data) => setSavedQueryCount(data.count || 0))
       .catch(() => {

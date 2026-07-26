@@ -78,7 +78,7 @@ export default function DashboardPage() {
       }
 
       const activityResponse = await fetch(
-        `http://127.0.0.1:8000/chat/activity/${userId}?limit=4`
+        `http://127.0.0.1:8000/recent-activity/${userId}?limit=4`
       );
       if (activityResponse.ok) {
         const activityData = await activityResponse.json();
