@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
@@ -15,6 +16,12 @@ EMBEDDING_MODEL = HuggingFaceEmbeddings(
     # This public model must not use a stale local Hugging Face login token.
     model_kwargs={"token": False},
 )
+
+
+def _safe_console_preview(text, length):
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    return text[:length].encode(encoding, errors="replace").decode(encoding)
+
 
 # Load PDF Documents
 def load_documents():
@@ -86,7 +93,9 @@ def search_knowledge_base(query):
         print(f"Score: {score:.4f}")
         print("Folder:", doc.metadata.get("folder"))
         print("Source:", doc.metadata.get("source"))
-        print(doc.page_content[:200])
+        # Some PDFs contain private-use glyphs that Windows consoles cannot
+        # encode. Diagnostic output must never break an otherwise valid search.
+        print(_safe_console_preview(doc.page_content, 200))
         print("-" * 50)
         if score < 1.2:
             results.append(doc)
@@ -94,6 +103,7 @@ def search_knowledge_base(query):
     crop_keywords = {
         "wheat": "Wheat",
         "rice": "Rice",
+        "paddy": "Rice",
         "maize": "Maize",
         "corn": "Maize",
         "cotton": "Cotton",
@@ -114,12 +124,13 @@ def search_knowledge_base(query):
             break
     # Return Crop Specific Documents
     if detected_crop:
-        crop_results = []
-        for doc in results:
-            if (doc.metadata.get("folder") == detected_crop):
-                crop_results.append(doc)
+        crop_results = vector_db.similarity_search(
+            query,
+            k=5,
+            filter={"folder": detected_crop},
+        )
         if crop_results:
-            return crop_results[:5]
+            return crop_results
     return results[:5]
 
 # Search Documents inside Government Schemes 
@@ -141,7 +152,7 @@ def search_government_schemes(query):
         print("Folder:", doc.metadata.get("folder"))
         print("File:", doc.metadata.get("filename"))
         print("Source:", doc.metadata.get("source"))
-        print(doc.page_content[:300])
+        print(_safe_console_preview(doc.page_content, 300))
         print("-" * 50)
         # No Score Threshold for Now.
         # First Verify Scheme Retrieval Works.
@@ -149,7 +160,12 @@ def search_government_schemes(query):
     return scheme_results[:5]
 
 # Rebuild Vector Database
-def rebuild_vector_database():
+def rebuild_vector_database(replace_existing=False):
+    if replace_existing and CHROMA_DB_PATH.exists():
+        resolved_database = CHROMA_DB_PATH.resolve()
+        if resolved_database.parent != PROJECT_ROOT.resolve():
+            raise RuntimeError("Refusing to replace a vector database outside the backend.")
+        shutil.rmtree(resolved_database)
     documents = load_documents()
     if not documents:
         print("No PDF Documents were Loaded.")

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MessageCircle, CloudSun, Landmark, Sprout } from "lucide-react";
@@ -94,7 +96,7 @@ export default function RecentActivity({
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
 
-    fetch(`http://127.0.0.1:8000/recent-activity/${userId}?limit=4`)
+    fetch(`${API_URL}/recent-activity/${userId}?limit=4`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((data) => setActivities(data.activities || []))
       .catch(() => {

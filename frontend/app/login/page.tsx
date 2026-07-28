@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sprout, Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -16,7 +18,7 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      const response = await fetch("http://127.0.0.1:8000/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,7 +38,7 @@ export default function LoginPage() {
         localStorage.setItem("user_email", data.user.email);
 
         const statusResponse = await fetch(
-          `http://127.0.0.1:8000/profile-status/${data.user.id}`
+          `${API_URL}/profile-status/${data.user.id}`
         );
 
         const statusData = await statusResponse.json();

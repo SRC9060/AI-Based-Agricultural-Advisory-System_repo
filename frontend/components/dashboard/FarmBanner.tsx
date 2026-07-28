@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { MessageSquare, Send, Star } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -20,7 +22,7 @@ export default function FarmBanner() {
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
     try {
-      const response = await fetch(`http://127.0.0.1:8000/feedback/${userId}`);
+      const response = await fetch(`${API_URL}/feedback/${userId}`);
       if (!response.ok) return;
       const data = await response.json();
       setHistory((data.feedback || []).slice(0, 2));
@@ -46,7 +48,7 @@ export default function FarmBanner() {
     setSaving(true);
     setStatus("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/feedback", {
+      const response = await fetch(`${API_URL}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: Number(userId), message, category, rating }),

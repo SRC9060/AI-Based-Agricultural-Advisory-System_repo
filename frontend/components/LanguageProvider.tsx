@@ -2,6 +2,7 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { useChangeLanguage } from "next-i18next/client";
 
 type LanguageCode = "en" | "hi" | "te" | "kn" | "ta" | "ml" | "mr" | "gu";
 
@@ -209,15 +210,18 @@ const dashboardFeedbackLabels: Partial<Record<LanguageCode, Record<string, strin
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const changeLanguage = useChangeLanguage();
   const [language, setLanguage] = useState<LanguageCode>("en");
   useEffect(() => {
     const sync = () => {
       const stored = localStorage.getItem("language") as LanguageCode | null;
-      setLanguage(stored && labels[stored] ? stored : "en");
+      const nextLanguage = stored && labels[stored] ? stored : "en";
+      setLanguage(nextLanguage);
+      changeLanguage(["en", "hi", "kn"].includes(nextLanguage) ? nextLanguage : "en");
     };
     sync(); window.addEventListener("languagechange", sync);
     return () => window.removeEventListener("languagechange", sync);
-  }, []);
+  }, [changeLanguage]);
   return <LanguageContext.Provider value={{ language, t: (text) => dashboardFeedbackLabels[language]?.[text] || addedLanguageExtraLabels[language]?.[text] || addedLanguageLabels[language]?.[text] || profileLabels[language]?.[text] || reviewedUiLabels[language]?.[text] || extraLabels[language][text] || labels[language][text] || text }}>{children}</LanguageContext.Provider>;
 }
 

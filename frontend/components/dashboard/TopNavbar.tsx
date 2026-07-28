@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -158,7 +160,7 @@ export default function TopNavbar({
 
   const loadNotifications = async (id: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/notifications/${id}`);
+      const response = await fetch(`${API_URL}/notifications/${id}`);
       if (response.ok) setNotifications(await response.json());
     } catch {
       // Keep navigation usable when the backend is unavailable.
@@ -168,7 +170,7 @@ export default function TopNavbar({
   const markAllNotificationsRead = async () => {
     if (!userId) return;
     try {
-      await fetch(`http://127.0.0.1:8000/notifications/${userId}/read-all`, {
+      await fetch(`${API_URL}/notifications/${userId}/read-all`, {
         method: "PUT",
       });
       setNotifications((items) =>
@@ -182,7 +184,7 @@ export default function TopNavbar({
   const markNotificationRead = async (notificationId: number) => {
     try {
       await fetch(
-        `http://127.0.0.1:8000/notifications/${notificationId}/read`,
+        `${API_URL}/notifications/${notificationId}/read`,
         { method: "PUT" },
       );
       setNotifications((items) =>

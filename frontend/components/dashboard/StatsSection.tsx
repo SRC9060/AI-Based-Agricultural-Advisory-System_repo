@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import {
   CloudSun,
@@ -51,7 +53,7 @@ export default function StatsSection({
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
 
-    fetch(`http://127.0.0.1:8000/recent-activity/${userId}?limit=1`)
+    fetch(`${API_URL}/recent-activity/${userId}?limit=1`)
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((data) => setActivityQueryCount(data.count || 0))
       .catch(() => {
@@ -77,7 +79,7 @@ export default function StatsSection({
       try {
 
         const response = await fetch(
-          `http://127.0.0.1:8000/weather?city=${encodeURIComponent(weatherLocation)}`
+          `${API_URL}/weather?city=${encodeURIComponent(weatherLocation)}`
         );
 
         if (!response.ok) {
@@ -136,7 +138,7 @@ export default function StatsSection({
       try {
 
         const response = await fetch(
-          "http://127.0.0.1:8000/market-price",
+          `${API_URL}/market-price`,
           {
             method: "POST",
             headers: {

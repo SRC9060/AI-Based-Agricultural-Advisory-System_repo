@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  reactStrictMode: true,
+  output: "standalone",
 };
 
-export default nextConfig;
+const withPWA = withPWAInit({
+  dest: "public",
+  register: true,
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  disable: process.env.NODE_ENV === "development",
+  workboxOptions: {
+    navigateFallback: "/offline",
+  },
+});
+
+export default withPWA(nextConfig);

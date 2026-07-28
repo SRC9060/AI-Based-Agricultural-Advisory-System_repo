@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { MessageSquare, Send, Star } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -19,7 +21,7 @@ export default function FeedbackPage() {
   const loadFeedback = () => {
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
-    fetch(`http://127.0.0.1:8000/feedback/${userId}`)
+    fetch(`${API_URL}/feedback/${userId}`)
       .then((response) => response.json())
       .then((data) => setFeedback(data.feedback || []));
   };
@@ -31,7 +33,7 @@ export default function FeedbackPage() {
     if (!userId) { setStatus("Please log in before submitting feedback."); return; }
     setSubmitting(true); setStatus("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: Number(userId), message, category, rating }) });
+      const response = await fetch(`${API_URL}/feedback`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: Number(userId), message, category, rating }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Unable to save feedback");
       setMessage(""); setCategory("Suggestion"); setRating(5); setStatus("Thanks! Your feedback was saved successfully."); loadFeedback();

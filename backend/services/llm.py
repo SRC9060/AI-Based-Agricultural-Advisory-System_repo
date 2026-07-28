@@ -1,21 +1,23 @@
 from sarvamai import SarvamAI
 from config import Config
+from services.openai_llm import generate_openai_response
 
 client = SarvamAI(
     api_subscription_key=Config.SARVAM_API_KEY
 )
 
-def generate_llm_response(question, context):
+def generate_llm_response(question, context, fallback=None):
     """
     Generate a short, farmer-friendly response using only the retrieved context.
     """
 
-    response = client.chat.completions(
-        model="sarvam-105b",
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    try:
+        response = client.chat.completions(
+            model="sarvam-105b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
                     "You are an experienced agricultural expert helping Indian farmers. "
 
                     "Answer ONLY using the provided information. "
@@ -50,22 +52,36 @@ def generate_llm_response(question, context):
 
                     "If the answer is not available in the provided information, reply exactly: "
                     "'I don't have enough information in the knowledge base.'"
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"""
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"""
 Context:
 {context}
 
 Question:
 {question}
 """
-            },
-        ],
-        reasoning_effort=None,
-        max_tokens=80,
-    )
+                },
+            ],
+            reasoning_effort=None,
+            max_tokens=80,
+        )
+    except Exception as error:
+        # Sarvam is the primary provider. If it is unavailable (for example,
+        # exhausted credits), use OpenAI before the local extractive fallback.
+        print(f"Sarvam chat unavailable: {error}")
+        try:
+            return generate_openai_response(question, context)
+        except Exception as openai_error:
+            print(f"OpenAI chat unavailable: {openai_error}")
+        if fallback is not None:
+            return fallback()
+        return (
+            "The AI response service is temporarily unavailable. Please try "
+            "again later."
+        )
 
     answer = response.choices[0].message.content.strip()
 

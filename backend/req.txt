@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+sqlalchemy
 python-dotenv
 requests
 langchain
@@ -8,6 +9,7 @@ langdetect
 transformers
 torch
 sarvamai
+openai
 langchain_text_splitters
 langchain_community
 sentence-transformers

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -55,7 +57,7 @@ export default function DashboardPage() {
       // ---------------- PROFILE ----------------
 
       const profileResponse = await fetch(
-        `http://127.0.0.1:8000/profile/${userId}`
+        `${API_URL}/profile/${userId}`
       );
 
       if (profileResponse.ok) {
@@ -66,7 +68,7 @@ export default function DashboardPage() {
       // ---------------- SCHEMES ----------------
 
       const schemeResponse = await fetch(
-        `http://127.0.0.1:8000/schemes/${userId}`
+        `${API_URL}/schemes/${userId}`
       );
 
       if (schemeResponse.ok) {
@@ -79,7 +81,7 @@ export default function DashboardPage() {
       }
 
       const activityResponse = await fetch(
-        `http://127.0.0.1:8000/recent-activity/${userId}?limit=4`
+        `${API_URL}/recent-activity/${userId}?limit=4`
       );
       if (activityResponse.ok) {
         const activityData = await activityResponse.json();

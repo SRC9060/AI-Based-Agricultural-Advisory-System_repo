@@ -22,7 +22,15 @@ def scheme_agent(query):
     for doc in results:
         context += doc.page_content + "\n\n"
 
-    answer = generate_llm_response(query, context)
+    # Import here to avoid coupling agent initialization to the general RAG
+    # pipeline while still sharing its offline extractive fallback.
+    from services.rag_pipeline import _local_extractive_response
+
+    answer = generate_llm_response(
+        query,
+        context,
+        fallback=lambda: _local_extractive_response(query, results),
+    )
 
     return answer
 

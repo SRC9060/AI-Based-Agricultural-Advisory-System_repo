@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -48,7 +50,7 @@ export default function SchemesPage() {
       const userId = localStorage.getItem("user_id") || "guest";
       try {
         const response = await fetch(
-          "http://127.0.0.1:8000/chat/session?user_id=" + userId,
+          `${API_URL}/chat/session?user_id=` + userId,
           {
             method: "POST",
           },
@@ -80,7 +82,7 @@ export default function SchemesPage() {
       setError("");
       setResponse("");
       const userId = localStorage.getItem("user_id");
-      const response = await fetch("http://127.0.0.1:8000/chat", {
+      const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

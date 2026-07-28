@@ -1,5 +1,5 @@
-from pydantic import BaseModel
 from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey
 
 # ==========================================
@@ -44,8 +44,19 @@ class ProfileUpdateRequest(BaseModel):
 class ChatRequest(BaseModel):
     session_id: str
     user_id: str
-    message: str
+    message: str = Field(min_length=1, max_length=2000)
     language: str = "en"
+
+    @field_validator("message")
+    @classmethod
+    def sanitize_message(cls, value: str) -> str:
+        cleaned = "".join(
+            character for character in value.strip()
+            if character in "\n\t" or ord(character) >= 32
+        )
+        if not cleaned:
+            raise ValueError("Message cannot be empty.")
+        return cleaned
 
 class MarketRequest(BaseModel):
     commodity: str
@@ -63,14 +74,19 @@ class MarketResponse(BaseModel):
     arrival_date: str
 
 class SpeakRequest(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=4000)
     language: str = "en"
 
 class FeedbackRequest(BaseModel):
     user_id: int
-    message: str
-    category: str
-    rating: int
+    message: str = Field(min_length=1, max_length=2000)
+    category: str = Field(min_length=1, max_length=50)
+    rating: int = Field(ge=1, le=5)
+
+class ResponseFeedbackRequest(BaseModel):
+    user_id: int
+    message_id: int
+    helpful: bool
 
 # ==========================================
 # Database Models
@@ -132,4 +148,21 @@ class Feedback(Base):
     message = Column(Text, nullable=False)
     category = Column(String, nullable=False, default="Suggestion")
     rating = Column(Integer, nullable=False, default=5)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class ResponseFeedback(Base):
+    __tablename__ = "response_feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    message_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=False, index=True)
+    helpful = Column(Boolean, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+class UnansweredQuery(Base):
+    __tablename__ = "unanswered_queries"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False, index=True)
+    query = Column(Text, nullable=False)
+    response = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

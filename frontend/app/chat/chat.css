@@ -117,6 +117,29 @@
   background: #c8e6c9;
 }
 
+.feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #52635a;
+  font-size: 12px;
+}
+
+.feedback-btn {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid #c8e6c9;
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.feedback-btn.selected {
+  border-color: #1b8736;
+  background: #dff3e4;
+}
+
 
 /* ==========================================
    THINKING
@@ -255,8 +278,8 @@
 /* Voice */
 
 .voice-btn {
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 64px;
 
   border: none;
 
@@ -266,7 +289,8 @@
 
   cursor: pointer;
 
-  font-size: 19px;
+  font-size: 28px;
+  flex: 0 0 64px;
 
   transition: 0.3s;
 }
@@ -371,5 +395,12 @@
 @media (max-width: 600px) {
   .message {
     max-width: 85%;
+  }
+
+  .voice-btn {
+    width: 76px;
+    height: 76px;
+    flex-basis: 76px;
+    font-size: 34px;
   }
 }

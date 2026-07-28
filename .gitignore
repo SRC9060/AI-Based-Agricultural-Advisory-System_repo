@@ -1,9 +1,9 @@
 node_modules/
 .next/
-package-lock.json
 __pycache__/
 venv/
 .venv/
+venv311/
 .env
 output_audio/
 chroma_db/
@@ -13,3 +13,6 @@ test_audio/
 *.db
 *.sqlite3
 *.sqlite
+frontend/public/sw.js
+frontend/public/workbox-*.js
+frontend/public/swe-worker-*.js

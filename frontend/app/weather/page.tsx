@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -53,8 +55,8 @@ export default function WeatherPage() {
 
       // Call both backend APIs together
       const [weatherResponse, forecastResponse] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/weather?city=${encodedCity}`),
-        fetch(`http://127.0.0.1:8000/weather/forecast?city=${encodedCity}`),
+        fetch(`${API_URL}/weather?city=${encodedCity}`),
+        fetch(`${API_URL}/weather/forecast?city=${encodedCity}`),
       ]);
 
       const weatherData = await weatherResponse.json();

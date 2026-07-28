@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -24,7 +26,7 @@ export default function ProfilePage() {
     if (!userId) { router.replace("/login"); return; }
     try {
       setLoading(true);
-      const response = await fetch(`http://127.0.0.1:8000/profile/${userId}`);
+      const response = await fetch(`${API_URL}/profile/${userId}`);
       if (response.ok) setProfile(await response.json());
     } finally { setLoading(false); }
   };
@@ -37,7 +39,7 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     const userId = localStorage.getItem("user_id");
     if (!userId) { router.replace("/login"); return; }
-    const response = await fetch(`http://127.0.0.1:8000/profile/${userId}`, {
+    const response = await fetch(`${API_URL}/profile/${userId}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: profile.phone, state: profile.state, district: profile.district, city: profile.city, language: profile.language, farmer_type: profile.farmer_type, crop: profile.crop, farm_size: profile.farm_size, soil_type: profile.soil_type }),
     });

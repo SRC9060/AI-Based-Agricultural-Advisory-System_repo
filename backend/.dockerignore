@@ -1,0 +1,7 @@
+venv311
+__pycache__
+.env
+*.db
+chroma_db_corrupt_*
+chroma_db_partial_*
+output_audio

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useState } from "react";
 
 declare global {
@@ -16,7 +18,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
-  
+
   async function askAI() {
   if (!question.trim()) {
     alert("Please enter a question.");
@@ -27,7 +29,7 @@ export default function Dashboard() {
     setLoading(true);
     setAnswer("");
 
-    const response = await fetch("http://127.0.0.1:8000/chat", {
+    const response = await fetch(`${API_URL}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -97,7 +99,7 @@ export default function Dashboard() {
         .replace(/#/g, "")
         .replace(/\n/g, " ");
 
-      const response = await fetch("http://127.0.0.1:8000/speak", {
+      const response = await fetch(`${API_URL}/speak`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -307,7 +309,7 @@ export default function Dashboard() {
               fontSize: "17px",
               fontWeight: "500",
             }}
-          
+
             >
             {loading ? "🤖 AI is analysing your question..." : answer}
           </p>

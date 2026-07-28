@@ -1,5 +1,7 @@
 "use client";
 
+import { API_URL } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -17,13 +19,13 @@ export default function MarketPricesPage() {
   const [marketOptions, setMarketOptions] = useState<Record<string, Record<string, string[]>>>({});
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/market-options").then((response) => response.ok ? response.json() : Promise.reject()).then(setMarketOptions).catch(() => setError(t("Unable to load market options.")));
+    fetch(`${API_URL}/market-options`).then((response) => response.ok ? response.json() : Promise.reject()).then(setMarketOptions).catch(() => setError(t("Unable to load market options.")));
   }, [t]);
 
   const searchMarket = async (commodity: string, state: string, district: string) => {
     try {
       setLoading(true); setError(""); setMarketData(null);
-      const response = await fetch("http://127.0.0.1:8000/market-price", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commodity, state, district }) });
+      const response = await fetch(`${API_URL}/market-price`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commodity, state, district }) });
       if (!response.ok) { const data = await response.json(); setError(data.detail ?? t("No market data found for this selection.")); return; }
       setMarketData({ records: [await response.json()] });
     } catch { setError(t("Unable to fetch market prices.")); } finally { setLoading(false); }

@@ -1,0 +1,90 @@
+.admin-shell {
+  min-height: 100vh;
+  padding: 32px;
+  color: #17351f;
+  background: #f4f8f4;
+}
+
+.admin-header,
+.admin-auth,
+.metric-grid,
+.admin-columns {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.admin-header h1 { margin: 2px 0 0; font-size: 34px; }
+.admin-header a { color: #157a35; font-weight: 700; }
+.admin-kicker { margin: 0; color: #5f7164; }
+
+.admin-auth {
+  display: grid;
+  grid-template-columns: auto minmax(240px, 360px) auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #d8e5da;
+  border-radius: 14px;
+  background: white;
+}
+
+.admin-auth input,
+.upload-form input {
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #bdcdbf;
+  border-radius: 8px;
+}
+
+.admin-shell button {
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #157a35;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.metric-grid article,
+.admin-panel {
+  padding: 22px;
+  border: 1px solid #d8e5da;
+  border-radius: 14px;
+  background: white;
+}
+
+.metric-grid strong { display: block; font-size: 30px; }
+.metric-grid span { color: #657268; }
+.admin-columns { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 20px; }
+.admin-panel h2 { margin-top: 0; }
+.table-wrap { max-height: 520px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 12px; border-bottom: 1px solid #e5ece6; text-align: left; vertical-align: top; }
+.upload-form { display: grid; gap: 10px; }
+.secondary-button { margin-top: 10px; background: #415a48 !important; }
+.file-list { max-height: 340px; padding: 0; overflow: auto; list-style: none; }
+.file-list li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #e5ece6; }
+.file-list small { color: #657268; }
+
+@media (max-width: 800px) {
+  .admin-shell { padding: 18px; }
+  .admin-auth { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-columns { grid-template-columns: 1fr; }
+}
