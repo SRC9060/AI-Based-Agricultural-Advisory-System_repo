@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -96,7 +96,7 @@ export default function RecentActivity({
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
 
-    fetch(`${API_URL}/recent-activity/${userId}?limit=4`)
+    apiFetch(`${API_URL}/recent-activity/${userId}?limit=4`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((data) => setActivities(data.activities || []))
       .catch(() => {

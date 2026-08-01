@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -56,7 +56,7 @@ export default function DashboardPage() {
 
       // ---------------- PROFILE ----------------
 
-      const profileResponse = await fetch(
+      const profileResponse = await apiFetch(
         `${API_URL}/profile/${userId}`
       );
 
@@ -67,7 +67,7 @@ export default function DashboardPage() {
 
       // ---------------- SCHEMES ----------------
 
-      const schemeResponse = await fetch(
+      const schemeResponse = await apiFetch(
         `${API_URL}/schemes/${userId}`
       );
 
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
       }
 
-      const activityResponse = await fetch(
+      const activityResponse = await apiFetch(
         `${API_URL}/recent-activity/${userId}?limit=4`
       );
       if (activityResponse.ok) {

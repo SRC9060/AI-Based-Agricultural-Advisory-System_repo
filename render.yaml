@@ -1,0 +1,76 @@
+services:
+  - type: keyvalue
+    name: agriadvisor-redis
+    plan: free
+    region: singapore
+    ipAllowList: []
+
+  - type: web
+    name: agriadvisor-backend
+    runtime: docker
+    plan: starter
+    region: singapore
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /
+    disk:
+      name: agriadvisor-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: agriadvisor-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: agriadvisor-redis
+          property: connectionString
+      - key: AUTH_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: RATE_LIMIT_REQUESTS
+        value: "30"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: RATE_LIMIT_TRUST_PROXY
+        value: "true"
+      - key: KNOWLEDGE_BASE_PATH
+        value: /var/data/knowledge_base
+      - key: CHROMA_DB_PATH
+        value: /var/data/chroma_db
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: AGMARKNET_API_KEY
+        sync: false
+      - key: AGMARKNET_BASE_URL
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+
+  - type: web
+    name: agriadvisor-pwa
+    runtime: docker
+    plan: starter
+    region: singapore
+    rootDir: frontend
+    dockerfilePath: ./frontend/Dockerfile
+    healthCheckPath: /login
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+
+databases:
+  - name: agriadvisor-database
+    plan: free
+    region: singapore
+    databaseName: agriadvisor
+    user: agriadvisor

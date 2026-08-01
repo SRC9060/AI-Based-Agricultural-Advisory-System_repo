@@ -8,12 +8,16 @@ const nextConfig = {
 const withPWA = withPWAInit({
   dest: "public",
   register: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  disable: process.env.NODE_ENV === "development",
-  workboxOptions: {
-    navigateFallback: "/offline",
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
+  reloadOnOnline: true,
+  // A document fallback is used only when both the network and cache miss.
+  // Workbox's `navigateFallback` is an SPA navigation handler and would serve
+  // /offline for every route, including /login and /dashboard while online.
+  fallbacks: {
+    document: "/offline",
   },
+  disable: process.env.NODE_ENV === "development",
 });
 
 export default withPWA(nextConfig);

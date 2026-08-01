@@ -1,0 +1,55 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: agriadvisor-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      BACKEND_DEPLOY_HOOK_URL: ${{ secrets.BACKEND_DEPLOY_HOOK_URL }}
+      FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.FRONTEND_DEPLOY_HOOK_URL }}
+      BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+      FRONTEND_HEALTH_URL: ${{ vars.FRONTEND_HEALTH_URL }}
+    steps:
+      - name: Require deployment configuration
+        run: |
+          if [ -z "$BACKEND_DEPLOY_HOOK_URL" ] || [ -z "$FRONTEND_DEPLOY_HOOK_URL" ]; then
+            echo "Configure BACKEND_DEPLOY_HOOK_URL and FRONTEND_DEPLOY_HOOK_URL in the production environment."
+            exit 1
+          fi
+      - name: Trigger backend deployment
+        run: curl --fail --show-error --silent --request POST "$BACKEND_DEPLOY_HOOK_URL"
+      - name: Trigger frontend deployment
+        run: curl --fail --show-error --silent --request POST "$FRONTEND_DEPLOY_HOOK_URL"
+      - name: Verify deployed services
+        if: env.BACKEND_HEALTH_URL != '' && env.FRONTEND_HEALTH_URL != ''
+        run: |
+          for attempt in {1..40}; do
+            backend_status=$(curl --silent --output /dev/null --write-out "%{http_code}" "$BACKEND_HEALTH_URL" || true)
+            frontend_status=$(curl --silent --output /dev/null --write-out "%{http_code}" "$FRONTEND_HEALTH_URL" || true)
+            if [ "$backend_status" = "200" ] && [ "$frontend_status" = "200" ]; then
+              echo "Both production services are healthy."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Deployment hooks ran, but the configured health URLs did not become ready."
+          exit 1

@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import {
@@ -53,7 +53,7 @@ export default function StatsSection({
     const userId = localStorage.getItem("user_id");
     if (!userId) return;
 
-    fetch(`${API_URL}/recent-activity/${userId}?limit=1`)
+    apiFetch(`${API_URL}/recent-activity/${userId}?limit=1`)
       .then((response) => response.ok ? response.json() : Promise.reject())
       .then((data) => setActivityQueryCount(data.count || 0))
       .catch(() => {
@@ -78,7 +78,7 @@ export default function StatsSection({
 
       try {
 
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/weather?city=${encodeURIComponent(weatherLocation)}`
         );
 
@@ -137,7 +137,7 @@ export default function StatsSection({
 
       try {
 
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/market-price`,
           {
             method: "POST",

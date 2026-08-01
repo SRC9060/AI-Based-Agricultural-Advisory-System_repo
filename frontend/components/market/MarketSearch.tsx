@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { translateTextMap } from "@/lib/translation";
 
 interface MarketSearchProps {
   onSearch: (
@@ -23,25 +24,66 @@ export default function MarketSearch({
   loading,
   marketOptions,
 }: MarketSearchProps) {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const [commodity, setCommodity] = useState("");
   const [state, setState] = useState("");
   const [district, setDistrict] = useState("");
   const [formError, setFormError] = useState("");
+  const [localizedOptions, setLocalizedOptions] = useState<Record<string, string>>({});
+  const [localizingOptions, setLocalizingOptions] = useState(false);
 
   // Commodity list
-  const commodities = Object.keys(marketOptions);
+  const commodities = useMemo(
+    () => Object.keys(marketOptions),
+    [marketOptions],
+  );
 
   // States for selected commodity
-  const availableStates = commodity
-    ? Object.keys(marketOptions[commodity] || {})
-    : [];
+  const availableStates = useMemo(
+    () =>
+      commodity
+        ? Object.keys(marketOptions[commodity] || {})
+        : [],
+    [commodity, marketOptions],
+  );
 
   // Districts for selected commodity + state
-  const availableDistricts =
-    commodity && state
-      ? marketOptions[commodity]?.[state] || []
-      : [];
+  const availableDistricts = useMemo(
+    () =>
+      commodity && state
+        ? marketOptions[commodity]?.[state] || []
+        : [],
+    [commodity, marketOptions, state],
+  );
+
+  const visibleOptions = useMemo(
+    () => [
+      ...commodities,
+      ...availableStates,
+      ...availableDistricts,
+    ],
+    [availableDistricts, availableStates, commodities],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setLocalizingOptions(language !== "en" && visibleOptions.length > 0);
+    setLocalizedOptions({});
+
+    translateTextMap(visibleOptions, language).then((translations) => {
+      if (!cancelled) {
+        setLocalizedOptions(translations);
+        setLocalizingOptions(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [language, visibleOptions]);
+
+  const localizeOption = (value: string) =>
+    localizedOptions[value] || t(value);
 
   const isFormIncomplete =
     !commodity || !state || !district;
@@ -62,6 +104,7 @@ export default function MarketSearch({
 
           <select
             value={commodity}
+            disabled={loading || localizingOptions}
             onChange={(e) => {
               setCommodity(e.target.value);
               setState("");
@@ -69,11 +112,13 @@ export default function MarketSearch({
             }}
             className="w-full border rounded-xl px-4 py-3"
           >
-            <option value="">{t("Select Commodity")}</option>
+            <option value="">
+              {localizingOptions ? t("Loading...") : t("Select Commodity")}
+            </option>
 
-            {commodities.map((item) => (
+            {!localizingOptions && commodities.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {localizeOption(item)}
               </option>
             ))}
           </select>
@@ -87,7 +132,7 @@ export default function MarketSearch({
 
           <select
             value={state}
-            disabled={!commodity}
+            disabled={!commodity || loading || localizingOptions}
             onChange={(e) => {
               setState(e.target.value);
               setDistrict("");
@@ -100,9 +145,9 @@ export default function MarketSearch({
                 : t("Select Commodity First")}
             </option>
 
-            {availableStates.map((item) => (
+            {!localizingOptions && availableStates.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {localizeOption(item)}
               </option>
             ))}
           </select>
@@ -116,7 +161,7 @@ export default function MarketSearch({
 
           <select
             value={district}
-            disabled={!state}
+            disabled={!state || loading || localizingOptions}
             onChange={(e) =>
               setDistrict(e.target.value)
             }
@@ -128,9 +173,9 @@ export default function MarketSearch({
                 : t("Select State First")}
             </option>
 
-            {availableDistricts.map((item) => (
+            {!localizingOptions && availableDistricts.map((item) => (
               <option key={item} value={item}>
-                {item}
+                {localizeOption(item)}
               </option>
             ))}
           </select>
@@ -145,7 +190,7 @@ export default function MarketSearch({
       )}
 
       <button
-        disabled={loading || isFormIncomplete}
+        disabled={loading || localizingOptions || isFormIncomplete}
         onClick={() => {
           if (isFormIncomplete) {
             setFormError(
@@ -163,7 +208,7 @@ export default function MarketSearch({
           );
         }}
         className={`mt-6 px-8 py-3 rounded-xl font-semibold ${
-          loading || isFormIncomplete
+          loading || localizingOptions || isFormIncomplete
             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
             : "bg-green-600 hover:bg-green-700 text-white"
         }`}

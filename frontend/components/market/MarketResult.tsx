@@ -10,6 +10,8 @@ import {
   ArrowUp,
   Search,
 } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
+import { getLanguageLocale } from "@/lib/languages";
 
 interface MarketRecord {
   state: string;
@@ -22,6 +24,12 @@ interface MarketRecord {
   min_price: string;
   max_price: string;
   modal_price: string;
+  localized?: Partial<
+    Record<
+      "state" | "district" | "market" | "commodity" | "variety" | "grade",
+      string
+    >
+  >;
 }
 
 interface MarketData {
@@ -36,25 +44,28 @@ interface MarketResultProps {
   error: string;
 }
 
-const formatPrice = (price: string | number) =>
-  `₹ ${Number(price).toLocaleString("en-IN")}`;
+const formatPrice = (price: string | number, locale: string) =>
+  `₹ ${Number(price).toLocaleString(locale)}`;
 
 export default function MarketResult({
   data,
   loading,
   error,
 }: MarketResultProps) {
+  const { language, t } = useTranslation();
+  const locale = getLanguageLocale(language);
+
   if (loading) {
     return (
       <div className="bg-white rounded-3xl shadow-lg border border-gray-200 p-10 text-center">
         <TrendingUp className="mx-auto h-14 w-14 text-green-600 animate-pulse" />
 
         <h2 className="mt-5 text-2xl font-bold text-gray-800">
-          Fetching Latest Market Prices...
+          {t("Fetching Latest Market Prices...")}
         </h2>
 
         <p className="mt-2 text-gray-500">
-          Please wait while we retrieve Today&apos; market prices.
+          {t("Please wait while we retrieve today's market prices.")}
         </p>
       </div>
     );
@@ -74,11 +85,11 @@ export default function MarketResult({
         <Search className="mx-auto h-12 w-12 text-green-600" />
 
         <h2 className="mt-4 text-2xl font-bold text-gray-800">
-          Search Market Prices
+          {t("Search Market Prices")}
         </h2>
 
         <p className="mt-2 text-gray-500">
-          Select Commodity, State and District to view Today&apos; market prices.
+          {t("Select Commodity, State and District to view today's market prices.")}
         </p>
       </div>
     );
@@ -94,11 +105,11 @@ export default function MarketResult({
 
         <div>
           <h2 className="text-3xl font-bold text-green-800">
-            Today&apos; Market Details
+            {t("Today's Market Details")}
           </h2>
 
           <p className="text-gray-500">
-            Live AGMARKNET Market Information
+            {t("Live AGMARKNET Market Information")}
           </p>
         </div>
       </div>
@@ -107,40 +118,40 @@ export default function MarketResult({
 
         <InfoCard
           icon={<Package className="h-5 w-5 text-green-600" />}
-          title="Commodity"
-          value={market.commodity}
+          title={t("Commodity")}
+          value={market.localized?.commodity || market.commodity}
         />
 
         <InfoCard
           icon={<Store className="h-5 w-5 text-blue-600" />}
-          title="Market"
-          value={market.market}
+          title={t("Market")}
+          value={market.localized?.market || market.market}
         />
 
         <InfoCard
           icon={<MapPin className="h-5 w-5 text-red-500" />}
-          title="Location"
-          value={`${market.district}, ${market.state}`}
+          title={t("Location")}
+          value={`${market.localized?.district || market.district}, ${market.localized?.state || market.state}`}
         />
 
         <PriceCard
           icon={<IndianRupee className="h-6 w-6" />}
-          title="Modal Price"
-          value={formatPrice(market.modal_price)}
+          title={t("Modal Price")}
+          value={formatPrice(market.modal_price, locale)}
           color="green"
         />
 
         <PriceCard
           icon={<ArrowDown className="h-6 w-6" />}
-          title="Minimum Price"
-          value={formatPrice(market.min_price)}
+          title={t("Minimum Price")}
+          value={formatPrice(market.min_price, locale)}
           color="orange"
         />
 
         <PriceCard
           icon={<ArrowUp className="h-6 w-6" />}
-          title="Maximum Price"
-          value={formatPrice(market.max_price)}
+          title={t("Maximum Price")}
+          value={formatPrice(market.max_price, locale)}
           color="blue"
         />
 
@@ -151,7 +162,7 @@ export default function MarketResult({
         <CalendarDays className="h-7 w-7 text-gray-600" />
 
         <div>
-          <p className="text-sm text-gray-500">Arrival Date</p>
+          <p className="text-sm text-gray-500">{t("Arrival Date")}</p>
 
           <p className="text-lg font-semibold">
             {market.arrival_date}

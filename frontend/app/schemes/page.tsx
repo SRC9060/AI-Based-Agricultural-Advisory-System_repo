@@ -2,17 +2,18 @@
 
 import { API_URL } from "@/lib/api";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getAuthHeaders } from "@/lib/auth";
+import { translateTexts } from "@/lib/translation";
 
 export default function SchemesPage() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sessionId, setSessionId] = useState<number | null>(null);
   const quickQuestions = [
     {
       icon: "💰",
@@ -45,33 +46,10 @@ export default function SchemesPage() {
     },
   ];
 
-  useEffect(() => {
-    async function createSession() {
-      const userId = localStorage.getItem("user_id") || "guest";
-      try {
-        const response = await fetch(
-          `${API_URL}/chat/session?user_id=` + userId,
-          {
-            method: "POST",
-          },
-        );
-        if (!response.ok) {
-          throw new Error("Failed to Create Chat Session");
-        }
-        const data = await response.json();
-        setSessionId(data.session_id);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    createSession();
-  }, []);
-
-  async function searchScheme(customQuery?: string) {
-    if (!sessionId) {
-      setError(t("Creating Session for Schemes..."));
-      return;
-    }
+  async function searchScheme(
+    customQuery?: string,
+    sourceLanguage = language,
+  ) {
     const finalQuery = customQuery || query;
     if (!finalQuery.trim()) {
       setError(t("Please Enter a Question about Government Schemes"));
@@ -81,16 +59,16 @@ export default function SchemesPage() {
       setLoading(true);
       setError("");
       setResponse("");
-      const userId = localStorage.getItem("user_id");
-      const response = await fetch(`${API_URL}/chat`, {
+      const response = await fetch(`${API_URL}/schemes/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
-          session_id: String(sessionId),
-          user_id: String(userId),
-          message: finalQuery,
+          query: finalQuery,
+          language,
+          source_language: sourceLanguage,
         }),
       });
       const data = await response.json();
@@ -99,7 +77,7 @@ export default function SchemesPage() {
           data.detail || "Unable to Retrieve Government Scheme Information",
         );
       }
-      setResponse(data.response_in_user_language || data.english_response || "No Scheme information was Found");
+      setResponse(data.answer || t("No Scheme information was Found"));
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
@@ -112,9 +90,10 @@ export default function SchemesPage() {
     }
   }
 
-  function handleQuickQuestion(question: string) {
-    setQuery(question);
-    searchScheme(question);
+  async function handleQuickQuestion(question: string) {
+    const [localizedQuestion] = await translateTexts([question], language);
+    setQuery(localizedQuestion || question);
+    searchScheme(question, "en");
   }
 
   return (
@@ -169,7 +148,7 @@ export default function SchemesPage() {
 
           <button
             onClick={() => searchScheme()}
-            disabled={loading || sessionId === null}
+            disabled={loading}
             className="bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition"
           >
             {loading ? t("Searching...") : t("Find Schemes")}
@@ -227,11 +206,11 @@ export default function SchemesPage() {
           <div className="text-5xl mb-4">🤖</div>
 
           <h2 className="text-lg font-semibold text-green-800">
-            Searching Government Schemes...
+            {t("Searching Government Schemes...")}
           </h2>
 
           <p className="text-gray-500 mt-2">
-            Our AI is searching the agricultural schemes knowledge base.
+            {t("Our AI is searching the agricultural schemes knowledge base.")}
           </p>
         </div>
       )}
@@ -241,11 +220,11 @@ export default function SchemesPage() {
         <div className="mt-7">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-green-800">
-              🤖 AI Scheme Advisor
+              🤖 {t("AI Scheme Advisor")}
             </h2>
 
             <p className="text-gray-500 mt-1">
-              Scheme information retrieved from the agricultural knowledge base.
+              {t("Scheme information retrieved from the agricultural knowledge base.")}
             </p>
           </div>
 
@@ -259,11 +238,11 @@ export default function SchemesPage() {
 
                 <div>
                   <h3 className="font-semibold text-green-800">
-                    AgriAdvisor Scheme Assistant
+                    {t("AgriAdvisor Scheme Assistant")}
                   </h3>
 
                   <p className="text-xs text-gray-500">
-                    AI-powered government scheme guidance
+                    {t("AI-powered government scheme guidance")}
                   </p>
                 </div>
               </div>

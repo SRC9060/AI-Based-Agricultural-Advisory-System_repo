@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -8,8 +8,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogOut, Pencil, Settings } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { clearAuthenticatedSession } from "@/lib/auth";
 
 import {
+  ArrowLeft,
   Bell,
   ChevronDown,
   Globe,
@@ -49,21 +51,21 @@ const navItems = [
   },
 ];
 
-const languages = ["English", "हिंदी", "తెలుగు", "ಕన్నడ"];
+const languages = ["English", "हिंदी", "తెలుగు", "ಕನ್ನಡ"] as const;
 
 const langMap = {
   English: "en",
   "हिंदी": "hi",
   "తెలుగు": "te",
-  "ಕన్నడ": "kn",
-};
+  "ಕನ್ನಡ": "kn",
+} as const;
 
 const reverseLangMap = {
   en: "English",
   hi: "हिंदी",
   te: "తెలుగు",
-  kn: "ಕన్నడ",
-};
+  kn: "ಕನ್ನಡ",
+} as const;
 
 const additionalLanguages = ["தமிழ்", "മലയാളം", "मराठी", "ગુજરાતી"] as const;
 const languageOptions = [...languages, ...additionalLanguages];
@@ -117,28 +119,18 @@ const notificationLabels: Record<string, Record<string, string>> = {
 };
 
 interface TopNavbarProps {
-  userName?: string;
-  userRole?: string;
   userAvatar?: string;
-  onMenuClick?: () => void;
 }
 
 export default function TopNavbar({
-  userName = "Aishwarya",
-  userRole = "Farmer",
   userAvatar,
-  onMenuClick,
 }: TopNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
 
   const handleLogout = () => {
-    localStorage.removeItem("user_id");
-    localStorage.removeItem("user_name");
-    localStorage.removeItem("user_email");
-    localStorage.removeItem("language");
-
+    clearAuthenticatedSession();
     router.replace("/login");
   };
 
@@ -152,15 +144,14 @@ export default function TopNavbar({
   ).length;
   // Use the same initial value on server and browser. Reading localStorage here
   // would make the first browser render differ from the server render.
-  const [selectedLang, setSelectedLang] = useState("English");
   const [displayName, setDisplayName] = useState("Farmer");
   const [displayRole] = useState("Farmer");
-  const selectedLanguageCode = languageCodeMap[selectedLang as keyof typeof languageCodeMap] ?? "en";
+  const selectedLanguageCode = language;
   const translateNotification = (text: string) => notificationLabels[selectedLanguageCode]?.[text] ?? t(text);
 
   const loadNotifications = async (id: number) => {
     try {
-      const response = await fetch(`${API_URL}/notifications/${id}`);
+      const response = await apiFetch(`${API_URL}/notifications/${id}`);
       if (response.ok) setNotifications(await response.json());
     } catch {
       // Keep navigation usable when the backend is unavailable.
@@ -170,7 +161,7 @@ export default function TopNavbar({
   const markAllNotificationsRead = async () => {
     if (!userId) return;
     try {
-      await fetch(`${API_URL}/notifications/${userId}/read-all`, {
+      await apiFetch(`${API_URL}/notifications/${userId}/read-all`, {
         method: "PUT",
       });
       setNotifications((items) =>
@@ -183,7 +174,7 @@ export default function TopNavbar({
 
   const markNotificationRead = async (notificationId: number) => {
     try {
-      await fetch(
+      await apiFetch(
         `${API_URL}/notifications/${notificationId}/read`,
         { method: "PUT" },
       );
@@ -199,16 +190,11 @@ export default function TopNavbar({
 
   useEffect(() => {
     const name = localStorage.getItem("user_name");
-    const savedLang = localStorage.getItem("language") || "en";
     const savedUserId = Number(localStorage.getItem("user_id"));
 
     if (name) {
       setDisplayName(name);
     }
-
-    setSelectedLang(
-      languageNameMap[savedLang as keyof typeof languageNameMap] || "English",
-    );
 
     if (Number.isInteger(savedUserId) && savedUserId > 0) {
       setUserId(savedUserId);
@@ -226,7 +212,26 @@ export default function TopNavbar({
       <div className="w-full bg-gradient-to-r from-green-50 via-white to-green-50 backdrop-blur-xl border border-green-100 shadow-xl rounded-2xl">
         <div className="flex items-center justify-between h-24 px-6">
           {/* Left */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            {pathname !== "/dashboard" && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push("/dashboard");
+                  }
+                }}
+                aria-label={t("Back")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all duration-300 font-bold text-sm sm:text-base shadow-md group shrink-0"
+                title={t("Back")}
+              >
+                <ArrowLeft size={20} className="transition-transform group-hover:-translate-x-1" />
+                <span>{t("Back")}</span>
+              </button>
+            )}
+
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
               <div className="w-14 h-14 rounded-2xl bg-green-700 flex items-center justify-center shadow-md">
@@ -283,7 +288,9 @@ export default function TopNavbar({
                 className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
               >
                 <Globe size={18} />
-                <span className="text-base font-medium">{selectedLang}</span>
+                <span className="text-base font-medium">
+                  {languageNameMap[language] || "English"}
+                </span>
                 <ChevronDown size={16} />
               </button>
 
@@ -295,9 +302,7 @@ export default function TopNavbar({
                       onClick={() => {
                         const code =
                           languageCodeMap[lang as keyof typeof languageCodeMap];
-                        setSelectedLang(lang);
-                        localStorage.setItem("language", code);
-                        window.dispatchEvent(new Event("languagechange"));
+                        setLanguage(code);
                         setLangOpen(false);
                       }}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-green-100 whitespace-nowrap"

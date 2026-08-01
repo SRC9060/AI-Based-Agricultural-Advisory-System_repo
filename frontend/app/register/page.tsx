@@ -2,8 +2,10 @@
 
 import { API_URL } from "@/lib/api";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/components/LanguageProvider";
+import { APP_LANGUAGES, LanguageCode } from "@/lib/languages";
 import {
   Sprout,
   User,
@@ -13,22 +15,33 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import "@/app/auth.css";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const {
+    language: activeLanguage,
+    setLanguage: setActiveLanguage,
+    t,
+  } = useTranslation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [language, setLanguage] = useState("English");
+  const [preferredLanguage, setPreferredLanguage] =
+    useState<LanguageCode>(activeLanguage);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setPreferredLanguage(activeLanguage);
+  }, [activeLanguage]);
+
   async function handleRegister() {
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      alert(t("Passwords do not match!"));
       return;
     }
 
@@ -44,21 +57,22 @@ export default function RegisterPage() {
           name,
           email,
           password,
-          language,
+          language: preferredLanguage,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert(data.message);
+        setActiveLanguage(preferredLanguage);
+        alert(t(data.message));
         router.push("/login");
       } else {
-        alert("Registration Failed");
+        alert(t(data.detail || "Registration Failed"));
       }
     } catch (error) {
       console.error(error);
-      alert("Cannot connect to backend");
+      alert(t("Cannot connect to backend"));
     } finally {
       setLoading(false);
     }
@@ -71,10 +85,7 @@ export default function RegisterPage() {
         flex
         items-center
         justify-center
-        bg-gradient-to-br
-        from-emerald-900
-        via-green-700
-        to-emerald-500
+        auth-page
         px-5
         py-10
       "
@@ -87,10 +98,7 @@ export default function RegisterPage() {
           rounded-[32px]
           border
           border-emerald-200/70
-          bg-gradient-to-br
-          from-white
-          via-emerald-50
-          to-green-100
+          auth-card
           px-10
           py-10
           shadow-2xl
@@ -120,11 +128,11 @@ export default function RegisterPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-emerald-950">
-            Create Account
+            {t("Create Account")}
           </h1>
 
           <p className="text-base text-slate-600 mt-2">
-            Join the AI Agricultural Advisory System
+            {t("Join the AI Agricultural Advisory System")}
           </p>
         </div>
 
@@ -145,7 +153,7 @@ export default function RegisterPage() {
 
             <input
               type="text"
-              placeholder="Full Name"
+              placeholder={t("Full Name")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -181,7 +189,7 @@ export default function RegisterPage() {
 
             <input
               type="email"
-              placeholder="Email Address"
+              placeholder={t("Email Address")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -217,7 +225,7 @@ export default function RegisterPage() {
 
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password"
+              placeholder={t("Password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -270,7 +278,7 @@ export default function RegisterPage() {
 
             <input
               type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm Password"
+              placeholder={t("Confirm Password")}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -328,8 +336,13 @@ export default function RegisterPage() {
             />
 
             <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              aria-label={t("Preferred Language")}
+              value={preferredLanguage}
+              onChange={(e) => {
+                const nextLanguage = e.target.value as LanguageCode;
+                setPreferredLanguage(nextLanguage);
+                setActiveLanguage(nextLanguage);
+              }}
               className="
                 w-full
                 rounded-2xl
@@ -351,10 +364,11 @@ export default function RegisterPage() {
                 focus:ring-emerald-500/10
               "
             >
-              <option value="English">English</option>
-              <option value="Hindi">हिंदी</option>
-              <option value="Telugu">తెలుగు</option>
-              <option value="Kannada">ಕನ್ನಡ</option>
+              {APP_LANGUAGES.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.nativeName}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -388,13 +402,13 @@ export default function RegisterPage() {
               }
             `}
           >
-            {loading ? "Creating account..." : "Register"}
+            {loading ? t("Creating account...") : t("Register")}
           </button>
         </form>
 
         {/* Login Link */}
         <p className="text-center text-base text-slate-600 mt-7">
-          Already have an account?{" "}
+          {t("Already have an account?")}{" "}
           <a
             href="/login"
             className="
@@ -405,7 +419,7 @@ export default function RegisterPage() {
               hover:underline
             "
           >
-            Login
+            {t("Login")}
           </a>
         </p>
       </div>

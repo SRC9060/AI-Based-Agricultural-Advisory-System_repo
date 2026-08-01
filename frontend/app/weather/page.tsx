@@ -1,10 +1,13 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getLanguageLocale } from "@/lib/languages";
+import { translateTexts } from "@/lib/translation";
+import { translateWeatherCondition } from "@/lib/weatherConditions";
 
 type WeatherData = {
   city: string;
@@ -27,13 +30,75 @@ type ForecastData = {
   forecast: ForecastItem[];
 };
 
+function buildFarmingAdvisory(
+  weather: WeatherData,
+  forecast: ForecastItem[],
+) {
+  const tomorrow = forecast[0];
+  if (tomorrow) {
+    const condition = tomorrow.weather.toLowerCase();
+    if (
+      condition.includes("rain") ||
+      condition.includes("drizzle") ||
+      condition.includes("thunder")
+    ) {
+      return `Rain is expected in ${weather.city} during the upcoming forecast. Farmers may consider reducing irrigation and protecting harvested crops from moisture.`;
+    }
+    if (tomorrow.temperature >= 35) {
+      return `High temperature is expected in ${weather.city}. Ensure crops receive sufficient irrigation and avoid unnecessary field operations during peak afternoon heat.`;
+    }
+    if (tomorrow.wind_speed >= 10) {
+      return `Strong winds may occur in ${weather.city}. Check young plants and temporary agricultural structures and avoid spraying during strong winds.`;
+    }
+  }
+  return `Weather conditions in ${weather.city} currently appear suitable for normal farming activities. Continue monitoring the forecast before irrigation, spraying or harvesting.`;
+}
+
+function buildWeatherSummary(weather: WeatherData) {
+  return `Current weather in ${weather.city} is ${weather.weather} with a temperature of ${weather.temperature}°C, humidity of ${weather.humidity}% and wind speed of ${weather.wind_speed} m/s.`;
+}
+
 export default function WeatherPage() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [localizedText, setLocalizedText] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!weather) {
+      setLocalizedText({});
+      return;
+    }
+
+    let cancelled = false;
+    const texts = Array.from(
+      new Set([
+        buildWeatherSummary(weather),
+        buildFarmingAdvisory(weather, forecast),
+      ]),
+    );
+
+    translateTexts(texts, language).then((translations) => {
+      if (!cancelled) {
+        setLocalizedText(
+          Object.fromEntries(
+            texts.map((text, index) => [text, translations[index] || text]),
+          ),
+        );
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forecast, language, weather]);
+
+  const localize = (text: string) => localizedText[text] || text;
+  const localizeCondition = (condition: string) =>
+    translateWeatherCondition(condition, language);
 
   // ==========================================
   // FETCH CURRENT WEATHER + FORECAST
@@ -41,7 +106,7 @@ export default function WeatherPage() {
 
   async function fetchWeather() {
     if (!city.trim()) {
-      setError("Please enter a city name.");
+      setError(t("Please enter a city name."));
       return;
     }
 
@@ -55,8 +120,8 @@ export default function WeatherPage() {
 
       // Call both backend APIs together
       const [weatherResponse, forecastResponse] = await Promise.all([
-        fetch(`${API_URL}/weather?city=${encodedCity}`),
-        fetch(`${API_URL}/weather/forecast?city=${encodedCity}`),
+        apiFetch(`${API_URL}/weather?city=${encodedCity}`),
+        apiFetch(`${API_URL}/weather/forecast?city=${encodedCity}`),
       ]);
 
       const weatherData = await weatherResponse.json();
@@ -64,13 +129,13 @@ export default function WeatherPage() {
 
       if (!weatherResponse.ok) {
         throw new Error(
-          weatherData.detail || "Unable to fetch current weather."
+          weatherData.detail || t("Unable to fetch current weather.")
         );
       }
 
       if (!forecastResponse.ok) {
         throw new Error(
-          (forecastData as any).detail || "Unable to fetch weather forecast."
+          (forecastData as any).detail || t("Unable to fetch weather forecast.")
         );
       }
 
@@ -82,7 +147,7 @@ export default function WeatherPage() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Unable to connect to weather service.");
+        setError(t("Unable to connect to weather service."));
       }
     } finally {
       setLoading(false);
@@ -116,14 +181,14 @@ export default function WeatherPage() {
   function formatDate(date: string, index: number) {
     const parsedDate = new Date(`${date}T12:00:00`);
 
-    const formatted = parsedDate.toLocaleDateString("en-IN", {
+    const formatted = parsedDate.toLocaleDateString(getLanguageLocale(language), {
       weekday: "short",
       day: "numeric",
       month: "short",
     });
 
     if (index === 0) {
-      return `Tomorrow • ${formatted}`;
+      return `${t("Tomorrow")} • ${formatted}`;
     }
 
     return formatted;
@@ -132,34 +197,6 @@ export default function WeatherPage() {
   // ==========================================
   // FARMING ADVISORY
   // ==========================================
-
-  function getFarmingAdvisory() {
-    if (!weather) return "";
-
-    const tomorrow = forecast[0];
-
-    if (tomorrow) {
-      const condition = tomorrow.weather.toLowerCase();
-
-      if (
-        condition.includes("rain") ||
-        condition.includes("drizzle") ||
-        condition.includes("thunder")
-      ) {
-        return `Rain is expected in ${weather.city} during the upcoming forecast. Farmers may consider reducing irrigation and protecting harvested crops from moisture.`;
-      }
-
-      if (tomorrow.temperature >= 35) {
-        return `High temperature is expected in ${weather.city}. Ensure crops receive sufficient irrigation and avoid unnecessary field operations during peak afternoon heat.`;
-      }
-
-      if (tomorrow.wind_speed >= 10) {
-        return `Strong winds may occur in ${weather.city}. Check young plants and temporary agricultural structures and avoid spraying during strong winds.`;
-      }
-    }
-
-    return `Weather conditions in ${weather.city} currently appear suitable for normal farming activities. Continue monitoring the forecast before irrigation, spraying or harvesting.`;
-  }
 
   return (
   <DashboardLayout>
@@ -224,7 +261,7 @@ export default function WeatherPage() {
             <div className="text-4xl mb-3">🌦️</div>
 
             <p className="text-green-800 font-semibold">
-              Fetching weather information...
+              {t("Fetching weather information...")}
             </p>
           </div>
         )}
@@ -241,7 +278,7 @@ export default function WeatherPage() {
               </h2>
 
               <p className="text-gray-500 mt-1">
-                Current weather conditions
+                {t("Current weather conditions")}
               </p>
 
             </div>
@@ -257,7 +294,7 @@ export default function WeatherPage() {
                 </div>
 
                 <p className="text-gray-500">
-                  Temperature
+                  {t("Temperature")}
                 </p>
 
                 <h3 className="text-3xl font-bold text-green-800 mt-2">
@@ -274,7 +311,7 @@ export default function WeatherPage() {
                 </div>
 
                 <p className="text-gray-500">
-                  Humidity
+                  {t("Humidity")}
                 </p>
 
                 <h3 className="text-3xl font-bold text-green-800 mt-2">
@@ -291,11 +328,11 @@ export default function WeatherPage() {
                 </div>
 
                 <p className="text-gray-500">
-                  Weather
+                  {t("Weather")}
                 </p>
 
                 <h3 className="text-xl font-bold text-green-800 mt-2 capitalize">
-                  {weather.weather}
+                  {localizeCondition(weather.weather)}
                 </h3>
 
               </div>
@@ -308,7 +345,7 @@ export default function WeatherPage() {
                 </div>
 
                 <p className="text-gray-500">
-                  Wind Speed
+                  {t("Wind Speed")}
                 </p>
 
                 <h3 className="text-3xl font-bold text-green-800 mt-2">
@@ -333,12 +370,11 @@ export default function WeatherPage() {
                 <div className="mb-5">
 
                   <h2 className="text-2xl font-bold text-green-800">
-                    📅 Upcoming Forecast
+                    📅 {t("Upcoming Forecast")}
                   </h2>
 
                   <p className="text-gray-500 mt-1">
-                    Plan your farming activities using the upcoming weather
-                    forecast.
+                    {t("Plan your farming activities using the upcoming weather forecast.")}
                   </p>
 
                 </div>
@@ -365,13 +401,13 @@ export default function WeatherPage() {
                       </h3>
 
                       <p className="text-gray-600 capitalize mt-2 text-sm">
-                        {day.weather}
+                        {localizeCondition(day.weather)}
                       </p>
 
                       <div className="border-t border-gray-100 mt-4 pt-4">
 
                         <p className="text-sm text-gray-500">
-                          💧 {day.humidity}% Humidity
+                          💧 {day.humidity}% {t("Humidity")}
                         </p>
 
                         <p className="text-sm text-gray-500 mt-2">
@@ -393,41 +429,11 @@ export default function WeatherPage() {
             <div className="mt-8 bg-green-50 border border-green-200 rounded-2xl p-6">
 
               <h2 className="text-xl font-bold text-green-800">
-                🌱 Farming Weather Summary
+                🌱 {t("Farming Weather Summary")}
               </h2>
 
               <p className="text-gray-700 mt-3 leading-7">
-
-                Current weather in{" "}
-
-                <strong>
-                  {weather.city}
-                </strong>{" "}
-
-                is{" "}
-
-                <strong className="capitalize">
-                  {weather.weather}
-                </strong>{" "}
-
-                with a temperature of{" "}
-
-                <strong>
-                  {weather.temperature}°C
-                </strong>
-
-                , humidity of{" "}
-
-                <strong>
-                  {weather.humidity}%
-                </strong>{" "}
-
-                and wind speed of{" "}
-
-                <strong>
-                  {weather.wind_speed} m/s
-                </strong>.
-
+                {localize(buildWeatherSummary(weather))}
               </p>
 
             </div>
@@ -436,11 +442,11 @@ export default function WeatherPage() {
             <div className="mt-5 mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-6">
 
               <h2 className="text-xl font-bold text-amber-800">
-                💡 Upcoming Farming Advisory
+                💡 {t("Upcoming Farming Advisory")}
               </h2>
 
               <p className="text-gray-700 mt-3 leading-7">
-                {getFarmingAdvisory()}
+                {localize(buildFarmingAdvisory(weather, forecast))}
               </p>
 
             </div>

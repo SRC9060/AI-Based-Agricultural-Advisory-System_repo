@@ -1,9 +1,14 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
+import {
+  detectVoiceLanguage,
+  getVoiceLanguageCode,
+} from "@/lib/voiceLanguages";
 
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Mic, ArrowLeft } from "lucide-react";
 import "@/app/globals.css";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -20,6 +25,7 @@ interface Message {
 }
 
 function ChatContent() {
+  const router = useRouter();
   const { language, t } = useTranslation();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([
@@ -33,14 +39,21 @@ function ChatContent() {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [status, setStatus] = useState("");
-  const [isOnline, setIsOnline] = useState(true);
+  // Start conservatively until the browser connection state has been checked.
+  // This prevents a cached offline page from briefly trying to create a new
+  // server session and showing "Creating Chat Session...".
+  const [isOnline, setIsOnline] = useState(false);
+  const [connectionChecked, setConnectionChecked] = useState(false);
   const searchParams = useSearchParams();
   const hasAutoAsked = useRef(false);
   const cacheReady = useRef(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
 
   useEffect(() => {
-    const syncConnection = () => setIsOnline(navigator.onLine);
+    const syncConnection = () => {
+      setIsOnline(navigator.onLine);
+      setConnectionChecked(true);
+    };
     syncConnection();
     window.addEventListener("online", syncConnection);
     window.addEventListener("offline", syncConnection);
@@ -89,9 +102,15 @@ useEffect(() => {
 
   useEffect(() => {
     async function createSession() {
+      if (!connectionChecked) return;
+      if (!isOnline) {
+        setStatus("Offline — reconnect to ask new questions.");
+        return;
+      }
+
       const userId = localStorage.getItem("user_id") || "guest";
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/chat/session?user_id=` + userId,
           {
             method: "POST",
@@ -102,12 +121,14 @@ useEffect(() => {
         }
         const data = await response.json();
         setSessionId(data.session_id);
+        setStatus("");
       } catch (err) {
         console.error(err);
+        setStatus("Unable to connect to the agricultural AI server.");
       }
     }
     createSession();
-  }, []);
+  }, [connectionChecked, isOnline]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -144,10 +165,9 @@ useEffect(() => {
       try {
         setLoading(true);
         setStatus("🧠 AI is analysing your question...");
-        const selectedLanguage = localStorage.getItem("language") || "en";
-        console.log("Sending Language:", selectedLanguage);
+        console.log("Sending Language:", language);
         const userId = localStorage.getItem("user_id");
-        const response = await fetch(`${API_URL}/chat`, {
+        const response = await apiFetch(`${API_URL}/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -156,7 +176,7 @@ useEffect(() => {
             session_id: String(sessionId),
             user_id: String(userId),
             message: currentQuestion,
-            language: selectedLanguage,
+            language,
           }),
         });
         if (!response.ok) {
@@ -203,7 +223,11 @@ useEffect(() => {
         setLoading(false);
       }
     },
-    [isOnline, question, sessionId],
+    // speakAnswer reads the same language value already listed here and is a
+    // function declaration, so adding its per-render identity would recreate
+    // this callback on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isOnline, language, question, sessionId],
   );
 
   useEffect(() => {
@@ -221,11 +245,16 @@ useEffect(() => {
 
   // Enter Key
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") return;
+    if (!isOnline) {
+      setStatus("Offline — reconnect to ask new questions.");
+      return;
+    }
     if (!sessionId) {
       setStatus("Creating Chat Session...");
       return;
     }
-    if (event.key === "Enter" && !loading) {
+    if (!loading) {
       askAI();
     }
   }
@@ -235,7 +264,7 @@ useEffect(() => {
     const userId = localStorage.getItem("user_id");
     if (!message.id || !userId) return;
     try {
-      const response = await fetch(`${API_URL}/chat/feedback`, {
+      const response = await apiFetch(`${API_URL}/chat/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -260,7 +289,7 @@ useEffect(() => {
 const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 const audioChunksRef = useRef<Blob[]>([]);
 
-async function recordAudio() {
+async function recordAudio(forceBackendRecorder = false) {
   type BrowserSpeechRecognitionResultEvent = {
     results: { [index: number]: { [index: number]: { transcript: string } } };
   };
@@ -287,28 +316,20 @@ async function recordAudio() {
     speechRecognitionWindow.SpeechRecognition ||
     speechRecognitionWindow.webkitSpeechRecognition;
 
-  // Chrome and Edge can recognize microphone input directly. This keeps
-  // voice input working when the remote STT quota or local ffmpeg is absent.
-  if (SpeechRecognitionConstructor) {
+  // Chrome and Edge support the same eight BCP-47 language codes used by the
+  // backend. Prefer this path because it does not depend on Sarvam credits or
+  // a local FFmpeg installation. Sarvam/Whisper remains the browser fallback.
+  if (SpeechRecognitionConstructor && !forceBackendRecorder) {
     const recognition = new SpeechRecognitionConstructor();
-    const selectedLanguage = localStorage.getItem("language") || "en";
-    const languageMap: Record<string, string> = {
-      en: "en-IN",
-      hi: "hi-IN",
-      kn: "kn-IN",
-      te: "te-IN",
-      ta: "ta-IN",
-      ml: "ml-IN",
-      mr: "mr-IN",
-      gu: "gu-IN",
-    };
+    const recognitionLanguage =
+      getVoiceLanguageCode(language);
 
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = languageMap[selectedLanguage] || "en-IN";
+    recognition.lang = recognitionLanguage;
     recognition.onstart = () => {
       setIsRecording(true);
-      setStatus("🎙 Listening...");
+      setStatus(`🎙 Listening in ${recognitionLanguage}...`);
     };
     recognition.onresult = (
       event: BrowserSpeechRecognitionResultEvent,
@@ -316,34 +337,76 @@ async function recordAudio() {
       const transcript = event.results[0]?.[0]?.transcript?.trim();
       if (transcript) {
         setQuestion(transcript);
-        setStatus("✅ Voice recognized.");
+        setStatus(
+          `✅ Voice recognized in ${recognitionLanguage}. Sending your question...`,
+        );
+        void askAI(transcript);
       } else {
-        setStatus("❌ No speech detected. Please try again.");
+        setStatus(
+          "Chrome did not detect speech. Switching to multilingual recording—please speak again.",
+        );
+        window.setTimeout(() => {
+          void recordAudio(true);
+        }, 250);
       }
     };
     recognition.onerror = (
       event: BrowserSpeechRecognitionErrorEvent,
     ) => {
       console.error("Browser speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        setStatus(
+          "Microphone permission denied. Allow microphone access in Chrome.",
+        );
+        return;
+      }
       setStatus(
-        event.error === "not-allowed"
-          ? "❌ Microphone permission denied."
-          : "❌ Voice recognition failed. Please try again.",
+        "Chrome voice recognition was unavailable. Switching to multilingual recording—please speak again.",
       );
+      window.setTimeout(() => {
+        void recordAudio(true);
+      }, 250);
     };
     recognition.onend = () => {
       setIsRecording(false);
     };
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("Unable to start browser speech recognition:", error);
+      setStatus(
+        "Switching to multilingual recording—please speak after the microphone activates.",
+      );
+      window.setTimeout(() => {
+        void recordAudio(true);
+      }, 250);
+    }
     return;
   }
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
     });
 
-    const mediaRecorder = new MediaRecorder(stream);
+    const preferredMimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+      "audio/ogg;codecs=opus",
+    ].find((mimeType) =>
+      MediaRecorder.isTypeSupported(mimeType),
+    );
+    const mediaRecorder = new MediaRecorder(
+      stream,
+      preferredMimeType
+        ? { mimeType: preferredMimeType }
+        : undefined,
+    );
 
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current = [];
@@ -367,30 +430,38 @@ async function recordAudio() {
       const audioBlob = new Blob(audioChunksRef.current, {
         type: mediaRecorder.mimeType || "audio/webm",
       });
+      if (audioBlob.size < 800) {
+        stream.getTracks().forEach((track) => track.stop());
+        setStatus(
+          "No usable audio was captured. Check the selected microphone and try again.",
+        );
+        return;
+      }
 
-      const selectedLanguage =
-        localStorage.getItem("language") || "en";
-
-      const extension =
-        mediaRecorder.mimeType.includes("webm")
-          ? "webm"
-          : "wav";
+      const mimeType = mediaRecorder.mimeType || "audio/webm";
+      const extension = mimeType.includes("webm")
+        ? "webm"
+        : mimeType.includes("mp4")
+          ? "m4a"
+          : mimeType.includes("ogg")
+            ? "ogg"
+            : "wav";
 
       const audioFile = new File(
         [audioBlob],
         `recording.${extension}`,
         {
-          type: mediaRecorder.mimeType,
+          type: mimeType,
         },
       );
 
       const formData = new FormData();
 
       formData.append("file", audioFile);
-      formData.append("language", selectedLanguage);
+      formData.append("language", language);
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/speech-to-text`,
           {
             method: "POST",
@@ -406,17 +477,27 @@ async function recordAudio() {
           );
         }
 
-        setQuestion(result.transcript);
+        const transcript = String(result.transcript || "").trim();
+        if (!transcript) {
+          throw new Error("No speech detected. Please try again.");
+        }
+
+        setQuestion(transcript);
 
         setStatus(
           result.engine === "whisper"
-            ? "✅ Whisper recognized your voice."
-            : "✅ Sarvam recognized your voice.",
+            ? "✅ Whisper recognized your voice. Sending your question..."
+            : "✅ Sarvam recognized your voice. Sending your question...",
         );
+        await askAI(transcript);
       } catch (error) {
         console.error(error);
 
-        setStatus("❌ Voice recognition failed.");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Voice recognition failed.";
+        setStatus(`❌ ${message}`);
       }
 
       stream.getTracks().forEach((track) => track.stop());
@@ -428,7 +509,7 @@ async function recordAudio() {
       if (mediaRecorder.state === "recording") {
         mediaRecorder.stop();
       }
-    }, 5000);
+    }, 7000);
   } catch (error) {
     console.error(error);
 
@@ -447,21 +528,12 @@ async function speakAnswer(text: string) {
     .replace(/#/g, "")
     .replace(/\n/g, " ");
 
-  const selectedLanguage =
-    localStorage.getItem("language") || "en";
+  const voiceLanguage = detectVoiceLanguage(
+    cleanText,
+    language,
+  );
 
-  const languageMap: Record<string, string> = {
-    en: "en-IN",
-    hi: "hi-IN",
-    kn: "kn-IN",
-    te: "te-IN",
-    ta: "ta-IN",
-    ml: "ml-IN",
-    mr: "mr-IN",
-    gu: "gu-IN",
-  };
-
-  function playBrowserTTS() {
+  async function playBrowserTTS() {
     if (!("speechSynthesis" in window)) {
       setStatus("❌ Browser voice output is not supported.");
       setIsSpeaking(false);
@@ -472,14 +544,29 @@ async function speakAnswer(text: string) {
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
 
-    utterance.lang =
-      languageMap[selectedLanguage] || "en-IN";
+    utterance.lang = getVoiceLanguageCode(voiceLanguage);
 
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
 
-    const voices = window.speechSynthesis.getVoices();
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      voices = await new Promise<SpeechSynthesisVoice[]>((resolve) => {
+        const timeout = window.setTimeout(
+          () => resolve(window.speechSynthesis.getVoices()),
+          1000,
+        );
+        window.speechSynthesis.addEventListener(
+          "voiceschanged",
+          () => {
+            window.clearTimeout(timeout);
+            resolve(window.speechSynthesis.getVoices());
+          },
+          { once: true },
+        );
+      });
+    }
 
     const matchingVoice = voices.find((voice) =>
       voice.lang
@@ -491,6 +578,12 @@ async function speakAnswer(text: string) {
 
     if (matchingVoice) {
       utterance.voice = matchingVoice;
+    } else if (voiceLanguage !== "en") {
+      setIsSpeaking(false);
+      setStatus(
+        "❌ Online voice is unavailable and this device has no matching language voice.",
+      );
+      return;
     }
 
     utterance.onstart = () => {
@@ -516,7 +609,7 @@ async function speakAnswer(text: string) {
     setIsSpeaking(true);
     setStatus("🔊 Generating voice response...");
 
-    const response = await fetch(
+    const response = await apiFetch(
       `${API_URL}/speak`,
       {
         method: "POST",
@@ -525,7 +618,7 @@ async function speakAnswer(text: string) {
         },
         body: JSON.stringify({
           text: cleanText,
-          language: selectedLanguage,
+          language: voiceLanguage,
         }),
       },
     );
@@ -535,10 +628,16 @@ async function speakAnswer(text: string) {
         "Sarvam TTS failed. Using browser TTS.",
       );
 
-      playBrowserTTS();
+      void playBrowserTTS();
       return;
     }
 
+    const voiceEngine =
+      response.headers.get("X-Voice-Engine") ||
+      "voice service";
+    const voiceCode =
+      response.headers.get("X-Voice-Language") ||
+      getVoiceLanguageCode(voiceLanguage);
     const audioBlob = await response.blob();
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
@@ -551,10 +650,12 @@ async function speakAnswer(text: string) {
 
     audio.onerror = () => {
       URL.revokeObjectURL(audioUrl);
-      playBrowserTTS();
+      void playBrowserTTS();
     };
 
-    setStatus("🔊 Playing Sarvam voice...");
+    setStatus(
+      `🔊 Playing ${voiceCode} using ${voiceEngine}...`,
+    );
     await audio.play();
   } catch (error) {
     console.error(
@@ -562,13 +663,34 @@ async function speakAnswer(text: string) {
       error,
     );
 
-    playBrowserTTS();
+    void playBrowserTTS();
   }
 }
 
   return (
     <DashboardLayout>
       <section className="chat-area">
+        <div className="flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur border border-emerald-200 rounded-2xl mb-4 shadow-md">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/dashboard");
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all duration-300 font-bold text-sm sm:text-base shadow-md group cursor-pointer"
+          >
+            <ArrowLeft size={20} className="transition-transform group-hover:-translate-x-1" />
+            <span>{t("Back")}</span>
+          </button>
+          <div className="flex items-center gap-2 text-slate-800 font-bold text-sm sm:text-base">
+            <span className="text-xl">🤖</span>
+            <span>{t("AI Assistant")}</span>
+          </div>
+        </div>
+
         <div className="chat-messages">
           {messages.map((message, index) => (
             <div
@@ -596,12 +718,12 @@ async function speakAnswer(text: string) {
                     disabled={isSpeaking || loading || isRecording}
                     onClick={() => speakAnswer(message.text)}
                   >
-                    🔊 Listen
+                    🔊 {t("Listen")}
                   </button>
                 )}
                 {message.type === "ai" && index !== 0 && message.id && (
                   <div className="feedback-actions">
-                    <span>Was this helpful?</span>
+                    <span>{t("Was this helpful?")}</span>
                     <button
                       className={`feedback-btn ${message.feedback === true ? "selected" : ""}`}
                       aria-label="Mark this response as helpful"
@@ -638,44 +760,72 @@ async function speakAnswer(text: string) {
         </div>
 
         {/* STATUS */}
-        {status && <div className="chat-status">{status}</div>}
+        {status && <div className="chat-status">{t(status)}</div>}
 
         {/* INPUT AREA */}
 
         <p className="ai-disclaimer">
-          🌱 AI recommendations should be verified before making important
-          farming decisions.
+          🌱 {t("AI recommendations should be verified before making important farming decisions.")}
         </p>
 
-        <div className="chat-input-container">
+        <div className="voice-first-controls">
           <button
+            type="button"
             className={isRecording ? "voice-btn recording" : "voice-btn"}
-            onClick={recordAudio}
-            disabled={!isOnline || loading || isRecording || isSpeaking}
-            aria-label={isRecording ? "Recording voice question" : "Ask using your voice"}
-          >
-            {isRecording ? "🎙" : "🎤"}
-          </button>
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              language === "te"
-                ? "మీ వ్యవసాయ ప్రశ్నను అడగండి..."
-                : language === "hi"
-                  ? "अपना कृषि प्रश्न पूछें..."
-                  : "Ask your farming question..."
+            onClick={() => {
+              void recordAudio();
+            }}
+            disabled={
+              !isOnline ||
+              loading ||
+              isRecording ||
+              isSpeaking ||
+              sessionId === null
             }
-          />
-          <button
-            className="send-btn"
-            onClick={() => askAI()}
-            disabled={!isOnline || loading || !question.trim() || sessionId === null}
+            aria-label={
+              isRecording
+                ? "Recording voice question"
+                : "Tap to ask your farming question by voice"
+            }
+            title={isRecording ? "Listening..." : "Tap and speak"}
           >
-            {loading ? "..." : "➤"}
+            <Mic size={34} strokeWidth={2.1} />
+            <span>{isRecording ? "Listening…" : "Ask by voice"}</span>
           </button>
+
+          <div className="text-fallback-label">
+            <span>or type your question</span>
+          </div>
+
+          <div className="chat-input-container">
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                language === "te"
+                  ? "మీ వ్యవసాయ ప్రశ్నను అడగండి..."
+                  : language === "hi"
+                    ? "अपना कृषि प्रश्न पूछें..."
+                    : "Ask your farming question..."
+              }
+            />
+            <button
+              type="button"
+              className="send-btn"
+              onClick={() => askAI()}
+              disabled={
+                !isOnline ||
+                loading ||
+                !question.trim() ||
+                sessionId === null
+              }
+              aria-label="Send question"
+            >
+              {loading ? "..." : "➤"}
+            </button>
+          </div>
         </div>
       </section>
     </DashboardLayout>
