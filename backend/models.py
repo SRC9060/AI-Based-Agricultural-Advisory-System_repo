@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey
 
@@ -7,14 +8,38 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, Foreign
 # ==========================================
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            raise ValueError("Enter a valid email address.")
+        return email
 
 class RegisterRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(min_length=2, max_length=100)
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=8, max_length=128)
     language: str = "English"
+
+    @field_validator("name")
+    @classmethod
+    def sanitize_name(cls, value: str) -> str:
+        cleaned = " ".join(value.strip().split())
+        if any(ord(character) < 32 for character in cleaned):
+            raise ValueError("Name contains unsupported characters.")
+        return cleaned
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            raise ValueError("Enter a valid email address.")
+        return email
 
 class ProfileResponse(BaseModel):
     id: int
@@ -59,9 +84,15 @@ class ChatRequest(BaseModel):
         return cleaned
 
 class MarketRequest(BaseModel):
-    commodity: str
-    state: str
-    district: str
+    commodity: str = Field(min_length=1, max_length=100)
+    state: str = Field(min_length=1, max_length=100)
+    district: str = Field(min_length=1, max_length=100)
+    language: str = "en"
+
+    @field_validator("commodity", "state", "district")
+    @classmethod
+    def sanitize_market_value(cls, value: str) -> str:
+        return " ".join(value.strip().split())
 
 class MarketResponse(BaseModel):
     commodity: str
@@ -77,11 +108,53 @@ class SpeakRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
     language: str = "en"
 
+    @field_validator("text")
+    @classmethod
+    def sanitize_speech_text(cls, value: str) -> str:
+        cleaned = "".join(
+            character for character in value.strip()
+            if character in "\n\t" or ord(character) >= 32
+        )
+        if not cleaned:
+            raise ValueError("Speech text cannot be empty.")
+        return cleaned
+
+
+class TranslationBatchRequest(BaseModel):
+    texts: list[str] = Field(min_length=1, max_length=20)
+    source_language: str = "en"
+    target_language: str = "en"
+
+    @field_validator("texts")
+    @classmethod
+    def sanitize_texts(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip()[:1000] for value in values]
+        if any(not value for value in cleaned):
+            raise ValueError("Translation text cannot be empty.")
+        return cleaned
+
+
+class SchemeSearchRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=1000)
+    language: str = "en"
+    source_language: str | None = None
+
 class FeedbackRequest(BaseModel):
     user_id: int
     message: str = Field(min_length=1, max_length=2000)
     category: str = Field(min_length=1, max_length=50)
     rating: int = Field(ge=1, le=5)
+
+    @field_validator("message")
+    @classmethod
+    def sanitize_feedback(cls, value: str) -> str:
+        cleaned = "".join(
+            character for character in value.strip()
+            if character in "\n\t" or ord(character) >= 32
+        )
+        if not cleaned:
+            raise ValueError("Feedback cannot be empty.")
+        return cleaned
 
 class ResponseFeedbackRequest(BaseModel):
     user_id: int

@@ -48,7 +48,19 @@ def classify_intent(text):
         "wind speed",
         "rain today",
         "will it rain",
-        "weather in"
+        "weather in",
+        "weather",
+        "ಹವಾಮಾನ",  # Kannada
+        "ಮಳೆ",      # Kannada rain
+        "ತಾಪಮಾನ",  # Kannada temp
+        "मौसम",    # Hindi mausam
+        "बारिश",   # Hindi rain
+        "तापमान",  # Hindi temp
+        "వాతావరణం", # Telugu
+        "వర్షం",    # Telugu rain
+        "வானிலை",  # Tamil
+        "காலാവസ്ഥ",# Malayalam
+        "હવામાન",  # Gujarati
     ]
 
     if any(phrase in query for phrase in weather_phrases):
@@ -69,7 +81,13 @@ def classify_intent(text):
         "government scheme",
         "subsidy",
         "yojana",
-        "scheme"
+        "scheme",
+        "ಯೋಜನೆ",    # Kannada yojana
+        "ಯೋಜನೆಗಳು", # Kannada schemes
+        "योजना",     # Hindi/Marathi yojana
+        "పథకం",     # Telugu pathakam
+        "పథకాలు",   # Telugu pathakalu
+        "திட்டம்",   # Tamil thittam
     ]
 
     if any(keyword in query for keyword in government_keywords):
@@ -84,7 +102,17 @@ def classify_intent(text):
         "mandi",
         "apmc",
         "price today",
-        "commodity price"
+        "commodity price",
+        "market",
+        "ಮಾರುಕಟ್ಟೆ", # Kannada market
+        "ಬೆಲೆ",       # Kannada price
+        "दाम",       # Hindi dam
+        "बाज़ार",     # Hindi bazaar
+        "बाजार",     # Hindi/Marathi bazaar
+        "ભાવ",       # Gujarati bhav
+        "ధర",        # Telugu dhara
+        "మార్కెట్",  # Telugu market
+        "సందై",      # Tamil sandai
     ]
 
     if any(keyword in query for keyword in market_keywords):

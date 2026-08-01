@@ -1,11 +1,25 @@
 import os
 import base64
+import asyncio
+import re
+import tempfile
 from sarvamai import SarvamAI
 from config import Config
 
 client = SarvamAI(
     api_subscription_key=Config.SARVAM_API_KEY
 )
+
+EDGE_TTS_VOICES = {
+    "en-IN": "en-IN-NeerjaNeural",
+    "hi-IN": "hi-IN-SwaraNeural",
+    "te-IN": "te-IN-ShrutiNeural",
+    "kn-IN": "kn-IN-SapnaNeural",
+    "ta-IN": "ta-IN-PallaviNeural",
+    "ml-IN": "ml-IN-SobhanaNeural",
+    "mr-IN": "mr-IN-AarohiNeural",
+    "gu-IN": "gu-IN-DhwaniNeural",
+}
 
 
 def _combine_wav_chunks(audio_chunks):
@@ -40,27 +54,123 @@ def _combine_wav_chunks(audio_chunks):
     return combined_audio
 
 
+def _split_for_tts(text, max_characters=2400):
+    """Split long advice at sentence boundaries for Bulbul v3's REST limit."""
+    normalized = " ".join(text.split())
+    if len(normalized) <= max_characters:
+        return [normalized]
+
+    sentences = re.split(r"(?<=[.!?।])\s+", normalized)
+    chunks = []
+    current = ""
+
+    for sentence in sentences:
+        remaining = sentence
+        while len(remaining) > max_characters:
+            split_at = remaining.rfind(" ", 0, max_characters + 1)
+            if split_at <= 0:
+                split_at = max_characters
+            piece = remaining[:split_at].strip()
+            if current:
+                chunks.append(current)
+                current = ""
+            if piece:
+                chunks.append(piece)
+            remaining = remaining[split_at:].strip()
+
+        candidate = f"{current} {remaining}".strip()
+        if current and len(candidate) > max_characters:
+            chunks.append(current)
+            current = remaining
+        else:
+            current = candidate
+
+    if current:
+        chunks.append(current)
+
+    return chunks
+
+
 def text_to_speech(text, language="en-IN"):
+    sarvam_error = None
     try:
-        response = client.text_to_speech.convert(
-            text=text,
-            target_language_code=language,
-            speaker="anushka"
-        )
-        # Long responses are returned in multiple chunks. Saving only the
-        # first one made long advice sound like an 8-second recording.
-        audio_bytes = _combine_wav_chunks(response.audios)
+        audio_chunks = []
+        request_ids = []
+
+        for text_chunk in _split_for_tts(text):
+            response = client.text_to_speech.convert(
+                text=text_chunk,
+                target_language_code=language,
+                model="bulbul:v3",
+                speaker="shubh",
+                pace=0.9,
+            )
+            audio_chunks.extend(response.audios)
+            if getattr(response, "request_id", None):
+                request_ids.append(response.request_id)
+
+        audio_bytes = _combine_wav_chunks(audio_chunks)
         os.makedirs("output_audio", exist_ok=True)
-        output_file = "output_audio/output.wav"
-        with open(output_file, "wb") as f:
-            f.write(audio_bytes)
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            delete=False,
+            suffix=".wav",
+            prefix="tts-",
+            dir="output_audio",
+        ) as audio_file:
+            audio_file.write(audio_bytes)
+            output_file = audio_file.name
         return {
             "audio_file": output_file,
-            "request_id": response.request_id
+            "request_id": request_ids[-1] if request_ids else None,
+            "language_code": language,
+            "model": "bulbul:v3",
+            "engine": "sarvam",
+            "media_type": "audio/wav",
+            "filename": "speech.wav",
         }
     except Exception as e:
+        sarvam_error = str(e)
+        print("Sarvam TTS unavailable; trying multilingual fallback:", e)
+
+    try:
+        # Quota-safe fallback for demos and temporary Sarvam outages. Edge TTS
+        # provides an explicit Indian voice for each of the eight languages.
+        import edge_tts
+
+        os.makedirs("output_audio", exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".mp3",
+            prefix="tts-fallback-",
+            dir="output_audio",
+        ) as audio_file:
+            output_file = audio_file.name
+
+        voice = EDGE_TTS_VOICES[language]
+        asyncio.run(
+            edge_tts.Communicate(
+                text=text,
+                voice=voice,
+                rate="-10%",
+            ).save(output_file)
+        )
+
         return {
-            "error": str(e)
+            "audio_file": output_file,
+            "request_id": None,
+            "language_code": language,
+            "model": "edge-tts",
+            "engine": "edge-tts",
+            "media_type": "audio/mpeg",
+            "filename": "speech.mp3",
+        }
+    except Exception as fallback_error:
+        return {
+            "error": (
+                f"Sarvam TTS failed: {sarvam_error}. "
+                f"Multilingual fallback failed: {fallback_error}"
+            )
         }
 
 if __name__ == "__main__":

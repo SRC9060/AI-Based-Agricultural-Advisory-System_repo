@@ -25,6 +25,14 @@ def detect_language(text):
     if re.search(r'[\u0C00-\u0C7F]', text):
         return "te"
 
+    # Malayalam
+    if re.search(r'[\u0D00-\u0D7F]', text):
+        return "ml"
+
+    # Gujarati
+    if re.search(r'[\u0A80-\u0AFF]', text):
+        return "gu"
+
     # English (ASCII text)
     if text.isascii():
         return "en"

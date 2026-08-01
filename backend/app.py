@@ -15,10 +15,11 @@ else:
     print("No Vector Database Found, Building...")
     rebuild_vector_database()
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
+from starlette.background import BackgroundTask
 
 from services.language_detection import detect_language
 from services.translation import translate_text
@@ -27,17 +28,33 @@ from services.intent_classifier import classify_intent
 from services.ner import extract_entities
 from services.rag_pipeline import generate_response
 from services.weather_service import get_weather, get_forecast
+from services.localized_weather import format_current_weather
 from services.agri_entities import extract_agri_entities
 from services.router import route_query
 from services.response_quality import calculate_response_quality
 from services.agmarknet import get_market_price
-from services.agmarknet import get_market_options
-from services.agents.scheme_agent import scheme_titles_agent
+from services.agmarknet import (
+    MarketServiceUnavailable,
+    get_fallback_market_options,
+    get_market_options,
+)
+from services.agents.scheme_agent import scheme_agent, scheme_titles_agent
 from services.speech_to_text import (
     speech_to_text,
     whisper_speech_to_text,
 )
+from services.voice_languages import (
+    VOICE_LANGUAGE_CODES,
+    get_voice_language_code,
+)
 from services.security import enforce_rate_limit, require_admin_key
+from services.auth import (
+    create_access_token,
+    decode_access_token,
+    hash_password,
+    password_is_hashed,
+    verify_password,
+)
 from config import Config
 
 from database import SessionLocal, engine
@@ -51,7 +68,37 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Voice-Engine", "X-Voice-Language"],
 )
+
+
+def require_authenticated_user(
+    authorization: str | None = Header(default=None),
+) -> int:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        user_id = decode_access_token(authorization.removeprefix("Bearer ").strip())
+    except ValueError as error:
+        raise HTTPException(status_code=401, detail=str(error)) from error
+
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.id == user_id).first():
+            raise HTTPException(status_code=401, detail="User account not found")
+    finally:
+        db.close()
+    return user_id
+
+
+def ensure_user_access(authenticated_user_id: int, requested_user_id: int | str):
+    try:
+        matches = authenticated_user_id == int(requested_user_id)
+    except (TypeError, ValueError):
+        matches = False
+    if not matches:
+        raise HTTPException(status_code=403, detail="Access to this farmer account is forbidden")
+
 
 @app.get("/")
 def home():
@@ -60,7 +107,11 @@ def home():
     }
 
 @app.get("/feedback/{user_id}")
-def get_feedback(user_id: int):
+def get_feedback(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         entries = (
@@ -85,7 +136,11 @@ def get_feedback(user_id: int):
         db.close()
 
 @app.post("/feedback")
-def create_feedback(request: FeedbackRequest):
+def create_feedback(
+    request: FeedbackRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, request.user_id)
     if len(request.message.strip()) < 3:
         raise HTTPException(
             status_code=400,
@@ -117,7 +172,11 @@ def create_feedback(request: FeedbackRequest):
         db.close()
 
 @app.post("/chat/feedback")
-def create_response_feedback(request: ResponseFeedbackRequest):
+def create_response_feedback(
+    request: ResponseFeedbackRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, request.user_id)
     db = SessionLocal()
     try:
         message = db.query(ChatMessage).join(
@@ -146,25 +205,92 @@ def create_response_feedback(request: ResponseFeedbackRequest):
     finally:
         db.close()
 
-@app.get("/weather")
+@app.get("/weather", dependencies=[Depends(require_authenticated_user)])
 def weather(city: str):
     result = get_weather(city)
     if "error" in result:
         raise HTTPException(
-            status_code=400,
+            status_code=result.get("status_code", 400),
             detail=result["error"]
         )
     return result
 
-@app.get("/weather/forecast")
+@app.get("/weather/forecast", dependencies=[Depends(require_authenticated_user)])
 def weather_forecast(city: str):
     result = get_forecast(city)
     if "error" in result:
         raise HTTPException(
-            status_code=400,
+            status_code=result.get("status_code", 400),
             detail=result["error"]
         )
     return result
+
+
+@app.post("/translate")
+def translate_batch(
+    request: TranslationBatchRequest,
+    _user_id: int = Depends(require_authenticated_user),
+):
+    source_language = get_voice_language_code(request.source_language)
+    target_language = get_voice_language_code(request.target_language)
+    cache = {}
+    translations = []
+    degraded = False
+
+    for text in request.texts:
+        if text not in cache:
+            result = translate_text(text, source_language, target_language)
+            cache[text] = result.translated_text
+            degraded = degraded or result.used_fallback
+        translations.append(cache[text])
+
+    return {
+        "translations": translations,
+        "source_language": source_language,
+        "target_language": target_language,
+        "degraded": degraded,
+    }
+
+
+@app.post("/schemes/search")
+def search_schemes(
+    request: SchemeSearchRequest,
+    _user_id: int = Depends(require_authenticated_user),
+):
+    target_language = get_voice_language_code(request.language)
+    source_language = get_voice_language_code(
+        request.source_language or request.language
+    )
+    english_query = request.query
+
+    if source_language != "en-IN":
+        english_query = translate_text(
+            request.query,
+            source_language,
+            "en-IN",
+        ).translated_text
+
+    try:
+        answer = scheme_agent(english_query)
+    except Exception as error:
+        print(f"Government scheme search failed: {error}")
+        raise HTTPException(
+            status_code=503,
+            detail="Government scheme information is temporarily unavailable.",
+        ) from error
+
+    if target_language != "en-IN":
+        answer = translate_text(
+            answer,
+            "en-IN",
+            target_language,
+        ).translated_text
+
+    return {
+        "query": request.query,
+        "answer": answer,
+        "language": target_language,
+    }
 
 @app.post("/register")
 def register(request: RegisterRequest):
@@ -183,7 +309,7 @@ def register(request: RegisterRequest):
     new_user = User(
         name=request.name,
         email=request.email,
-        password=request.password,
+        password=hash_password(request.password),
         language=request.language
     )
     db.add(new_user)
@@ -208,14 +334,20 @@ def login(request: LoginRequest):
         .filter(User.email == request.email)
         .first()
     )
-    if user is None or user.password != request.password:
+    if user is None or not verify_password(request.password, user.password):
         db.close()
         raise HTTPException(
             status_code=401,
             detail="Invalid Credentials"
         )
+    if not password_is_hashed(user.password):
+        user.password = hash_password(request.password)
+        db.commit()
+
     response = {
         "message": "Login Successful",
+        "access_token": create_access_token(user.id),
+        "token_type": "bearer",
         "user": {
             "id": user.id,
             "name": user.name,
@@ -230,8 +362,32 @@ def login(request: LoginRequest):
     db.close()
     return response
 
+
+@app.get("/auth/verify")
+def verify_authenticated_session(
+    user_id: int = Depends(require_authenticated_user),
+):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return {
+            "valid": True,
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "language": user.language,
+            },
+        }
+    finally:
+        db.close()
+
 @app.get("/profile/{user_id}", response_model=ProfileResponse)
-def get_profile(user_id: int):
+def get_profile(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     user = db.query(User).filter(
         User.id == user_id
@@ -262,8 +418,10 @@ def get_profile(user_id: int):
 @app.put("/profile/{user_id}")
 def update_profile(
     user_id: int,
-    request: ProfileUpdateRequest
+    request: ProfileUpdateRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     user = db.query(User).filter(
         User.id == user_id
@@ -306,7 +464,11 @@ def update_profile(
     }
 
 @app.get("/profile-status/{user_id}")
-def profile_status(user_id: int):
+def profile_status(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     user = db.query(User).filter(
         User.id == user_id
@@ -337,7 +499,11 @@ def profile_status(user_id: int):
     }
 
 @app.get("/notifications/{user_id}")
-def get_notifications(user_id: int):
+def get_notifications(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
@@ -364,10 +530,16 @@ def get_notifications(user_id: int):
         db.close()
 
 @app.put("/notifications/{notification_id}/read")
-def mark_notification_read(notification_id: int):
+def mark_notification_read(
+    notification_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
     db = SessionLocal()
     try:
-        notification = db.query(Notification).filter(Notification.id == notification_id).first()
+        notification = db.query(Notification).filter(
+            Notification.id == notification_id,
+            Notification.user_id == authenticated_user_id,
+        ).first()
         if not notification:
             raise HTTPException(status_code=404, detail="Notification not found")
         notification.is_read = True
@@ -379,7 +551,11 @@ def mark_notification_read(notification_id: int):
         db.close()
 
 @app.put("/notifications/{user_id}/read-all")
-def mark_all_notifications_read(user_id: int):
+def mark_all_notifications_read(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         db.query(Notification).filter(
@@ -394,7 +570,11 @@ def mark_all_notifications_read(user_id: int):
         db.close()
 
 @app.get("/schemes/{user_id}")
-def get_schemes(user_id: int):
+def get_schemes(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
@@ -438,7 +618,11 @@ No explanation.
         db.close()
 
 @app.post("/chat/session")
-def create_chat_session(user_id: int):
+def create_chat_session(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     session = ChatSession(
         user_id=user_id,
@@ -452,24 +636,16 @@ def create_chat_session(user_id: int):
         "session_id": session.id
     }
 
-@app.post("/speech-to-text")
+@app.post("/speech-to-text", dependencies=[Depends(require_authenticated_user)])
 async def transcribe_speech(
     file: UploadFile = File(...),
     language: str = Form("unknown"),
 ):
-    language_map = {
-        "en": "en-IN",
-        "hi": "hi-IN",
-        "kn": "kn-IN",
-        "te": "te-IN",
-        "ta": "ta-IN",
-        "ml": "ml-IN",
-        "mr": "mr-IN",
-        "gu": "gu-IN",
-        "unknown": "unknown",
-    }
-
-    language_code = language_map.get(language, "unknown")
+    language_code = (
+        "unknown"
+        if language == "unknown"
+        else get_voice_language_code(language, default="unknown")
+    )
 
     allowed_content_types = {
         "audio/webm",
@@ -484,7 +660,9 @@ async def transcribe_speech(
         "audio/aac",
     }
 
-    if file.content_type not in allowed_content_types:
+    normalized_content_type = (file.content_type or "").split(";", 1)[0].lower()
+
+    if normalized_content_type not in allowed_content_types:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported audio format: {file.content_type}",
@@ -499,7 +677,7 @@ async def transcribe_speech(
         )
 
     filename = file.filename or "recording.webm"
-    content_type = file.content_type or "audio/webm"
+    content_type = normalized_content_type or "audio/webm"
 
     # First try Sarvam STT
     result = speech_to_text(
@@ -533,11 +711,18 @@ async def transcribe_speech(
     return result
 
 @app.post("/chat")
-def chat(request: ChatRequest):
+def chat(
+    request: ChatRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, request.user_id)
     db = SessionLocal()
     session = (
         db.query(ChatSession)
-        .filter(ChatSession.id == request.session_id)
+        .filter(
+            ChatSession.id == request.session_id,
+            ChatSession.user_id == authenticated_user_id,
+        )
         .first()
     )
     if session is None:
@@ -569,19 +754,23 @@ def chat(request: ChatRequest):
     )
     is_contextual_follow_up = (
         previous_user_message is not None
-        and len(user_message.split()) <= 12
-        and user_message.lower().strip().startswith(
-            (
-                "what about",
-                "how about",
-                "can i",
-                "should i",
-                "how much",
-                "when should",
-                "why",
-                "and ",
-                "also ",
+        and len(user_message.split()) <= 15
+        and (
+            user_message.lower().strip().startswith(
+                (
+                    "what about",
+                    "how about",
+                    "can i",
+                    "should i",
+                    "how much",
+                    "when should",
+                    "why",
+                    "and ",
+                    "also ",
+                )
             )
+            or any(term in user_message.lower() for term in ("rain", "weather", "tomorrow", "ಮಳೆ", "ಹವಾಮಾನ", "ನಾಳೆ", "ತಾಪಮಾನ", "ಗೋಧಿ", "ಬೆಳೆ"))
+            or (translated_text and any(term in translated_text.lower() for term in ("rain", "weather", "tomorrow", "forecast", "temperature")))
         )
     )
     previous_user_message_from_query = (
@@ -615,8 +804,18 @@ def chat(request: ChatRequest):
             f"Follow-up question: {user_message.strip()}"
         )
 
-    language = request.language or detect_language(processing_message)
-    print("User Query:", user_message)
+    requested_language = (request.language or "").strip().lower()
+    detected_input_language = detect_language(user_message)
+    # A non-Latin script is unambiguous for these languages. Prefer the
+    # language that the farmer actually typed over a stale browser preference.
+    # Hindi and Marathi share Devanagari, so retain an explicit Marathi choice.
+    if detected_input_language in {"kn", "te", "ta", "ml", "gu"}:
+        language = detected_input_language
+    elif detected_input_language == "hi" and requested_language == "mr":
+        language = "mr"
+    else:
+        language = requested_language or detected_input_language
+    print("User Query:", user_message.encode("ascii", errors="replace").decode("ascii"))
     print("Selected Language:", language)
     lang_map = {
         "en": "en-IN",
@@ -649,7 +848,8 @@ def chat(request: ChatRequest):
     else:
         entities = extract_entities(translated_text)
     agri_entities = extract_agri_entities(translated_text)
-    user = db.query(User).filter(User.id == int(request.user_id)).first()
+    user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
+    user = db.query(User).filter(User.id == user_id_int).first() if user_id_int else None
     market_state = None
     market_district = None
     locs = []
@@ -696,23 +896,66 @@ def chat(request: ChatRequest):
         translated_text,
         flags=re.IGNORECASE,
     )
-    requested_location = (
-        location_match.group(1).strip()
-        if location_match
-        else (user.city or user.district if user else "")
-    )
     weather_location_aliases = {
         "uttarakannada": "Karwar",
         "uttara kannada": "Karwar",
         "bangalore": "Bengaluru",
         "mysore": "Mysuru",
+        "bagalkot": "Bagalkot",
+        "bagalkote": "Bagalkot",
+        "ಬಾಗಲಕೋಟೆ": "Bagalkot",
+        "ಬಾಗಲಕೋಟೆಯ": "Bagalkot",
+        "ಬೆಂಗಳೂರು": "Bengaluru",
+        "ಮೈಸೂರು": "Mysuru",
+        "ಬೆಳಗಾವಿ": "Belagavi",
+        "ಧಾರವಾಡ": "Dharwad",
+        "ಹುಬ್ಬಳ್ಳಿ": "Hubli",
+        "ಕಲಬುರಗಿ": "Kalaburagi",
+        "ಕೋಲಾರ": "Kolar",
+        "ಮಂಡ್ಯ": "Mandya",
+        "ಹಾಸನ": "Hassan",
+        "ಉಡುಪಿ": "Udupi",
+        "ಮಂಗಳೂರು": "Mangalore",
+        "ಶಿವಮೊಗ್ಗ": "Shivamogga",
+        "ದಾವಣಗೆರೆ": "Davanagere",
+        "ಚಿತ್ರದುರ್ಗ": "Chitradurga",
+        "ರಾಯಚೂರು": "Raichur",
+        "ಬಳ್ಳಾರಿ": "Ballari",
+        "ಕೊಪ್ಪಳ": "Koppal",
+        "ಯಾದಗಿರಿ": "Yadgir",
     }
+
+    # Extract location from query text, recent conversation history, or fallback to user default
+    found_city = None
+    for alias_key, canonical_city in weather_location_aliases.items():
+        if alias_key in user_message.lower() or alias_key in translated_text.lower():
+            found_city = canonical_city
+            break
+
+    # Look up location mentioned in previous chat turns for contextual follow-ups
+    previous_location = None
+    if not found_city and recent_messages:
+        for msg in recent_messages:
+            msg_text_lower = msg.message.lower()
+            for alias_key, canonical_city in weather_location_aliases.items():
+                if alias_key in msg_text_lower:
+                    previous_location = canonical_city
+                    break
+            if previous_location:
+                break
+
+    requested_location = (
+        found_city
+        or previous_location
+        or (location_match.group(1).strip() if location_match else (user.city or user.district if user else "Bagalkot"))
+    )
     requested_location = weather_location_aliases.get(
         requested_location.lower(),
         requested_location,
     )
 
     comparison_locations = []
+    response_is_localized = False
     for aliases, canonical in (
         (("bangalore", "bengaluru"), "Bangalore"),
         (("mysore", "mysuru"), "Mysore"),
@@ -853,13 +1096,31 @@ def chat(request: ChatRequest):
             if "error" in weather:
                 response_text = weather["error"]
             else:
-                response_text = (
-                    f"Current weather in {weather['city']}.\n"
-                    f"Temperature: {weather['temperature']}°C.\n"
-                    f"Humidity: {weather['humidity']}%.\n"
-                    f"Weather: {weather['weather']}.\n"
-                    f"Wind Speed: {weather['wind_speed']} m/s."
+                is_specific_weather_question = (
+                    is_contextual_follow_up
+                    or any(
+                        term in translated_text.lower()
+                        for term in ("rain", "tomorrow", "forecast", "will it", "should i", "can i", "spray", "harvest", "hot", "cold", "humidity")
+                    )
                 )
+                if is_specific_weather_question:
+                    live_weather_info = (
+                        f"Current Live Weather Data for {city}:\n"
+                        f"- Temperature: {weather.get('temperature')}°C\n"
+                        f"- Humidity: {weather.get('humidity')}%\n"
+                        f"- Condition: {weather.get('description')}\n"
+                        f"- Wind Speed: {weather.get('wind_speed')} m/s\n"
+                    )
+                    response_text = generate_response(
+                        translated_text,
+                        supplemental_context=(
+                            f"{live_weather_info}\n"
+                            f"Recent Conversation History:\n{conversation_context}"
+                        ),
+                    )
+                else:
+                    response_text = format_current_weather(weather, language)
+                    response_is_localized = language != "en"
     else:
         if intent_result["intent"] == "market_price_query":
             response_text = route_query(
@@ -889,7 +1150,7 @@ def chat(request: ChatRequest):
     english_response = response_text
     translated_response = response_text
     target_language = lang_map.get(language, "en-IN")
-    if target_language != "en-IN":
+    if target_language != "en-IN" and not response_is_localized:
         result = translate_text(
             response_text,
             "en-IN",
@@ -912,6 +1173,11 @@ def chat(request: ChatRequest):
     db.add(assistant_chat)
     db.flush()
     assistant_message_id = assistant_chat.id
+    session_payload = {
+        "id": session.id,
+        "user_id": session.user_id,
+        "title": session.title,
+    }
     if any(
         marker in translated_response.lower()
         for marker in (
@@ -923,16 +1189,18 @@ def chat(request: ChatRequest):
         )
     ):
         db.add(UnansweredQuery(
-            user_id=int(request.user_id),
+            user_id=user_id_int,
             session_id=session.id,
             query=user_message,
             response=translated_response,
         ))
     db.commit()
     db.close()
-    print("Bot Response:", translated_response)
-    tts_result = text_to_speech(translated_response)
-    print("TTS Result:", tts_result)
+    print("Bot Response:", translated_response.encode("ascii", errors="replace").decode("ascii"))
+    # Voice is requested through /speak after the text is rendered. Generating
+    # audio here too used twice the TTS quota and could overwrite another
+    # farmer's audio during concurrent chats.
+    tts_result = {"audio_file": None}
     quality_result = calculate_response_quality(
         intent_result["score"],
         english_response
@@ -950,21 +1218,25 @@ def chat(request: ChatRequest):
         "english_response": str(english_response),
         "response_in_user_language": str(translated_response),
         "audio_file": tts_result.get("audio_file"),
-        "session": session,
+        # Do not return the SQLAlchemy instance after its database session has
+        # been committed and closed. Serializing an expired/detached model can
+        # raise a 500 after the answer has already been generated and saved.
+        "session": session_payload,
         "response_quality": quality_result,
         "assistant_message_id": assistant_message_id,
     }
 
-@app.post("/speak")
+@app.post("/speak", dependencies=[Depends(require_authenticated_user)])
 def speak(request: SpeakRequest):
-    lang_map = {
-        "en": "en-IN",
-        "hi": "hi-IN",
-        "te": "te-IN",
-        "kn": "kn-IN",
-        "ta": "ta-IN",
-    }
-    target_language = lang_map.get(request.language, "en-IN")
+    if request.language not in VOICE_LANGUAGE_CODES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported voice language. Choose one of: "
+                + ", ".join(VOICE_LANGUAGE_CODES)
+            ),
+        )
+    target_language = get_voice_language_code(request.language)
     result = text_to_speech(
         request.text,
         target_language
@@ -976,11 +1248,19 @@ def speak(request: SpeakRequest):
         )
     return FileResponse(
         result["audio_file"],
-        media_type="audio/wav",
-        filename="speech.wav"
+        media_type=result.get("media_type", "audio/wav"),
+        filename=result.get("filename", "speech.wav"),
+        headers={
+            "X-Voice-Engine": result.get("engine", "sarvam"),
+            "X-Voice-Language": target_language,
+        },
+        background=BackgroundTask(
+            Path(result["audio_file"]).unlink,
+            missing_ok=True,
+        ),
     )
 
-@app.post("/market-price")
+@app.post("/market-price", dependencies=[Depends(require_authenticated_user)])
 def market_price(request: MarketRequest):
     try:
         response = get_market_price(
@@ -1015,12 +1295,32 @@ def market_price(request: MarketRequest):
             "arrival_date": None,
         }
 
-@app.get("/market-options")
+@app.get("/market-options", dependencies=[Depends(require_authenticated_user)])
 def market_options():
-    return get_market_options()
+    try:
+        return {
+            "live": True,
+            "options": get_market_options(),
+            "message": None,
+        }
+    except MarketServiceUnavailable as error:
+        print(f"Market options fallback active: {error}")
+        return {
+            "live": False,
+            "options": get_fallback_market_options(),
+            "message": (
+                "Live AGMARKNET selections are temporarily unavailable. "
+                "Showing common Karnataka crops and districts."
+            ),
+        }
 
 @app.get("/recent-activity/{user_id}")
-def get_chat_activity(user_id: int, limit: int = 20):
+def get_chat_activity(
+    user_id: int,
+    limit: int = 20,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         sessions = (

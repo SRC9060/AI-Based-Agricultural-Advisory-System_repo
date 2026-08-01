@@ -9,8 +9,28 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 # Configuration
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-KNOWLEDGE_BASE_PATH = PROJECT_ROOT / "knowledge_base"
-CHROMA_DB_PATH = PROJECT_ROOT / "chroma_db"
+PACKAGED_KNOWLEDGE_BASE_PATH = PROJECT_ROOT / "knowledge_base"
+KNOWLEDGE_BASE_PATH = Path(
+    os.getenv("KNOWLEDGE_BASE_PATH", str(PACKAGED_KNOWLEDGE_BASE_PATH))
+).resolve()
+CHROMA_DB_PATH = Path(
+    os.getenv("CHROMA_DB_PATH", str(PROJECT_ROOT / "chroma_db"))
+).resolve()
+
+# A cloud disk starts empty. Seed it once with the PDFs committed with the
+# application, then keep subsequent admin uploads and the vector index durable.
+if (
+    KNOWLEDGE_BASE_PATH != PACKAGED_KNOWLEDGE_BASE_PATH.resolve()
+    and PACKAGED_KNOWLEDGE_BASE_PATH.exists()
+    and not any(KNOWLEDGE_BASE_PATH.rglob("*.pdf"))
+):
+    KNOWLEDGE_BASE_PATH.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(
+        PACKAGED_KNOWLEDGE_BASE_PATH,
+        KNOWLEDGE_BASE_PATH,
+        dirs_exist_ok=True,
+    )
+
 EMBEDDING_MODEL = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2",
     # This public model must not use a stale local Hugging Face login token.
