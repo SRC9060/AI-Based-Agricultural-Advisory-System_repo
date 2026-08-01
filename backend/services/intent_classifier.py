@@ -1,11 +1,19 @@
-from transformers import pipeline
+_classifier = None
 
-classifier = pipeline(
-    "zero-shot-classification",
-    model="facebook/bart-large-mnli",
-    # This public model must not use a stale local Hugging Face login token.
-    token=False,
-)
+def _get_classifier():
+    global _classifier
+    if _classifier is None:
+        try:
+            from transformers import pipeline
+            _classifier = pipeline(
+                "zero-shot-classification",
+                model="facebook/bart-large-mnli",
+                token=False,
+            )
+        except Exception:
+            _classifier = False
+    return _classifier if _classifier is not False else None
+
 
 candidate_labels = [
     "disease_query",
@@ -122,11 +130,20 @@ def classify_intent(text):
         }
 
     # ---------- Zero-shot fallback ----------
-    result = classifier(text, candidate_labels)
+    clf = _get_classifier()
+    if clf is not None:
+        try:
+            result = clf(text, candidate_labels)
+            return {
+                "intent": str(result["labels"][0]),
+                "score": float(result["scores"][0])
+            }
+        except Exception:
+            pass
 
     return {
-        "intent": str(result["labels"][0]),
-        "score": float(result["scores"][0])
+        "intent": "general_agriculture_query",
+        "score": 0.5
     }
 
 if __name__ == "__main__":

@@ -2,10 +2,24 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+
+_EMBEDDING_MODEL = None
+
+
+def _get_embedding_model():
+    global _EMBEDDING_MODEL
+    if _EMBEDDING_MODEL is None:
+        try:
+            from langchain_huggingface import HuggingFaceEmbeddings
+            _EMBEDDING_MODEL = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2",
+                model_kwargs={"token": False},
+            )
+        except Exception as e:
+            print("Embedding model initialization warning:", e)
+            _EMBEDDING_MODEL = False
+    return _EMBEDDING_MODEL if _EMBEDDING_MODEL is not False else None
+
 
 # Configuration
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -31,12 +45,6 @@ if (
         dirs_exist_ok=True,
     )
 
-EMBEDDING_MODEL = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
-    # This public model must not use a stale local Hugging Face login token.
-    model_kwargs={"token": False},
-)
-
 
 def _safe_console_preview(text, length):
     encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
@@ -55,6 +63,7 @@ def load_documents():
                 pdf_path = os.path.join(root, file)
                 try:
                     print("Loading:", pdf_path)
+                    from langchain_community.document_loaders import PyPDFLoader
                     loader = PyPDFLoader(pdf_path)
                     docs = loader.load()
                     folder_name = os.path.basename(root)
@@ -68,11 +77,22 @@ def load_documents():
                     print("Reason:", e)
     return documents
 
+
 # Create New Vector Database
 def create_vector_database(chunks):
     if not chunks:
         print("ERROR: No Document Chunks Found")
         return None
+    embedding = _get_embedding_model()
+    if not embedding:
+        print("ERROR: Embedding model not available")
+        return None
+    try:
+        from langchain_chroma import Chroma
+    except ImportError as e:
+        print("Chroma import error:", e)
+        return None
+
     batch_size = 500
     vector_db = None
     total_batches = (len(chunks) - 1) // batch_size + 1
@@ -83,43 +103,57 @@ def create_vector_database(chunks):
         if vector_db is None:
             vector_db = Chroma.from_documents(
                 documents=batch,
-                embedding=EMBEDDING_MODEL,
-                persist_directory=CHROMA_DB_PATH
+                embedding=embedding,
+                persist_directory=str(CHROMA_DB_PATH)
             )
         else:
             vector_db.add_documents(batch)
     print("Vector Database Created Successfully")
     return vector_db
 
+
 # Load Existing Vector Database
 def load_vector_database():
-    return Chroma(
-        persist_directory=CHROMA_DB_PATH,
-        embedding_function=EMBEDDING_MODEL
-    )
+    embedding = _get_embedding_model()
+    if not embedding:
+        return None
+    try:
+        from langchain_chroma import Chroma
+        return Chroma(
+            persist_directory=str(CHROMA_DB_PATH),
+            embedding_function=embedding
+        )
+    except Exception as e:
+        print("Vector database load error:", e)
+        return None
 
-# Genearal Search in Knowledge Base
+
+# General Search in Knowledge Base
 def search_knowledge_base(query):
     vector_db = load_vector_database()
-    results_with_scores = (
-        vector_db.similarity_search_with_score(
-            query,
-            k=10
+    if not vector_db:
+        return []
+    try:
+        results_with_scores = (
+            vector_db.similarity_search_with_score(
+                query,
+                k=10
+            )
         )
-    )
+    except Exception as e:
+        print("Knowledge base search error:", e)
+        return []
     results = []
     print("\n===== Retrieved Documents =====")
     for doc, score in results_with_scores:
         print(f"Score: {score:.4f}")
         print("Folder:", doc.metadata.get("folder"))
         print("Source:", doc.metadata.get("source"))
-        # Some PDFs contain private-use glyphs that Windows consoles cannot
-        # encode. Diagnostic output must never break an otherwise valid search.
         print(_safe_console_preview(doc.page_content, 200))
         print("-" * 50)
         if score < 1.2:
             results.append(doc)
-    # Crop Detection
+
     crop_keywords = {
         "wheat": "Wheat",
         "rice": "Rice",
@@ -142,29 +176,38 @@ def search_knowledge_base(query):
         if crop in query_lower:
             detected_crop = crop_keywords[crop]
             break
-    # Return Crop Specific Documents
     if detected_crop:
-        crop_results = vector_db.similarity_search(
-            query,
-            k=5,
-            filter={"folder": detected_crop},
-        )
-        if crop_results:
-            return crop_results
+        try:
+            crop_results = vector_db.similarity_search(
+                query,
+                k=5,
+                filter={"folder": detected_crop},
+            )
+            if crop_results:
+                return crop_results
+        except Exception:
+            pass
     return results[:5]
+
 
 # Search Documents inside Government Schemes 
 def search_government_schemes(query):
     vector_db = load_vector_database()
-    results_with_scores = (
-        vector_db.similarity_search_with_score(
-            query,
-            k=5,
-            filter={
-                "folder": "Government_Schemes"
-            }
+    if not vector_db:
+        return []
+    try:
+        results_with_scores = (
+            vector_db.similarity_search_with_score(
+                query,
+                k=5,
+                filter={
+                    "folder": "Government_Schemes"
+                }
+            )
         )
-    )
+    except Exception as e:
+        print("Scheme search error:", e)
+        return []
     scheme_results = []
     print("\n===== Government Scheme Results =====")
     for doc, score in results_with_scores:
@@ -174,10 +217,9 @@ def search_government_schemes(query):
         print("Source:", doc.metadata.get("source"))
         print(_safe_console_preview(doc.page_content, 300))
         print("-" * 50)
-        # No Score Threshold for Now.
-        # First Verify Scheme Retrieval Works.
         scheme_results.append(doc)
     return scheme_results[:5]
+
 
 # Rebuild Vector Database
 def rebuild_vector_database(replace_existing=False):
@@ -191,12 +233,17 @@ def rebuild_vector_database(replace_existing=False):
         print("No PDF Documents were Loaded.")
         return
     print("Total Pages Loaded:", len(documents))
-    chunks = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    ).split_documents(documents)
-    print("Total Chunks Created:", len(chunks))
-    create_vector_database(chunks)
+    try:
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        chunks = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=100
+        ).split_documents(documents)
+        print("Total Chunks Created:", len(chunks))
+        create_vector_database(chunks)
+    except Exception as e:
+        print("Failed to split documents:", e)
+
 
 if __name__ == "__main__":
     if os.path.exists(CHROMA_DB_PATH):

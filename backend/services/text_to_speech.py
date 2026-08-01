@@ -3,12 +3,24 @@ import base64
 import asyncio
 import re
 import tempfile
-from sarvamai import SarvamAI
 from config import Config
 
-client = SarvamAI(
-    api_subscription_key=Config.SARVAM_API_KEY
-)
+_sarvam_client = None
+
+
+def _get_sarvam_client():
+    global _sarvam_client
+    if _sarvam_client is None:
+        try:
+            from sarvamai import SarvamAI
+            if Config.SARVAM_API_KEY:
+                _sarvam_client = SarvamAI(api_subscription_key=Config.SARVAM_API_KEY)
+            else:
+                _sarvam_client = False
+        except Exception:
+            _sarvam_client = False
+    return _sarvam_client if _sarvam_client is not False else None
+
 
 EDGE_TTS_VOICES = {
     "en-IN": "en-IN-NeerjaNeural",
@@ -94,11 +106,15 @@ def _split_for_tts(text, max_characters=2400):
 def text_to_speech(text, language="en-IN"):
     sarvam_error = None
     try:
+        sarvam_client = _get_sarvam_client()
+        if not sarvam_client:
+            raise ValueError("SarvamAI client unavailable")
+
         audio_chunks = []
         request_ids = []
 
         for text_chunk in _split_for_tts(text):
-            response = client.text_to_speech.convert(
+            response = sarvam_client.text_to_speech.convert(
                 text=text_chunk,
                 target_language_code=language,
                 model="bulbul:v3",

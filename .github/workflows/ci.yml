@@ -25,28 +25,35 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      - name: Start production PWA
+      - name: Start PWA and verify Lighthouse mobile thresholds
         run: |
           npm start > /tmp/agriadvisor-frontend.log 2>&1 &
+          SERVER_PID=$!
+          READY=0
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:3000/login > /dev/null; then
-              exit 0
+              READY=1
+              break
             fi
             sleep 2
           done
-          cat /tmp/agriadvisor-frontend.log
-          exit 1
-      - name: Verify Lighthouse mobile thresholds
-        run: >
-          npx lighthouse http://127.0.0.1:3000/login
-          --only-categories=performance,pwa
-          --form-factor=mobile
-          --throttling-method=simulate
-          --chrome-flags="--headless --no-sandbox"
-          --output=json
-          --output=html
-          --output-path=./lighthouse-ci
-      - run: node scripts/check-lighthouse.mjs lighthouse-ci.report.json
+          if [ $READY -ne 1 ]; then
+            echo "Frontend server failed to start:"
+            cat /tmp/agriadvisor-frontend.log
+            exit 1
+          fi
+
+          npx lighthouse http://127.0.0.1:3000/login \
+            --only-categories=performance,pwa \
+            --form-factor=mobile \
+            --throttling-method=simulate \
+            --chrome-flags="--headless --no-sandbox" \
+            --output=json \
+            --output=html \
+            --output-path=./lighthouse-ci
+
+          kill $SERVER_PID || true
+          node scripts/check-lighthouse.mjs lighthouse-ci.report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -68,7 +75,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/req.txt
       - name: Install backend test dependencies
-        run: python -m pip install fastapi pydantic sqlalchemy python-dotenv redis
+        run: python -m pip install fastapi pydantic sqlalchemy python-dotenv redis requests
       - name: Compile backend source
         run: python -m compileall -q .
       - name: Run backend security tests

@@ -1,15 +1,29 @@
-from sarvamai import SarvamAI
-from config import Config
-from services.openai_llm import generate_openai_response
 import os
 import requests
+from config import Config
+from services.openai_llm import generate_openai_response
+
+_sarvam_client = None
+
+
+def _get_sarvam_client():
+    global _sarvam_client
+    if _sarvam_client is None:
+        try:
+            from sarvamai import SarvamAI
+            if Config.SARVAM_API_KEY:
+                _sarvam_client = SarvamAI(api_subscription_key=Config.SARVAM_API_KEY)
+            else:
+                _sarvam_client = False
+        except Exception:
+            _sarvam_client = False
+    return _sarvam_client if _sarvam_client is not False else None
 
 
 def generate_gemini_response(question, context):
     gemini_key = getattr(Config, "GEMINI_API_KEY", None) or os.getenv("GEMINI_API_KEY")
     if not gemini_key:
         raise ValueError("GEMINI_API_KEY is not configured")
-    # Try gemini-1.5-flash endpoint
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
     prompt = f"""
 You are an experienced, expert agricultural advisor helping Indian farmers.
@@ -31,7 +45,6 @@ Question:
         timeout=15,
     )
     if response.status_code != 200:
-        # Fallback to gemini-2.0-flash if 1.5 returns 404
         url_v2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
         response = requests.post(
             url_v2,
@@ -81,10 +94,6 @@ def generate_groq_response(question, context):
     return data["choices"][0]["message"]["content"].strip()
 
 
-client = SarvamAI(
-    api_subscription_key=Config.SARVAM_API_KEY
-)
-
 def generate_llm_response(question, context, fallback=None):
     """
     Generate a short, farmer-friendly response using Groq, Gemini, Sarvam, or OpenAI.
@@ -92,7 +101,7 @@ def generate_llm_response(question, context, fallback=None):
     from dotenv import load_dotenv
     load_dotenv(override=True)
 
-    # 1. Try Groq (Ultra-fast, high-quality Llama 3.3 70B model)
+    # 1. Try Groq
     groq_key = os.getenv("GROQ_API_KEY") or getattr(Config, "GROQ_API_KEY", None)
     if groq_key:
         try:
@@ -109,37 +118,41 @@ def generate_llm_response(question, context, fallback=None):
             print(f"Gemini chat unavailable: {gemini_error}")
 
     # 3. Try Sarvam
-    try:
-        response = client.chat.completions(
-            model="sarvam-105b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                    "You are an experienced, expert agricultural advisor helping Indian farmers. "
-                    "Provide comprehensive, detailed, and practical agricultural advice for the farmer's question. "
-                    "Explain in simple, friendly, encouraging language with full details, clear step-by-step guidance, crop requirements, proper dosage recommendations, timing, and preventive actions. "
-                    "Write a complete, detailed response (around 100 to 180 words across 2 to 3 paragraphs). "
-                    "Do NOT use Markdown formatting, headings, bullet points, asterisks, or special characters. Return only plain text."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"Context:\n{context}\n\nQuestion:\n{question}",
-                },
-            ],
-            reasoning_effort=None,
-            max_tokens=400,
-        )
-        answer = response.choices[0].message.content.strip()
-        if answer:
-            return answer[0].upper() + answer[1:]
-    except Exception as error:
-        print(f"Sarvam chat unavailable: {error}")
+    sarvam_client = _get_sarvam_client()
+    if sarvam_client:
         try:
-            return generate_openai_response(question, context)
-        except Exception as openai_error:
-            print(f"OpenAI chat unavailable: {openai_error}")
+            response = sarvam_client.chat.completions(
+                model="sarvam-105b",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an experienced, expert agricultural advisor helping Indian farmers. "
+                            "Provide comprehensive, detailed, and practical agricultural advice for the farmer's question. "
+                            "Explain in simple, friendly, encouraging language with full details, clear step-by-step guidance, crop requirements, proper dosage recommendations, timing, and preventive actions. "
+                            "Write a complete, detailed response (around 100 to 180 words across 2 to 3 paragraphs). "
+                            "Do NOT use Markdown formatting, headings, bullet points, asterisks, or special characters. Return only plain text."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Context:\n{context}\n\nQuestion:\n{question}",
+                    },
+                ],
+                reasoning_effort=None,
+                max_tokens=400,
+            )
+            answer = response.choices[0].message.content.strip()
+            if answer:
+                return answer[0].upper() + answer[1:]
+        except Exception as error:
+            print(f"Sarvam chat unavailable: {error}")
+
+    # 4. Try OpenAI
+    try:
+        return generate_openai_response(question, context)
+    except Exception as openai_error:
+        print(f"OpenAI chat unavailable: {openai_error}")
 
     if fallback is not None:
         return fallback()
@@ -148,16 +161,9 @@ def generate_llm_response(question, context, fallback=None):
         "again later."
     )
 
-    if answer:
-        answer = answer[0].upper() + answer[1:]
-
-    return answer
-
 
 if __name__ == "__main__":
-
     question = input("Question: ")
-
     context = """
 Yellow rust is a fungal disease of wheat.
 It causes yellow streaks on leaves.
@@ -165,9 +171,6 @@ Spray Propiconazole 25 EC at 0.1%.
 Use resistant wheat varieties.
 Monitor the crop regularly after rainfall.
 """
-
     answer = generate_llm_response(question, context)
-
     print("\nAnswer:\n")
     print(answer)
-

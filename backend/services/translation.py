@@ -1,10 +1,22 @@
-from sarvamai import SarvamAI
 from config import Config
 from dataclasses import dataclass
 
-client = SarvamAI(
-    api_subscription_key=Config.SARVAM_API_KEY
-)
+_sarvam_client = None
+
+
+def _get_sarvam_client():
+    global _sarvam_client
+    if _sarvam_client is None:
+        try:
+            from sarvamai import SarvamAI
+            if Config.SARVAM_API_KEY:
+                _sarvam_client = SarvamAI(api_subscription_key=Config.SARVAM_API_KEY)
+            else:
+                _sarvam_client = False
+        except Exception:
+            _sarvam_client = False
+    return _sarvam_client if _sarvam_client is not False else None
+
 
 LANGUAGE_NAMES = {
     "en-IN": "English",
@@ -138,7 +150,10 @@ def translate_text(text, source_lang, target_lang):
         )
 
     try:
-        response = client.text.translate(
+        sarvam_client = _get_sarvam_client()
+        if not sarvam_client:
+            raise ValueError("SarvamAI client unavailable")
+        response = sarvam_client.text.translate(
             input=text,
             source_language_code=source_lang,
             target_language_code=target_lang,

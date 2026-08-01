@@ -1,9 +1,7 @@
 import re
-from langdetect import detect, LangDetectException
 
 
 def detect_language(text):
-
     text = text.strip()
 
     if not text:
@@ -38,6 +36,7 @@ def detect_language(text):
         return "en"
 
     try:
+        from langdetect import detect, LangDetectException
         language = detect(text)
 
         supported_languages = {
@@ -51,7 +50,7 @@ def detect_language(text):
 
         return "en"
 
-    except LangDetectException:
+    except Exception:
         return "en"
 
 
