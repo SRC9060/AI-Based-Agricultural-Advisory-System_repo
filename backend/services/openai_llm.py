@@ -1,9 +1,15 @@
-from openai import OpenAI
-
 from config import Config
 
 
-client = OpenAI(api_key=Config.OPENAI_API_KEY)
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        from openai import OpenAI
+        _client = OpenAI(api_key=Config.OPENAI_API_KEY)
+    return _client
 
 
 def generate_openai_response(question, context):
@@ -14,7 +20,7 @@ def generate_openai_response(question, context):
         if any(term in question.lower() for term in ("brief", "briefly", "short"))
         else ""
     )
-    response = client.chat.completions.create(
+    response = _get_client().chat.completions.create(
         model=Config.OPENAI_MODEL,
         messages=[
             {

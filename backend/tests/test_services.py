@@ -1,4 +1,8 @@
+import sys
+import types
 import unittest
+from unittest.mock import patch
+
 from services.intent_classifier import classify_intent
 from services.response_quality import calculate_response_quality
 from services.router import route_query
@@ -54,16 +58,36 @@ class VoiceLanguageTests(unittest.TestCase):
 
 
 class RouterTests(unittest.TestCase):
+    def _patched_agent(self, module_name, function_name, return_value):
+        module = types.ModuleType(module_name)
+        setattr(module, function_name, lambda *args, **kwargs: return_value)
+        return patch.dict(sys.modules, {module_name: module})
+
     def test_route_crop_query(self):
-        res = route_query("crop_management_query", query="How to grow rice?")
+        with self._patched_agent(
+            "services.agents.crop_agent",
+            "crop_agent",
+            "crop response",
+        ):
+            res = route_query("crop_management_query", query="How to grow rice?")
         self.assertIsNotNone(res)
 
     def test_route_weather_query(self):
-        res = route_query("weather_query", city="Mysuru")
+        with self._patched_agent(
+            "services.agents.weather_agent",
+            "weather_agent",
+            "weather response",
+        ):
+            res = route_query("weather_query", city="Mysuru")
         self.assertIsNotNone(res)
 
     def test_route_scheme_query(self):
-        res = route_query("government_scheme_query", query="PM Kisan eligibility")
+        with self._patched_agent(
+            "services.agents.scheme_agent",
+            "scheme_agent",
+            "scheme response",
+        ):
+            res = route_query("government_scheme_query", query="PM Kisan eligibility")
         self.assertIsNotNone(res)
 
     def test_route_unknown_intent(self):

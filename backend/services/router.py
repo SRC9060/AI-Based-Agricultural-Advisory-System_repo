@@ -1,10 +1,3 @@
-from services.agents.crop_agent import crop_agent
-from services.agents.pest_agent import pest_agent
-from services.agents.weather_agent import weather_agent
-from services.agents.market_agent import market_agent
-from services.agents.scheme_agent import scheme_agent
-
-
 def route_query(
     intent,
     query=None,
@@ -18,15 +11,23 @@ def route_query(
     """
 
     if intent == "crop_management_query":
+        from services.agents.crop_agent import crop_agent
+
         return crop_agent(query)
 
     elif intent == "pest_control_query":
+        from services.agents.pest_agent import pest_agent
+
         return pest_agent(query)
 
     elif intent == "weather_query":
+        from services.agents.weather_agent import weather_agent
+
         return weather_agent(city)
 
     elif intent == "market_price_query":
+        from services.agents.market_agent import market_agent
+
         return market_agent(
             commodity=commodity,
             state=state,
@@ -34,6 +35,8 @@ def route_query(
         )
 
     elif intent == "government_scheme_query":
+        from services.agents.scheme_agent import scheme_agent
+
         return scheme_agent(query)
 
     else:
