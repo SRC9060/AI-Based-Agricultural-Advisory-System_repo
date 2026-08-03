@@ -442,6 +442,7 @@ def create_chat_session(user_id: int):
     db = SessionLocal()
     session = ChatSession(
         user_id=user_id,
+    
         title="New Chat"
     )
     db.add(session)

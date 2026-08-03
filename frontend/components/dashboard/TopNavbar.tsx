@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { LogOut, Pencil, Settings } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { clearSession, getCurrentSession } from "@/lib/session";
 
 import {
   Bell,
@@ -116,6 +117,18 @@ const notificationLabels: Record<string, Record<string, string>> = {
   },
 };
 
+function isAppNotification(value: unknown): value is AppNotification {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).id === "number" &&
+    typeof (value as Record<string, unknown>).title === "string" &&
+    typeof (value as Record<string, unknown>).message === "string" &&
+    typeof (value as Record<string, unknown>).is_read === "boolean"
+  );
+}
+
 interface TopNavbarProps {
   userName?: string;
   userRole?: string;
@@ -134,9 +147,7 @@ export default function TopNavbar({
   const { t } = useTranslation();
 
   const handleLogout = () => {
-    localStorage.removeItem("user_id");
-    localStorage.removeItem("user_name");
-    localStorage.removeItem("user_email");
+    clearSession();
     localStorage.removeItem("language");
 
     router.replace("/login");
@@ -161,7 +172,10 @@ export default function TopNavbar({
   const loadNotifications = async (id: number) => {
     try {
       const response = await fetch(`${API_URL}/notifications/${id}`);
-      if (response.ok) setNotifications(await response.json());
+      if (!response.ok) return;
+
+      const data: unknown = await response.json();
+      setNotifications(Array.isArray(data) ? data.filter(isAppNotification) : []);
     } catch {
       // Keep navigation usable when the backend is unavailable.
     }
@@ -198,9 +212,10 @@ export default function TopNavbar({
   };
 
   useEffect(() => {
-    const name = localStorage.getItem("user_name");
+    const session = getCurrentSession();
+    const name = session?.userName;
     const savedLang = localStorage.getItem("language") || "en";
-    const savedUserId = Number(localStorage.getItem("user_id"));
+    const savedUserId = Number(session?.userId);
 
     if (name) {
       setDisplayName(name);

@@ -2,10 +2,11 @@
 
 import { API_URL } from "@/lib/api";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { loadCache, saveCache } from "@/lib/offlineCache";
+import { updateProfileCompleted, useRequireSession } from "@/lib/session";
 
 type Profile = {
   id: number; name: string; email: string; phone: string; state: string; district: string; city: string;
@@ -14,36 +15,99 @@ type Profile = {
 
 const initialProfile: Profile = { id: 0, name: "", email: "", phone: "", state: "", district: "", city: "", language: "", farmer_type: "", crop: "", farm_size: "", soil_type: "" };
 
+function isProfile(value: unknown): value is Profile {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const profile = value as Record<keyof Profile, unknown>;
+  return (
+    typeof profile.id === "number" &&
+    typeof profile.name === "string" &&
+    typeof profile.email === "string" &&
+    typeof profile.phone === "string" &&
+    typeof profile.state === "string" &&
+    typeof profile.district === "string" &&
+    typeof profile.city === "string" &&
+    typeof profile.language === "string" &&
+    typeof profile.farmer_type === "string" &&
+    typeof profile.crop === "string" &&
+    typeof profile.farm_size === "string" &&
+    typeof profile.soil_type === "string"
+  );
+}
+
+function isProfileComplete(profile: Profile) {
+  return Boolean(
+    profile.phone &&
+      profile.state &&
+      profile.district &&
+      profile.city &&
+      profile.language &&
+      profile.farmer_type &&
+      profile.crop &&
+      profile.farm_size &&
+      profile.soil_type
+  );
+}
+
 export default function ProfilePage() {
-  const router = useRouter();
+  const { session, checkingSession } = useRequireSession();
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile>(initialProfile);
+  const [cachedProfileTimestamp, setCachedProfileTimestamp] = useState<string>();
 
-  const loadProfile = async () => {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) { router.replace("/login"); return; }
+  const loadProfile = useCallback(async () => {
+    if (!session) return;
+    const userId = session.userId;
+    const cacheKey = `profile_${userId}`;
+
+    const loadCachedProfile = () => {
+      const cachedProfile = loadCache<Profile>(cacheKey);
+      if (!cachedProfile || !isProfile(cachedProfile.data)) return false;
+      setProfile(cachedProfile.data);
+      setCachedProfileTimestamp(cachedProfile.timestamp);
+      return true;
+    };
+
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/profile/${userId}`);
-      if (response.ok) setProfile(await response.json());
+      if (!response.ok) throw new Error("Unable to load profile.");
+      const data: unknown = await response.json();
+      if (!isProfile(data)) throw new Error("Invalid profile response.");
+      setProfile(data);
+      setCachedProfileTimestamp(undefined);
+      saveCache(cacheKey, data);
+    } catch {
+      loadCachedProfile();
     } finally { setLoading(false); }
-  };
+  }, [session]);
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => {
+    if (!checkingSession) {
+      loadProfile();
+    }
+  }, [checkingSession, loadProfile]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setProfile((current) => ({ ...current, [event.target.name]: event.target.value }));
 
   const saveProfile = async () => {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) { router.replace("/login"); return; }
+    if (!session) return;
+    const userId = session.userId;
     const response = await fetch(`${API_URL}/profile/${userId}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: profile.phone, state: profile.state, district: profile.district, city: profile.city, language: profile.language, farmer_type: profile.farmer_type, crop: profile.crop, farm_size: profile.farm_size, soil_type: profile.soil_type }),
     });
-    if (response.ok) { alert(t("Profile Updated Successfully")); await loadProfile(); setEditing(false); }
+    const data: unknown = response.ok ? await response.json() : null;
+    if (response.ok && isProfile(data)) {
+      setProfile(data);
+      saveCache(`profile_${userId}`, data);
+      updateProfileCompleted(isProfileComplete(data));
+      setCachedProfileTimestamp(undefined);
+      alert(t("Profile Updated Successfully"));
+      setEditing(false);
+    }
     else alert(t("Profile Update Failed"));
   };
 
@@ -51,8 +115,11 @@ export default function ProfilePage() {
   const farmingFields: Array<[keyof Profile, string]> = [["farmer_type", "Farmer Type"], ["crop", "Primary Crop"], ["farm_size", "Farm Size"], ["soil_type", "Soil Type"]];
   const location = [profile.city, profile.district, profile.state].filter(Boolean).join(", ") || t("Location not provided");
 
+  if (checkingSession) return null;
+
   return <DashboardLayout><main className="py-6">
     <header className="mt-6"><h1 className="text-3xl font-bold text-green-800">{t("My Profile")}</h1><p className="mt-2 text-gray-600">{t("Manage your personal details and farming preferences.")}</p></header>
+    {cachedProfileTimestamp && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"><p>📡 Offline Mode</p><p>Showing cached profile</p><p className="text-gray-500">Last Updated: {new Date(cachedProfileTimestamp).toLocaleString()}</p></div>}
     {loading ? <div className="mt-6 rounded-2xl bg-white p-10 text-center text-gray-500 shadow-sm">{t("Loading Profile...")}</div> : <>
       <section className="mt-6 flex items-center gap-5 rounded-2xl bg-white p-6 shadow-sm"><div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-700 text-3xl font-bold text-white">{profile.name?.charAt(0) || "?"}</div><div><h2 className="text-2xl font-bold text-green-800">{profile.name || t("Unnamed Farmer")}</h2><p className="text-gray-500">{t("Farmer")}</p><p className="mt-1 text-sm text-gray-500">{location}</p></div></section>
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2"><Section title={t("Personal Information")}><Fields fields={personalFields} profile={profile} editing={editing} onChange={handleChange}/></Section><Section title={t("Farming Information")}><Fields fields={farmingFields} profile={profile} editing={editing} onChange={handleChange}/></Section></div>

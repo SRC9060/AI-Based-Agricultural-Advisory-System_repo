@@ -1,7 +1,5 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MessageCircle, CloudSun, Landmark, Sprout } from "lucide-react";
@@ -86,23 +84,13 @@ export default function RecentActivity({
   activities: Activity[];
 }) {
   const { t } = useTranslation();
-  const [activities, setActivities] = useState<Activity[]>(initialActivities);
+  const [activities, setActivities] = useState<Activity[]>(
+    Array.isArray(initialActivities) ? initialActivities : [],
+  );
 
   useEffect(() => {
-    setActivities(initialActivities);
+    setActivities(Array.isArray(initialActivities) ? initialActivities : []);
   }, [initialActivities]);
-
-  useEffect(() => {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return;
-
-    fetch(`${API_URL}/recent-activity/${userId}?limit=4`)
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((data) => setActivities(data.activities || []))
-      .catch(() => {
-        // Keep activity supplied by the dashboard if the backend is unavailable
-      });
-  }, []);
 
   if (activities.length === 0) {
     return (
@@ -138,7 +126,7 @@ export default function RecentActivity({
       <div className="space-y-0">
         {activities.map((activity, index) => {
           const { icon, bg } = getActivityIcon(activity.type);
-          const question = activity.message;
+          const question = activity.message || "";
           return (
             <div key={index} className="flex gap-3">
               <div className="flex flex-col items-center">

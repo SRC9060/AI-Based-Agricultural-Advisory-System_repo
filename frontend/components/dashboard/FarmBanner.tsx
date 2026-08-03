@@ -5,6 +5,7 @@ import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { MessageSquare, Send, Star } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getCurrentUserId } from "@/lib/session";
 
 const categories = ["Suggestion", "Bug report", "Appreciation", "Other"];
 type FeedbackItem = { id: number; message: string; category: string; rating: number; created_at: string };
@@ -19,7 +20,7 @@ export default function FarmBanner() {
   const [history, setHistory] = useState<FeedbackItem[]>([]);
 
   const loadHistory = async () => {
-    const userId = localStorage.getItem("user_id");
+    const userId = getCurrentUserId();
     if (!userId) return;
     try {
       const response = await fetch(`${API_URL}/feedback/${userId}`);
@@ -39,7 +40,7 @@ export default function FarmBanner() {
       return;
     }
 
-    const userId = localStorage.getItem("user_id");
+    const userId = getCurrentUserId();
     if (!userId) {
       setStatus(t("Please log in first."));
       return;

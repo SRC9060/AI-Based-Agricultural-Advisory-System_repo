@@ -23,6 +23,7 @@ export default function GovernmentSchemes({
 
   const router = useRouter();
   const { t } = useTranslation();
+  const safeSchemes = Array.isArray(schemes) ? schemes : [];
 
   const icons = [
     {
@@ -39,7 +40,7 @@ export default function GovernmentSchemes({
     },
   ];
 
-  if (schemes.length === 0) {
+  if (safeSchemes.length === 0) {
     return (
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm p-5">
 
@@ -85,7 +86,7 @@ export default function GovernmentSchemes({
 
       <div className="space-y-3">
 
-        {schemes.map((scheme, index) => {
+        {safeSchemes.map((scheme, index) => {
 
           const iconData = icons[index % icons.length];
 

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { MessageSquare, Send, Star } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getCurrentUserId } from "@/lib/session";
 
 type Feedback = { id: number; message: string; category: string; rating: number; created_at: string };
 const categories = ["Suggestion", "Bug report", "Appreciation", "Other"];
@@ -19,7 +20,7 @@ export default function FeedbackPage() {
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const loadFeedback = () => {
-    const userId = localStorage.getItem("user_id");
+    const userId = getCurrentUserId();
     if (!userId) return;
     fetch(`${API_URL}/feedback/${userId}`)
       .then((response) => response.json())
@@ -29,7 +30,7 @@ export default function FeedbackPage() {
 
   async function submitFeedback() {
     if (message.trim().length < 3) { setStatus("Please write at least 3 characters."); return; }
-    const userId = localStorage.getItem("user_id");
+    const userId = getCurrentUserId();
     if (!userId) { setStatus("Please log in before submitting feedback."); return; }
     setSubmitting(true); setStatus("");
     try {

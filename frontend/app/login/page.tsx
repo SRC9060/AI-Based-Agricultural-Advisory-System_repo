@@ -2,9 +2,14 @@
 
 import { API_URL } from "@/lib/api";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sprout, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  getLoginRedirectPath,
+  getRememberedSession,
+  saveLoginSession,
+} from "@/lib/session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +18,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [checkingRememberedLogin, setCheckingRememberedLogin] = useState(true);
+
+  useEffect(() => {
+    const rememberedSession = getRememberedSession();
+
+    if (rememberedSession) {
+      router.replace(getLoginRedirectPath(rememberedSession));
+      return;
+    }
+
+    setCheckingRememberedLogin(false);
+  }, [router]);
 
   async function handleLogin() {
     try {
@@ -33,23 +51,26 @@ export default function LoginPage() {
       console.log(data);
 
       if (data.message === "Login Successful") {
-        localStorage.setItem("user_id", data.user.id);
-        localStorage.setItem("user_name", data.user.name);
-        localStorage.setItem("user_email", data.user.email);
-
         const statusResponse = await fetch(
           `${API_URL}/profile-status/${data.user.id}`
         );
 
         const statusData = await statusResponse.json();
+        const profileCompleted = Boolean(statusData.profile_completed);
+
+        saveLoginSession(
+          {
+            userId: data.user.id,
+            userName: data.user.name,
+            userEmail: data.user.email,
+            profileCompleted,
+          },
+          rememberMe
+        );
 
         console.log("Profile Status:", statusData);
 
-        if (statusData.profile_completed) {
-          router.push("/dashboard");
-        } else {
-          router.push("/profile");
-        }
+        router.push(profileCompleted ? "/dashboard" : "/profile");
       } else {
         alert(data.message);
       }
@@ -59,6 +80,10 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingRememberedLogin) {
+    return null;
   }
 
   return (
@@ -233,6 +258,23 @@ export default function LoginPage() {
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="remember"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 accent-emerald-600"
+            />
+
+            <label
+              htmlFor="remember"
+              className="text-sm text-slate-600 cursor-pointer"
+            >
+              Remember Me
+            </label>
           </div>
 
           {/* Login Button */}

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { MessageCircle, CloudSun, Landmark, Sprout, ArrowUpRight } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getCurrentUserId } from "@/lib/session";
 
 interface Activity {
   id: number;
@@ -73,7 +74,7 @@ export default function QueriesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userId = localStorage.getItem("user_id");
+    const userId = getCurrentUserId();
     if (!userId) return;
     fetch(`${API_URL}/recent-activity/${userId}?limit=100`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))

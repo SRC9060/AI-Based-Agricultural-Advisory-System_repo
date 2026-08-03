@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AgriAdvisor - Farmer Voice Assistant",
     short_name: "AgriAdvisor",
     description: "Voice-first crop, weather, market and scheme advice for farmers.",
-    start_url: "/chat",
+    start_url: "/dashboard",
     display: "standalone",
     background_color: "#f3fbef",
     theme_color: "#1f7a35",

@@ -123,9 +123,6 @@ export default function Sidebar() {
                       const code =
                         langMap[lang as keyof typeof langMap];
 
-                      console.log("Selected Language:", lang);
-                      console.log("Language Code:", code);
-
                       setSelectedLang(lang);
 
                       localStorage.setItem("language", code);

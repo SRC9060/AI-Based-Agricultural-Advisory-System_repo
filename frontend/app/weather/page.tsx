@@ -1,10 +1,12 @@
 "use client";
 
 import { API_URL } from "@/lib/api";
+import { saveCache, loadCache, isOffline } from "@/lib/offlineCache";
 
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { useRequireSession } from "@/lib/session";
 
 type WeatherData = {
   city: string;
@@ -23,12 +25,14 @@ type ForecastItem = {
 };
 
 type ForecastData = {
+  detail: string;
   city: string;
   forecast: ForecastItem[];
 };
 
 export default function WeatherPage() {
   const { t } = useTranslation();
+  const { checkingSession } = useRequireSession();
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastItem[]>([]);
@@ -40,54 +44,101 @@ export default function WeatherPage() {
   // ==========================================
 
   async function fetchWeather() {
-    if (!city.trim()) {
-      setError("Please enter a city name.");
-      return;
-    }
+  const normalizedCity = city.trim().toLowerCase();
 
-    try {
-      setLoading(true);
-      setError("");
-      setWeather(null);
-      setForecast([]);
-
-      const encodedCity = encodeURIComponent(city);
-
-      // Call both backend APIs together
-      const [weatherResponse, forecastResponse] = await Promise.all([
-        fetch(`${API_URL}/weather?city=${encodedCity}`),
-        fetch(`${API_URL}/weather/forecast?city=${encodedCity}`),
-      ]);
-
-      const weatherData = await weatherResponse.json();
-      const forecastData: ForecastData = await forecastResponse.json();
-
-      if (!weatherResponse.ok) {
-        throw new Error(
-          weatherData.detail || "Unable to fetch current weather."
-        );
-      }
-
-      if (!forecastResponse.ok) {
-        throw new Error(
-          (forecastData as any).detail || "Unable to fetch weather forecast."
-        );
-      }
-
-      setWeather(weatherData);
-      setForecast(forecastData.forecast || []);
-    } catch (err) {
-      console.error(err);
-
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Unable to connect to weather service.");
-      }
-    } finally {
-      setLoading(false);
-    }
+  if (!normalizedCity) {
+    setError("Please enter a city name.");
+    return;
   }
+
+  const weatherKey = `weather_${normalizedCity}`;
+  const forecastKey = `forecast_${normalizedCity}`;
+
+  setWeather(null);
+  setForecast([]);
+
+  const loadCachedWeather = () => {
+    const cachedWeather = loadCache<WeatherData>(weatherKey);
+    const cachedForecast = loadCache<ForecastItem[]>(forecastKey);
+
+    if (!cachedWeather || !cachedForecast) {
+      setError("No cached weather available.");
+      return false;
+    }
+
+    setWeather(cachedWeather.data);
+    setForecast(cachedForecast.data);
+    setError(
+      `📡 Offline Mode\nShowing cached weather\nLast updated: ${new Date(
+        cachedWeather.timestamp
+      ).toLocaleString()}`
+    );
+    return true;
+  };
+
+  if (isOffline()) {
+    setError("");
+    loadCachedWeather();
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError("");
+
+    const encodedCity = encodeURIComponent(city.trim());
+
+    const [weatherResponse, forecastResponse] = await Promise.all([
+      fetch(`${API_URL}/weather?city=${encodedCity}`),
+      fetch(`${API_URL}/weather/forecast?city=${encodedCity}`),
+    ]);
+
+    const weatherData = await weatherResponse.json();
+    const forecastData = await forecastResponse.json();
+
+    if (!weatherResponse.ok) {
+      throw new Error(
+        weatherData.detail || weatherData.error || "Unable to fetch weather."
+      );
+    }
+
+    if (!forecastResponse.ok) {
+      throw new Error(
+        forecastData.detail ||
+          forecastData.error ||
+          "Unable to fetch forecast."
+      );
+    }
+
+    // ------------------------
+    // LIVE DATA
+    // ------------------------
+
+    setWeather(weatherData);
+    setForecast(forecastData.forecast || []);
+
+    console.log("Saving Weather:", weatherData);
+console.log("Saving Forecast:", forecastData);
+
+    saveCache(weatherKey, weatherData);
+    saveCache(forecastKey, forecastData.forecast || []);
+
+  } catch (err) {
+
+    console.log("Weather API failed. Trying cache...");
+
+    if (!loadCachedWeather()) {
+      if (isOffline()) {
+        setError("No cached weather available.");
+      } else if (err instanceof Error) {
+        setError(err.message);
+      }
+    }
+
+  } finally {
+    setLoading(false);
+  }
+}
 
   // ==========================================
   // WEATHER ICON
@@ -160,6 +211,8 @@ export default function WeatherPage() {
 
     return `Weather conditions in ${weather.city} currently appear suitable for normal farming activities. Continue monitoring the forecast before irrigation, spraying or harvesting.`;
   }
+
+  if (checkingSession) return null;
 
   return (
   <DashboardLayout>

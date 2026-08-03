@@ -5,14 +5,50 @@ import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { loadCache, saveCache } from "@/lib/offlineCache";
+import { useRequireSession } from "@/lib/session";
+
+interface SchemeItem {
+  title?: string;
+}
+
+interface SchemeResponse {
+  count?: number;
+  schemes?: SchemeItem[];
+}
+
+function isSchemeResponse(value: unknown): value is SchemeResponse {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const response = value as SchemeResponse;
+  return (
+    typeof response.count === "number" &&
+    response.count > 0 &&
+    Array.isArray(response.schemes) &&
+    response.schemes.length > 0 &&
+    response.schemes.every((scheme) => Boolean(scheme && typeof scheme.title === "string" && scheme.title.trim()))
+  );
+}
+
+function formatSchemes(response: SchemeResponse) {
+  return response.schemes
+    ?.map((scheme) => scheme.title)
+    .filter((title): title is string => Boolean(title && title.trim()))
+    .join("\n");
+}
 
 export default function SchemesPage() {
   const { t } = useTranslation();
+  const { session, checkingSession } = useRequireSession();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [cached, setCached] = useState(false);
+  const [cachedTimestamp, setCachedTimestamp] = useState<string>();
   const quickQuestions = [
     {
       icon: "💰",
@@ -47,7 +83,8 @@ export default function SchemesPage() {
 
   useEffect(() => {
     async function createSession() {
-      const userId = localStorage.getItem("user_id") || "guest";
+      if (!session) return;
+      const userId = session.userId;
       try {
         const response = await fetch(
           `${API_URL}/chat/session?user_id=` + userId,
@@ -64,8 +101,61 @@ export default function SchemesPage() {
         console.error(err);
       }
     }
-    createSession();
-  }, []);
+
+    async function loadSchemes() {
+      if (!session) return;
+      const userId = session.userId;
+
+      const cacheKey = `schemes_${userId}`;
+
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_URL}/schemes/${userId}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to Retrieve Government Schemes");
+        }
+
+        const data: unknown = await response.json();
+        if (!isSchemeResponse(data)) {
+          throw new Error("Invalid Government Schemes Response");
+        }
+
+        const formattedResponse = formatSchemes(data);
+        if (!formattedResponse) {
+          throw new Error("Invalid Government Schemes Response");
+        }
+
+        setResponse(formattedResponse);
+        setError("");
+        setCached(false);
+        setCachedTimestamp(undefined);
+        saveCache(cacheKey, data);
+      } catch (err) {
+        console.error(err);
+
+        const cachedSchemes = loadCache<SchemeResponse>(cacheKey);
+        if (cachedSchemes && isSchemeResponse(cachedSchemes.data)) {
+          const formattedResponse = formatSchemes(cachedSchemes.data);
+          if (formattedResponse) {
+            setResponse(formattedResponse);
+            setError("");
+            setCached(true);
+            setCachedTimestamp(cachedSchemes.timestamp);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (!checkingSession) {
+      createSession();
+      loadSchemes();
+    }
+  }, [checkingSession, session]);
 
   async function searchScheme(customQuery?: string) {
     if (!sessionId) {
@@ -81,7 +171,8 @@ export default function SchemesPage() {
       setLoading(true);
       setError("");
       setResponse("");
-      const userId = localStorage.getItem("user_id");
+      if (!session) return;
+      const userId = session.userId;
       const response = await fetch(`${API_URL}/chat`, {
         method: "POST",
         headers: {
@@ -117,6 +208,8 @@ export default function SchemesPage() {
     searchScheme(question);
   }
 
+  if (checkingSession) return null;
+
   return (
     <DashboardLayout>
       {/* Header */}
@@ -132,6 +225,13 @@ export default function SchemesPage() {
           )}
         </p>
       </div>
+
+      {cached && cachedTimestamp && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <p>📡 Showing Cached Government Schemes</p>
+          <p className="text-gray-500">Last Updated: {new Date(cachedTimestamp).toLocaleString()}</p>
+        </div>
+      )}
 
       {/* Search Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">

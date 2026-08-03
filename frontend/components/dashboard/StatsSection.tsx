@@ -46,21 +46,6 @@ export default function StatsSection({
     crop: "No market data available",
   });
 
-  const [activityQueryCount, setActivityQueryCount] = useState<number | null>(null);
-  const savedQueryCount = activityQueryCount ?? queryCount;
-
-  useEffect(() => {
-    const userId = localStorage.getItem("user_id");
-    if (!userId) return;
-
-    fetch(`${API_URL}/recent-activity/${userId}?limit=1`)
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => setActivityQueryCount(data.count || 0))
-      .catch(() => {
-        // Retain the dashboard value if the activity service is temporarily unavailable.
-      });
-  }, []);
-
   // ---------------- WEATHER ----------------
 
   useEffect(() => {
@@ -222,7 +207,7 @@ export default function StatsSection({
 
       <StatCard
         title={t("My Queries")}
-        value={savedQueryCount.toString()}
+        value={queryCount.toString()}
         details={[t("Total Queries")]}
         icon={<MessageSquare size={16} />}
         color="bg-orange-500"

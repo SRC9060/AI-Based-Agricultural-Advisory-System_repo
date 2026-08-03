@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import "@/app/globals.css";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
+import { useRequireSession } from "@/lib/session";
 import "./chat.css";
 
 interface Message {
@@ -21,6 +22,7 @@ interface Message {
 
 function ChatContent() {
   const { language, t } = useTranslation();
+  const { session, checkingSession } = useRequireSession();
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -89,7 +91,8 @@ useEffect(() => {
 
   useEffect(() => {
     async function createSession() {
-      const userId = localStorage.getItem("user_id") || "guest";
+      if (!session) return;
+      const userId = session.userId;
       try {
         const response = await fetch(
           `${API_URL}/chat/session?user_id=` + userId,
@@ -106,8 +109,10 @@ useEffect(() => {
         console.error(err);
       }
     }
-    createSession();
-  }, []);
+    if (!checkingSession) {
+      createSession();
+    }
+  }, [checkingSession, session]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -120,6 +125,9 @@ useEffect(() => {
     async (customQuestion?: string) => {
       if (!isOnline) {
         setStatus("Offline — reconnect to ask new questions.");
+        return;
+      }
+      if (!session) {
         return;
       }
       if (!sessionId) {
@@ -146,7 +154,6 @@ useEffect(() => {
         setStatus("🧠 AI is analysing your question...");
         const selectedLanguage = localStorage.getItem("language") || "en";
         console.log("Sending Language:", selectedLanguage);
-        const userId = localStorage.getItem("user_id");
         const response = await fetch(`${API_URL}/chat`, {
           method: "POST",
           headers: {
@@ -154,7 +161,7 @@ useEffect(() => {
           },
           body: JSON.stringify({
             session_id: String(sessionId),
-            user_id: String(userId),
+            user_id: session.userId,
             message: currentQuestion,
             language: selectedLanguage,
           }),
@@ -203,7 +210,7 @@ useEffect(() => {
         setLoading(false);
       }
     },
-    [isOnline, question, sessionId],
+    [isOnline, question, session, sessionId],
   );
 
   useEffect(() => {
@@ -232,14 +239,13 @@ useEffect(() => {
 
   async function rateResponse(index: number, helpful: boolean) {
     const message = messages[index];
-    const userId = localStorage.getItem("user_id");
-    if (!message.id || !userId) return;
+    if (!message.id || !session) return;
     try {
       const response = await fetch(`${API_URL}/chat/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: Number(userId),
+          user_id: Number(session.userId),
           message_id: message.id,
           helpful,
         }),
@@ -565,6 +571,8 @@ async function speakAnswer(text: string) {
     playBrowserTTS();
   }
 }
+
+  if (checkingSession) return null;
 
   return (
     <DashboardLayout>
