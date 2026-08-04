@@ -10,9 +10,9 @@ import {
   Landmark,
   TrendingUp,
   Mic,
-  Languages,
 } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { getVoiceLanguageCode } from "@/lib/voiceLanguages";
 
 
 const suggestions = [
@@ -39,6 +39,8 @@ export default function AIAssistantCard() {
   const { t } = useTranslation();
 
   const [question, setQuestion] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
 
   function goToChat(customQuestion?: string) {
     const query = customQuestion ?? question;
@@ -46,6 +48,77 @@ export default function AIAssistantCard() {
     if (!query.trim()) return;
 
     router.push(`/chat?q=${encodeURIComponent(query)}`);
+  }
+
+  function startVoiceInput() {
+    type RecognitionResultEvent = {
+      results: {
+        [index: number]: {
+          [index: number]: { transcript: string };
+        };
+      };
+    };
+    type RecognitionErrorEvent = { error: string };
+    type Recognition = {
+      continuous: boolean;
+      interimResults: boolean;
+      lang: string;
+      onstart: (() => void) | null;
+      onresult: ((event: RecognitionResultEvent) => void) | null;
+      onerror: ((event: RecognitionErrorEvent) => void) | null;
+      onend: (() => void) | null;
+      start: () => void;
+    };
+
+    const speechWindow = window as typeof window & {
+      SpeechRecognition?: new () => Recognition;
+      webkitSpeechRecognition?: new () => Recognition;
+    };
+    const RecognitionConstructor =
+      speechWindow.SpeechRecognition ||
+      speechWindow.webkitSpeechRecognition;
+
+    if (!RecognitionConstructor) {
+      setVoiceStatus(
+        "Voice input requires the latest Chrome or Edge browser.",
+      );
+      return;
+    }
+
+    const selectedLanguage =
+      localStorage.getItem("language") || "en";
+    const languageCode =
+      getVoiceLanguageCode(selectedLanguage);
+    const recognition = new RecognitionConstructor();
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = languageCode;
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceStatus(`Listening in ${languageCode}...`);
+    };
+    recognition.onresult = (event: RecognitionResultEvent) => {
+      const transcript =
+        event.results[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        setQuestion(transcript);
+        setVoiceStatus(`Voice recognized in ${languageCode}.`);
+      } else {
+        setVoiceStatus("No speech detected. Please try again.");
+      }
+    };
+    recognition.onerror = (event: RecognitionErrorEvent) => {
+      setVoiceStatus(
+        event.error === "not-allowed"
+          ? "Microphone permission denied."
+          : `Voice recognition failed (${event.error}).`,
+      );
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    recognition.start();
   }
 
   return (
@@ -92,8 +165,33 @@ export default function AIAssistantCard() {
           />
 
           <button
+            type="button"
+            onClick={startVoiceInput}
+            disabled={isListening}
+            aria-label={
+              isListening
+                ? "Listening to voice question"
+                : "Ask using your voice"
+            }
+            title={
+              isListening
+                ? "Listening..."
+                : "Speak your question"
+            }
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition ${
+              isListening
+                ? "border-red-300 bg-red-50 text-red-600"
+                : "border-green-200 bg-white text-green-700 hover:bg-green-50"
+            }`}
+          >
+            <Mic size={19} />
+          </button>
+
+          <button
+            type="button"
             onClick={() => goToChat()}
             className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-green-700 text-white transition hover:bg-green-800"
+            aria-label="Send question to AI Assistant"
           >
             <Send size={18} />
           </button>
@@ -103,6 +201,15 @@ export default function AIAssistantCard() {
 
       </div>
 
+      {voiceStatus && (
+        <p
+          className="mt-2 text-sm text-slate-500"
+          role="status"
+          aria-live="polite"
+        >
+          {voiceStatus}
+        </p>
+      )}
 
   
 
@@ -142,38 +249,6 @@ export default function AIAssistantCard() {
             );
 
           })}
-
-        </div>
-
-      </div>
-
-      {/* Footer */}
-
-      <div className="mt-auto pt-5 border-t border-slate-200">
-
-        <div className="flex flex-wrap items-center justify-between gap-3 text-base text-slate-600">
-
-          <div className="flex items-center gap-2">
-
-            <Mic
-              size={16}
-              className="text-green-600"
-            />
-
-            <span>{t("Voice Enabled")}</span>
-
-          </div>
-
-          <div className="flex items-center gap-2">
-
-            <Languages
-              size={16}
-              className="text-green-600"
-            />
-
-            <span>{t("8 Languages")}</span>
-
-          </div>
 
         </div>
 

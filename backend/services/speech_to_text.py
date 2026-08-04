@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import requests
-import whisper
 from dotenv import load_dotenv
 
 

@@ -1,52 +1,31 @@
 // @ts-nocheck
 "use client";
 
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useChangeLanguage } from "next-i18next/client";
+import { coreTranslations } from "@/lib/coreTranslations";
+import { fixTranslations } from "@/lib/fixTranslations";
+import { LanguageCode, normalizeLanguage } from "@/lib/languages";
 
-type LanguageCode = "en" | "hi" | "te" | "kn" | "ta" | "ml" | "mr" | "gu";
-
-const labels: Record<LanguageCode, Record<string, string>> = {
+const extraLabels: Record<LanguageCode, Record<string, string>> = {
   en: {},
+  hi: {},
+  kn: {},
+  te: {},
   ta: {},
   ml: {},
   mr: {},
   gu: {},
-  hi: {
-    Dashboard: "डैशबोर्ड", Weather: "मौसम", Market: "बाज़ार", Schemes: "योजनाएं", "AI Assistant": "एआई सहायक",
-    Profile: "प्रोफ़ाइल", Feedback: "प्रतिक्रिया", Notifications: "सूचनाएं", "Mark all as read": "सभी को पढ़ा हुआ चिह्नित करें",
-    "Weather Today": "आज का मौसम", "Market Price (Today)": "आज का बाज़ार भाव", "My Queries": "मेरे प्रश्न", "Schemes for You": "आपके लिए योजनाएं",
-    "View full forecast": "पूरा पूर्वानुमान देखें", "View all prices": "सभी भाव देखें", "View schemes": "योजनाएं देखें", "Open AI Assistant": "एआई सहायक खोलें",
-    "Add your location in Profile": "प्रोफ़ाइल में अपना स्थान जोड़ें", "Share your experience": "अपना अनुभव साझा करें", "Feedback type": "प्रतिक्रिया प्रकार", "Your feedback": "आपकी प्रतिक्रिया", "Submit feedback": "प्रतिक्रिया भेजें", "Your feedback history": "आपकी प्रतिक्रिया का इतिहास",
-    "Ask any question about crops, diseases, schemes, weather and more...": "फसलों, रोगों, योजनाओं, मौसम और अधिक के बारे में कोई भी प्रश्न पूछें...", "Type your question here...": "अपना प्रश्न यहां लिखें...", "Try asking:": "पूछकर देखें:", "Crop Doctor": "फसल डॉक्टर", "Market Prices": "बाज़ार भाव", "Weather Update": "मौसम अपडेट", "Quick Access": "त्वरित पहुँच",
-    "Government Schemes for You": "आपके लिए सरकारी योजनाएं", "Recent Activity": "हाल की गतिविधि", "View All": "सभी देखें", "Eligible": "पात्र", "Crop insurance scheme for farmers": "किसानों के लिए फसल बीमा योजना", "Get easy credit for your farming needs": "खेती की जरूरतों के लिए आसान ऋण", "Free soil testing and health report": "निःशुल्क मिट्टी परीक्षण और स्वास्थ्य रिपोर्ट",
-    "You asked about Paddy cultivation": "आपने धान की खेती के बारे में पूछा", "Weather update checked": "मौसम अपडेट देखा", "Soil health report viewed": "मिट्टी स्वास्थ्य रिपोर्ट देखी", "Checked PMFBY scheme": "PMFBY योजना देखी",
-  },
-  te: {
-    Dashboard: "డాష్‌బోర్డ్", Weather: "వాతావరణం", Market: "మార్కెట్", Schemes: "పథకాలు", "AI Assistant": "ఏఐ సహాయకుడు",
-    Profile: "ప్రొఫైల్", Feedback: "అభిప్రాయం", Notifications: "నోటిఫికేషన్లు", "Mark all as read": "అన్నీ చదివినవిగా గుర్తించు",
-    "Weather Today": "నేటి వాతావరణం", "Market Price (Today)": "నేటి మార్కెట్ ధర", "My Queries": "నా ప్రశ్నలు", "Schemes for You": "మీ కోసం పథకాలు",
-    "View full forecast": "పూర్తి అంచనా చూడండి", "View all prices": "అన్ని ధరలు చూడండి", "View schemes": "పథకాలు చూడండి", "Open AI Assistant": "ఏఐ సహాయకుడిని తెరవండి",
-    "Add your location in Profile": "ప్రొఫైల్‌లో మీ స్థలాన్ని జోడించండి", "Share your experience": "మీ అనుభవాన్ని పంచుకోండి", "Feedback type": "అభిప్రాయ రకం", "Your feedback": "మీ అభిప్రాయం", "Submit feedback": "అభిప్రాయం పంపండి", "Your feedback history": "మీ అభిప్రాయ చరిత్ర",
-    "Ask any question about crops, diseases, schemes, weather and more...": "పంటలు, వ్యాధులు, పథకాలు, వాతావరణం మరియు మరిన్నింటి గురించి ప్రశ్న అడగండి...", "Type your question here...": "మీ ప్రశ్నను ఇక్కడ టైప్ చేయండి...", "Try asking:": "అడిగి చూడండి:", "Crop Doctor": "పంట వైద్యుడు", "Market Prices": "మార్కెట్ ధరలు", "Weather Update": "వాతావరణ సమాచారం", "Quick Access": "త్వరిత ప్రాప్యత",
-    "Government Schemes for You": "మీ కోసం ప్రభుత్వ పథకాలు", "Recent Activity": "ఇటీవలి కార్యకలాపం", "View All": "అన్నీ చూడండి", "Eligible": "అర్హులు", "Crop insurance scheme for farmers": "రైతుల కోసం పంట బీమా పథకం", "Get easy credit for your farming needs": "వ్యవసాయ అవసరాలకు సులభ రుణం", "Free soil testing and health report": "ఉచిత నేల పరీక్ష మరియు ఆరోగ్య నివేదిక",
-    "You asked about Paddy cultivation": "మీరు వరి సాగు గురించి అడిగారు", "Weather update checked": "వాతావరణ సమాచారాన్ని చూశారు", "Soil health report viewed": "నేల ఆరోగ్య నివేదికను చూశారు", "Checked PMFBY scheme": "PMFBY పథకాన్ని చూశారు",
-  },
-  kn: {
-    Dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", Weather: "ಹವಾಮಾನ", Market: "ಮಾರುಕಟ್ಟೆ", Schemes: "ಯೋಜನೆಗಳು", "AI Assistant": "ಎಐ ಸಹಾಯಕ",
-    Profile: "ಪ್ರೊಫೈಲ್", Feedback: "ಪ್ರತಿಕ್ರಿಯೆ", Notifications: "ಅಧಿಸೂಚನೆಗಳು", "Mark all as read": "ಎಲ್ಲವನ್ನೂ ಓದಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ",
-    "Weather Today": "ಇಂದಿನ ಹವಾಮಾನ", "Market Price (Today)": "ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ಬೆಲೆ", "My Queries": "ನನ್ನ ಪ್ರಶ್ನೆಗಳು", "Schemes for You": "ನಿಮಗಾಗಿ ಯೋಜನೆಗಳು",
-    "View full forecast": "ಸಂಪೂರ್ಣ ಮುನ್ಸೂಚನೆ ನೋಡಿ", "View all prices": "ಎಲ್ಲಾ ಬೆಲೆಗಳನ್ನು ನೋಡಿ", "View schemes": "ಯೋಜನೆಗಳನ್ನು ನೋಡಿ", "Open AI Assistant": "ಎಐ ಸಹಾಯಕವನ್ನು ತೆರೆಯಿರಿ",
-    "Add your location in Profile": "ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಸೇರಿಸಿ", "Share your experience": "ನಿಮ್ಮ ಅನುಭವವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ", "Feedback type": "ಪ್ರತಿಕ್ರಿಯೆ ಪ್ರಕಾರ", "Your feedback": "ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ", "Submit feedback": "ಪ್ರತಿಕ್ರಿಯೆ ಕಳುಹಿಸಿ", "Your feedback history": "ನಿಮ್ಮ ಪ್ರತಿಕ್ರಿಯೆ ಇತಿಹಾಸ",
-    "Ask any question about crops, diseases, schemes, weather and more...": "ಬೆಳೆಗಳು, ರೋಗಗಳು, ಯೋಜನೆಗಳು, ಹವಾಮಾನ ಮತ್ತು ಇನ್ನಷ್ಟು ಕುರಿತು ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳಿ...", "Type your question here...": "ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಇಲ್ಲಿ ಬರೆಯಿರಿ...", "Try asking:": "ಕೇಳಲು ಪ್ರಯತ್ನಿಸಿ:", "Crop Doctor": "ಬೆಳೆ ವೈದ್ಯ", "Market Prices": "ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು", "Weather Update": "ಹವಾಮಾನ ಮಾಹಿತಿ", "Quick Access": "ತ್ವರಿತ ಪ್ರವೇಶ",
-    "Government Schemes for You": "ನಿಮಗಾಗಿ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು", "Recent Activity": "ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ", "View All": "ಎಲ್ಲಾ ನೋಡಿ", "Eligible": "ಅರ್ಹ", "Crop insurance scheme for farmers": "ರೈತರಿಗಾಗಿ ಬೆಳೆ ವಿಮಾ ಯೋಜನೆ", "Get easy credit for your farming needs": "ನಿಮ್ಮ ಕೃಷಿ ಅಗತ್ಯಗಳಿಗೆ ಸುಲಭ ಸಾಲ ಪಡೆಯಿರಿ", "Free soil testing and health report": "ಉಚಿತ ಮಣ್ಣಿನ ಪರೀಕ್ಷೆ ಮತ್ತು ಆರೋಗ್ಯ ವರದಿ",
-    "You asked about Paddy cultivation": "ನೀವು ಭತ್ತದ ಕೃಷಿಯ ಬಗ್ಗೆ ಕೇಳಿದ್ದೀರಿ", "Weather update checked": "ಹವಾಮಾನ ಮಾಹಿತಿ ಪರಿಶೀಲಿಸಲಾಗಿದೆ", "Soil health report viewed": "ಮಣ್ಣಿನ ಆರೋಗ್ಯ ವರದಿ ವೀಕ್ಷಿಸಲಾಗಿದೆ", "Checked PMFBY scheme": "PMFBY ಯೋಜನೆ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
-  },
 };
 
-// Kept separate from the first group so new screens can use the same `t()`
-// function without duplicating language-selection logic.
-const extraLabels: Record<LanguageCode, Record<string, string>> = {
+const labels: Record<LanguageCode, Record<string, string>> = {
   en: {},
   ta: {},
   ml: {},
@@ -183,7 +162,17 @@ const addedLanguageExtraLabels: Partial<Record<LanguageCode, Record<string, stri
   },
 };
 
-const LanguageContext = createContext({ language: "en" as LanguageCode, t: (text: string) => text });
+type LanguageContextValue = {
+  language: LanguageCode;
+  setLanguage: (language: LanguageCode) => void;
+  t: (text: string) => string;
+};
+
+const LanguageContext = createContext<LanguageContextValue>({
+  language: "en" as LanguageCode,
+  setLanguage: () => undefined,
+  t: (text: string) => text,
+});
 
 // Dashboard-only labels added after the initial translation pass. Keeping them
 // together makes it much harder for a newly added dashboard card to show a mix
@@ -212,17 +201,62 @@ const dashboardFeedbackLabels: Partial<Record<LanguageCode, Record<string, strin
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const changeLanguage = useChangeLanguage();
   const [language, setLanguage] = useState<LanguageCode>("en");
+
+  const applyLanguage = useCallback(
+    (value: string | null | undefined) => {
+      const nextLanguage = normalizeLanguage(value);
+      setLanguage(nextLanguage);
+      changeLanguage(
+        ["en", "hi", "kn"].includes(nextLanguage) ? nextLanguage : "en",
+      );
+      document.documentElement.lang = nextLanguage;
+    },
+    [changeLanguage],
+  );
+
+  const persistLanguage = useCallback(
+    (nextLanguage: LanguageCode) => {
+      localStorage.setItem("language", nextLanguage);
+      applyLanguage(nextLanguage);
+      window.dispatchEvent(new Event("languagechange"));
+    },
+    [applyLanguage],
+  );
+
   useEffect(() => {
     const sync = () => {
-      const stored = localStorage.getItem("language") as LanguageCode | null;
-      const nextLanguage = stored && labels[stored] ? stored : "en";
-      setLanguage(nextLanguage);
-      changeLanguage(["en", "hi", "kn"].includes(nextLanguage) ? nextLanguage : "en");
+      applyLanguage(localStorage.getItem("language"));
     };
-    sync(); window.addEventListener("languagechange", sync);
-    return () => window.removeEventListener("languagechange", sync);
-  }, [changeLanguage]);
-  return <LanguageContext.Provider value={{ language, t: (text) => dashboardFeedbackLabels[language]?.[text] || addedLanguageExtraLabels[language]?.[text] || addedLanguageLabels[language]?.[text] || profileLabels[language]?.[text] || reviewedUiLabels[language]?.[text] || extraLabels[language][text] || labels[language][text] || text }}>{children}</LanguageContext.Provider>;
+    sync();
+    window.addEventListener("languagechange", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("languagechange", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [applyLanguage]);
+
+  return (
+    <LanguageContext.Provider
+      value={{
+        language,
+        setLanguage: persistLanguage,
+        t: (text) =>
+          fixTranslations?.[language]?.[text] ||
+          coreTranslations?.[language]?.[text] ||
+          dashboardFeedbackLabels?.[language]?.[text] ||
+          addedLanguageExtraLabels?.[language]?.[text] ||
+          addedLanguageLabels?.[language]?.[text] ||
+          profileLabels?.[language]?.[text] ||
+          reviewedUiLabels?.[language]?.[text] ||
+          extraLabels?.[language]?.[text] ||
+          labels?.[language]?.[text] ||
+          text,
+      }}
+    >
+      {children}
+    </LanguageContext.Provider>
+  );
 }
 
 export const useTranslation = () => useContext(LanguageContext);

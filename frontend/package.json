@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "postbuild": "node scripts/copy-standalone-assets.mjs",
-    "start": "next start",
+    "postbuild": "node scripts/prepare-standalone.mjs",
+    "start": "node .next/standalone/frontend/server.js",
     "lint": "eslint"
   },
   "dependencies": {

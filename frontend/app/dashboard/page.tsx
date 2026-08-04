@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState, useCallback } from "react";
 
@@ -121,9 +121,9 @@ export default function DashboardPage() {
       const userId = session.userId;
 
       const [profileResponse, schemeResponse, activityResponse] = await Promise.all([
-        fetch(`${API_URL}/profile/${userId}`, { cache: "no-store" }),
-        fetch(`${API_URL}/schemes/${userId}`, { cache: "no-store" }),
-        fetch(`${API_URL}/recent-activity/${userId}?limit=4`, { cache: "no-store" }),
+        apiFetch(`${API_URL}/profile/${userId}`, { cache: "no-store" }),
+        apiFetch(`${API_URL}/schemes/${userId}`, { cache: "no-store" }),
+        apiFetch(`${API_URL}/recent-activity/${userId}?limit=4`, { cache: "no-store" }),
       ]);
 
       if (!profileResponse.ok || !schemeResponse.ok || !activityResponse.ok) {
@@ -136,20 +136,20 @@ export default function DashboardPage() {
         activityResponse.json(),
       ]);
 
-      if (
-        !isProfile(profileData) ||
-        !isRecord(schemeData) ||
-        schemeData.available === false ||
-        !Array.isArray(schemeData.schemes) ||
-        !schemeData.schemes.every(isScheme) ||
-        typeof schemeData.count !== "number" ||
-        !isRecord(activityData) ||
-        !Array.isArray(activityData.activities) ||
-        !activityData.activities.every(isChatActivity) ||
-        typeof activityData.count !== "number"
-      ) {
-        throw new Error("Invalid dashboard response.");
-      }
+if (
+  !isProfile(profileData) ||
+  !isRecord(schemeData) ||
+  schemeData.available === false ||
+  !Array.isArray(schemeData.schemes) ||
+  !schemeData.schemes.every(isScheme) ||
+  typeof schemeData.count !== "number" ||
+  !isRecord(activityData) ||
+  !Array.isArray(activityData.activities) ||
+  !activityData.activities.every(isChatActivity) ||
+  typeof activityData.count !== "number"
+) {
+  throw new Error("Invalid dashboard response.");
+}
 
       const dashboardData: DashboardData = {
         profile: profileData,
@@ -159,8 +159,11 @@ export default function DashboardPage() {
         activities: activityData.activities,
       };
 
-      setDashboardData(dashboardData, { cached: false });
-      saveCache(DASHBOARD_CACHE_KEY, dashboardData);
+setDashboardData(dashboardData, {
+  cached: false,
+});
+
+saveCache(DASHBOARD_CACHE_KEY, dashboardData);
 
     } catch (err) {
 

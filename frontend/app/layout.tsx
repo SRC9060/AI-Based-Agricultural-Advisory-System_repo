@@ -4,6 +4,7 @@ import { I18nProvider } from "next-i18next/client";
 import { getResources, getT, initServerI18next } from "next-i18next/server";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import OfflineBanner from "@/components/OfflineBanner";
+import SessionGuard from "@/components/SessionGuard";
 import i18nConfig from "../i18n.config";
 import "./globals.css";
 
@@ -41,7 +42,7 @@ export default async function RootLayout({
           <I18nProvider language={lng} resources={resources}>
             <LanguageProvider>
               <OfflineBanner />
-              {children}
+              <SessionGuard>{children}</SessionGuard>
             </LanguageProvider>
           </I18nProvider>
         </body>

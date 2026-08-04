@@ -4,7 +4,14 @@ __pycache__/
 venv/
 .venv/
 venv311/
+venv*/
+backend/venv*/
+backend/.runtime/
 .env
+lighthouse-*.report.json
+lighthouse-*.report.html
+frontend/lighthouse-mobile-report.html
+frontend/public/fallback-*.js
 output_audio/
 chroma_db/
 backend/chroma_db_corrupt_*/

@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import {
@@ -63,7 +63,7 @@ export default function StatsSection({
 
       try {
 
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/weather?city=${encodeURIComponent(weatherLocation)}`
         );
 
@@ -122,7 +122,7 @@ export default function StatsSection({
 
       try {
 
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/market-price`,
           {
             method: "POST",
@@ -195,7 +195,7 @@ export default function StatsSection({
 
       <StatCard
         title={t("Market Price (Today)")}
-        value={`₹${market.price}`}
+        value={market.price === "--" ? "--" : `₹${market.price}`}
         valueSuffix="/ quintal"
         details={[t(market.crop)]}
         icon={<TrendingUp size={16} />}

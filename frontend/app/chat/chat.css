@@ -221,14 +221,39 @@
    INPUT
 ========================================== */
 
-.chat-input-container {
+.voice-first-controls {
   position: sticky;
   bottom: 0;
   width: 100%;
-
   max-width: 900px;
-
   margin: 0 auto;
+  z-index: 20;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+
+.text-fallback-label {
+  display: flex;
+  width: min(100%, 900px);
+  align-items: center;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.text-fallback-label::before,
+.text-fallback-label::after {
+  height: 1px;
+  flex: 1;
+  content: "";
+  background: #dbe7dc;
+}
+
+.chat-input-container {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
 
   background: white;
 
@@ -244,8 +269,6 @@
   align-items: center;
 
   gap: 8px;
-
-  z-index: 20;
 
   box-shadow:
     0 5px 18px rgba(0, 0, 0, 0.08);
@@ -278,29 +301,44 @@
 /* Voice */
 
 .voice-btn {
-  width: 64px;
-  height: 64px;
-
-  border: none;
-
-  border-radius: 50%;
-
-  background: #e8f5e9;
+  min-width: 176px;
+  min-height: 72px;
+  border: 2px solid #d6f3df;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #059447, #1f7a35);
+  color: #ffffff;
 
   cursor: pointer;
 
-  font-size: 28px;
-  flex: 0 0 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 750;
+  box-shadow:
+    0 10px 25px rgba(5, 148, 71, 0.24),
+    0 0 0 6px rgba(5, 148, 71, 0.08);
 
-  transition: 0.3s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s;
 }
 
 .voice-btn:hover {
-  background: #c8e6c9;
+  border-color: #8ee0a8;
+  background: linear-gradient(135deg, #047f3d, #17642b);
+  color: #ffffff;
+  transform: scale(1.04);
 }
 
 .voice-btn.recording {
-  background: #ef5350;
+  border-color: #ef5350;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #ffffff;
 
   animation:
     recordingPulse 1s infinite;
@@ -398,9 +436,7 @@
   }
 
   .voice-btn {
-    width: 76px;
-    height: 76px;
-    flex-basis: 76px;
-    font-size: 34px;
+    min-width: 164px;
+    min-height: 68px;
   }
 }

@@ -8,8 +8,16 @@ const nextConfig = {
 const withPWA = withPWAInit({
   dest: "public",
   register: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
+
+  reloadOnOnline: true,
+
+  fallbacks: {
+    document: "/offline",
+  },
+
   disable: process.env.NODE_ENV === "development",
 });
 

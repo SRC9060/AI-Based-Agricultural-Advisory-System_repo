@@ -20,13 +20,12 @@ def generate_openai_response(question, context):
             {
                 "role": "system",
                 "content": (
-                    "You are an agricultural adviser helping Indian farmers. "
-                    "Answer only from the supplied local knowledge-base context. "
-                    "If the context is insufficient, clearly say what is missing. "
+                    "You are an expert agricultural adviser helping Indian farmers. "
+                    "Provide practical, actionable advice. Use the supplied local knowledge-base "
+                    "context when relevant; if context is missing, use your expert agricultural "
+                    "knowledge to answer the farmer's question clearly. "
                     "Address every part of a compound question. Use simple, "
-                    "practical English and plain text. Cite supporting documents "
-                    "inline using their Source labels. Never invent a diagnosis, "
-                    "scheme eligibility, dosage, deadline, or compensation amount. "
+                    "practical language in plain text without Markdown formatting. "
                     "Remind the farmer to verify disease diagnosis and pesticide "
                     "choice with a local agriculture officer before spraying."
                     + brevity_instruction

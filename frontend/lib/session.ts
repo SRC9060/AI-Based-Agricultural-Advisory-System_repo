@@ -112,6 +112,7 @@ export function useRequireSession() {
     const currentSession = getCurrentSession();
 
     if (!currentSession) {
+       setCheckingSession(false);
       router.replace("/login");
       return;
     }

@@ -1,15 +1,22 @@
-from transformers import pipeline
+_ner = None
 
-# Load Hugging Face NER model
-ner = pipeline(
-    "ner",
-    model="dslim/bert-base-NER",
-    aggregation_strategy="simple",
-    # This public model must not use a stale local Hugging Face login token.
-    token=False,
-)
 
-# Ignore words that are often incorrectly detected as person names
+def _get_ner():
+    global _ner
+    if _ner is None:
+        try:
+            from transformers import pipeline
+            _ner = pipeline(
+                "ner",
+                model="dslim/bert-base-NER",
+                aggregation_strategy="simple",
+                token=False,
+            )
+        except Exception:
+            _ner = False
+    return _ner if _ner is not False else None
+
+
 IGNORE_WORDS = {
     "pm",
     "kisan",
@@ -26,17 +33,21 @@ def extract_entities(text):
     Extract named entities from user query.
     Removes false positives for agricultural/government scheme terms.
     """
+    ner_model = _get_ner()
+    if not ner_model:
+        return []
 
-    results = ner(text)
+    try:
+        results = ner_model(text)
+    except Exception:
+        return []
 
     entities = []
 
     for entity in results:
-
         word = entity.get("word", "")
         cleaned_word = word.replace("##", "").strip().lower()
 
-        # Ignore false positives
         if cleaned_word in IGNORE_WORDS:
             continue
 
@@ -52,13 +63,10 @@ def extract_entities(text):
 
 
 if __name__ == "__main__":
-
     text = input("Enter farmer query: ")
-
     result = extract_entities(text)
 
     print("\nNamed Entities:\n")
-
     if result:
         for entity in result:
             print(entity)

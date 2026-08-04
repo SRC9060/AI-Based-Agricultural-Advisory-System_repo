@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "public/sw.js",
     "public/workbox-*.js",
     "public/swe-worker-*.js",
+    "public/fallback-*.js",
   ]),
   {
     rules: {

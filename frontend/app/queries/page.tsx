@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -76,7 +76,7 @@ export default function QueriesPage() {
   useEffect(() => {
     const userId = getCurrentUserId();
     if (!userId) return;
-    fetch(`${API_URL}/recent-activity/${userId}?limit=100`)
+    apiFetch(`${API_URL}/recent-activity/${userId}?limit=100`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((data) => setActivities(data.activities || []))
       .finally(() => setLoading(false));

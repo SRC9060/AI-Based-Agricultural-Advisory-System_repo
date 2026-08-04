@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import { MessageSquare, Send, Star } from "lucide-react";
@@ -23,7 +23,7 @@ export default function FarmBanner() {
     const userId = getCurrentUserId();
     if (!userId) return;
     try {
-      const response = await fetch(`${API_URL}/feedback/${userId}`);
+      const response = await apiFetch(`${API_URL}/feedback/${userId}`);
       if (!response.ok) return;
       const data = await response.json();
       setHistory((data.feedback || []).slice(0, 2));
@@ -49,7 +49,7 @@ export default function FarmBanner() {
     setSaving(true);
     setStatus("");
     try {
-      const response = await fetch(`${API_URL}/feedback`, {
+      const response = await apiFetch(`${API_URL}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: Number(userId), message, category, rating }),

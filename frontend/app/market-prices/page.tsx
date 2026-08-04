@@ -1,11 +1,14 @@
 "use client";
 
+import { API_URL, apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
 import MarketResult from "@/components/market/MarketResult";
 import MarketSearch from "@/components/market/MarketSearch";
-import { API_URL } from "@/lib/api";
+
+import { translateTexts } from "@/lib/translation";
 import { loadCache, saveCache } from "@/lib/offlineCache";
 import { useRequireSession } from "@/lib/session";
 
@@ -22,6 +25,17 @@ interface MarketRecord {
   min_price: string;
   max_price: string;
   modal_price: string;
+localized?: Partial<
+  Record<
+    "state" |
+    "district" |
+    "market" |
+    "commodity" |
+    "variety" |
+    "grade",
+    string
+  >
+>;
 }
 
 interface MarketData {
@@ -30,20 +44,41 @@ interface MarketData {
   count?: number;
 }
 
+interface MarketOptionsResponse {
+  live?: boolean;
+  options?: Record<string, Record<string, string[]>>;
+  message?: string | null;
+}
+
 export default function MarketPricesPage() {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const { checkingSession } = useRequireSession();
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [marketOptions, setMarketOptions] = useState<
-    Record<string, Record<string, string[]>>
-  >({});
+  Record<string, Record<string, string[]>>
+>({});
+  const [marketNotice, setMarketNotice] = useState("");
 
   useEffect(() => {
-    fetch(`${API_URL}/market-options`)
+    apiFetch(`${API_URL}/market-options`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then(setMarketOptions)
+      .then((payload: MarketOptionsResponse | Record<string, Record<string, string[]>>) => {
+        const structuredPayload = payload as MarketOptionsResponse;
+        if (
+          typeof structuredPayload.live === "boolean" &&
+          structuredPayload.options
+        ) {
+          setMarketOptions(structuredPayload.options);
+          setMarketNotice(structuredPayload.live === false ? t(
+            "Live AGMARKNET is temporarily unavailable. Showing common Karnataka selections; live prices will appear only after the service reconnects."
+          ) : "");
+          return;
+        }
+        setMarketOptions(payload as Record<string, Record<string, string[]>>);
+        setMarketNotice("");
+      })
       .catch(() => setError(t("Unable to load market options.")));
   }, [t]);
 
@@ -75,10 +110,10 @@ export default function MarketPricesPage() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/market-price`, {
+      const response = await apiFetch(`${API_URL}/market-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commodity, state, district }),
+        body: JSON.stringify({ commodity, state, district, language }),
       });
 
       if (!response.ok) {
@@ -96,7 +131,28 @@ export default function MarketPricesPage() {
         return;
       }
 
-      const marketResult: MarketData = { records: [result] };
+      const localizedKeys = [
+        "commodity",
+        "market",
+        "district",
+        "state",
+      ] as const;
+
+      const localizedValues = await translateTexts(
+        localizedKeys.map((key) => result[key]),
+        language
+      );
+
+      result.localized = Object.fromEntries(
+        localizedKeys.map((key, index) => [
+          key,
+          localizedValues[index] || result[key],
+        ])
+      );
+
+      const marketResult = {
+        records: [result],
+      };
 
       setMarketData(marketResult);
 
@@ -109,7 +165,8 @@ export default function MarketPricesPage() {
       ) {
         saveCache(cacheKey, marketResult);
       }
-    } catch {
+    } catch (error) {
+      console.error(error);
       loadCachedMarketData();
     } finally {
       setLoading(false);
@@ -126,6 +183,11 @@ export default function MarketPricesPage() {
         </h1>
         <p className="mt-2 text-gray-600">{t("Search today's mandi prices.")}</p>
       </div>
+      {marketNotice && (
+        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800">
+          {marketNotice}
+        </div>
+      )}
       <div className="mt-8">
         <MarketSearch
           onSearch={searchMarket}

@@ -8,7 +8,6 @@ def scheme_agent(query):
     Government Scheme Agent using RAG.
     Searches only Government_Schemes documents.
     """
-
     results = search_government_schemes(query)
 
     if not results:
@@ -56,5 +55,4 @@ def scheme_titles_agent(query):
     for doc in results:
         context += doc.page_content + "\n\n"
 
-    answer = generate_scheme_titles(query, context)
     return generate_scheme_titles(query, context)

@@ -43,7 +43,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-slate-900">{t("Settings")}</h1>
-              <p className="mt-1 text-slate-600">Personalise the appearance of your AgriAdvisor workspace.</p>
+              <p className="mt-1 text-slate-600">{t("Personalise the appearance of your AgriAdvisor workspace.")}</p>
             </div>
           </div>
         </header>
@@ -52,8 +52,8 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <Palette className="text-green-700" size={23} />
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Themes</h2>
-              <p className="text-sm text-slate-500">Choose the colour style you prefer. Your selection is saved on this device.</p>
+              <h2 className="text-xl font-bold text-slate-900">{t("Themes")}</h2>
+              <p className="text-sm text-slate-500">{t("Choose the colour style you prefer. Your selection is saved on this device.")}</p>
             </div>
           </div>
 
@@ -70,8 +70,8 @@ export default function SettingsPage() {
                   <div className={`h-24 rounded-xl bg-gradient-to-br ${theme.preview}`} />
                   <div className="mt-4 flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-900">{theme.title}</p>
-                      <p className="mt-1 text-sm leading-5 text-slate-500">{theme.description}</p>
+                      <p className="font-semibold text-slate-900">{t(theme.title)}</p>
+                      <p className="mt-1 text-sm leading-5 text-slate-500">{t(theme.description)}</p>
                     </div>
                     {selected && <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-white"><Check size={15} /></span>}
                   </div>
@@ -85,8 +85,8 @@ export default function SettingsPage() {
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 text-green-700" size={22} />
             <div>
-              <h2 className="font-bold text-green-900">More settings coming soon</h2>
-              <p className="mt-1 text-sm leading-6 text-green-800">Notification preferences, account controls and accessibility options can be added here next week.</p>
+              <h2 className="font-bold text-green-900">{t("More settings coming soon")}</h2>
+              <p className="mt-1 text-sm leading-6 text-green-800">{t("Notification preferences, account controls and accessibility options can be added here next week.")}</p>
             </div>
           </div>
         </section>

@@ -1,12 +1,17 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
 import { loadCache, saveCache } from "@/lib/offlineCache";
 import { updateProfileCompleted, useRequireSession } from "@/lib/session";
+import {
+  APP_LANGUAGES,
+  getLanguageName,
+  normalizeLanguage,
+} from "@/lib/languages";
 
 type Profile = {
   id: number; name: string; email: string; phone: string; state: string; district: string; city: string;
@@ -50,7 +55,7 @@ function isProfileComplete(profile: Profile) {
 
 export default function ProfilePage() {
   const { session, checkingSession } = useRequireSession();
-  const { t } = useTranslation();
+  const { t, setLanguage } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile>(initialProfile);
@@ -65,23 +70,27 @@ export default function ProfilePage() {
       const cachedProfile = loadCache<Profile>(cacheKey);
       if (!cachedProfile || !isProfile(cachedProfile.data)) return false;
       setProfile(cachedProfile.data);
+      setLanguage(normalizeLanguage(cachedProfile.data.language));
       setCachedProfileTimestamp(cachedProfile.timestamp);
       return true;
     };
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/profile/${userId}`);
+      const response = await apiFetch(`${API_URL}/profile/${userId}`);   
       if (!response.ok) throw new Error("Unable to load profile.");
       const data: unknown = await response.json();
       if (!isProfile(data)) throw new Error("Invalid profile response.");
       setProfile(data);
-      setCachedProfileTimestamp(undefined);
+      setLanguage(normalizeLanguage(data.language));
+      
       saveCache(cacheKey, data);
-    } catch {
+      setCachedProfileTimestamp(undefined);
+    } catch (error) {
+      console.error(error);
       loadCachedProfile();
     } finally { setLoading(false); }
-  }, [session]);
+  }, [session, setLanguage]);
 
   useEffect(() => {
     if (!checkingSession) {
@@ -89,22 +98,36 @@ export default function ProfilePage() {
     }
   }, [checkingSession, loadProfile]);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setProfile((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = event.target;
+
+    setProfile((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
 
   const saveProfile = async () => {
     if (!session) return;
     const userId = session.userId;
-    const response = await fetch(`${API_URL}/profile/${userId}`, {
+   const response = await apiFetch(`${API_URL}/profile/${userId}`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone: profile.phone, state: profile.state, district: profile.district, city: profile.city, language: profile.language, farmer_type: profile.farmer_type, crop: profile.crop, farm_size: profile.farm_size, soil_type: profile.soil_type }),
     });
     const data: unknown = response.ok ? await response.json() : null;
     if (response.ok && isProfile(data)) {
       setProfile(data);
+      setLanguage(normalizeLanguage(data.language));
       saveCache(`profile_${userId}`, data);
       updateProfileCompleted(isProfileComplete(data));
       setCachedProfileTimestamp(undefined);
+      alert(t("Profile Updated Successfully"));
+      setEditing(false);
+    } else if (response.ok) {
+      updateProfileCompleted(isProfileComplete(profile));
+      await loadProfile();
       alert(t("Profile Updated Successfully"));
       setEditing(false);
     }
@@ -131,4 +154,24 @@ export default function ProfilePage() {
 
 function Section({ title, children, extraClass = "", sectionId }: { title: string; children: React.ReactNode; extraClass?: string; sectionId?: string }) { return <section id={sectionId} className={`rounded-2xl bg-white p-6 shadow-sm ${extraClass}`}><h2 className="mb-5 text-xl font-bold text-green-800">{title}</h2><div className="space-y-4">{children}</div></section>; }
 
-function Fields({ fields, profile, editing, onChange }: { fields: Array<[keyof Profile, string, boolean?]>; profile: Profile; editing: boolean; onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void }) { const { t } = useTranslation(); return <>{fields.map(([name, label, readOnly]) => <div key={name}><label className="mb-2 block text-sm font-medium text-gray-500">{t(label)} {readOnly && <span className="ml-2 text-xs text-gray-400">({t("cannot be changed")})</span>}</label>{editing && !readOnly ? <input name={name} value={profile[name]} onChange={onChange} placeholder={t("Enter value")} className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 outline-none focus:border-green-600"/> : <div className="min-h-[48px] rounded-xl bg-gray-50 px-4 py-3 text-gray-800">{profile[name] || t("Not provided")}</div>}</div>)}</>; }
+function Fields({ fields, profile, editing, onChange }: { fields: Array<[keyof Profile, string, boolean?]>; profile: Profile; editing: boolean; onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void }) {
+  const { t } = useTranslation();
+  return <>{fields.map(([name, label, readOnly]) => {
+    const isLanguage = name === "language";
+    const displayValue = isLanguage
+      ? getLanguageName(String(profile[name]))
+      : profile[name];
+    return <div key={name}>
+      <label className="mb-2 block text-sm font-medium text-gray-500">{t(label)} {readOnly && <span className="ml-2 text-xs text-gray-400">({t("cannot be changed")})</span>}</label>
+      {editing && !readOnly ? (
+        isLanguage ? (
+          <select name={name} value={normalizeLanguage(String(profile[name]))} onChange={onChange} className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-800 outline-none focus:border-green-600">
+            {APP_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.nativeName}</option>)}
+          </select>
+        ) : (
+          <input name={name} value={profile[name]} onChange={onChange} placeholder={t("Enter value")} className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-800 outline-none focus:border-green-600"/>
+        )
+      ) : <div className="min-h-[48px] rounded-xl bg-gray-50 px-4 py-3 text-gray-800">{displayValue || t("Not provided")}</div>}
+    </div>;
+  })}</>;
+}

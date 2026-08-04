@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,9 +10,14 @@ import {
   getRememberedSession,
   saveLoginSession,
 } from "@/lib/session";
+import { useTranslation } from "@/components/LanguageProvider";
+import { saveAuthenticatedSession } from "@/lib/auth";
+import { normalizeLanguage } from "@/lib/languages";
+import "@/app/auth.css";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setLanguage, t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,10 +53,11 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log(data);
+      if (response.ok && data.access_token && data.user) {
+        saveAuthenticatedSession(data.access_token, rememberMe);
+        setLanguage(normalizeLanguage(data.user.language));
 
-      if (data.message === "Login Successful") {
-        const statusResponse = await fetch(
+const statusResponse = await apiFetch(
           `${API_URL}/profile-status/${data.user.id}`
         );
 
@@ -72,11 +78,11 @@ export default function LoginPage() {
 
         router.push(profileCompleted ? "/dashboard" : "/profile");
       } else {
-        alert(data.message);
+        alert(t(data.detail || data.message || "Invalid Credentials"));
       }
     } catch (error) {
       console.error(error);
-      alert("Cannot connect to backend");
+      alert(t("Cannot connect to backend"));
     } finally {
       setLoading(false);
     }
@@ -93,10 +99,7 @@ export default function LoginPage() {
         flex
         items-center
         justify-center
-        bg-gradient-to-br
-        from-emerald-900
-        via-green-700
-        to-emerald-500
+        auth-page
         px-5
         py-10
       "
@@ -109,10 +112,7 @@ export default function LoginPage() {
           rounded-[32px]
           border
           border-emerald-200/70
-          bg-gradient-to-br
-          from-white
-          via-emerald-50
-          to-green-100
+          auth-card
           px-10
           py-12
           shadow-2xl
@@ -143,11 +143,11 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-3xl font-bold text-emerald-950">
-            Welcome Back
+            {t("Welcome Back")}
           </h1>
 
           <p className="text-base text-slate-600 mt-2">
-            Sign in to continue to your account
+            {t("Sign in to continue to your account")}
           </p>
         </div>
 
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
             <input
               type="email"
-              placeholder="Enter your email"
+              placeholder={t("Enter your email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -216,7 +216,7 @@ export default function LoginPage() {
 
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
+              placeholder={t("Enter your password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -307,13 +307,13 @@ export default function LoginPage() {
               }
             `}
           >
-            {loading ? "Signing in..." : "Login"}
+            {loading ? t("Signing in...") : t("Login")}
           </button>
         </form>
 
         {/* Register */}
         <p className="text-center text-base text-slate-600 mt-8">
-          Don&apos;t have an account?{" "}
+          {t("Don't have an account?")}{" "}
           <a
             href="/register"
             className="
@@ -324,7 +324,7 @@ export default function LoginPage() {
               hover:underline
             "
           >
-            Register
+            {t("Register")}
           </a>
         </p>
       </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
+import { loadCache, saveCache } from "@/lib/offlineCache";
 
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
-import { loadCache, saveCache } from "@/lib/offlineCache";
 import { useRequireSession } from "@/lib/session";
+import { translateTexts } from "@/lib/translation";
 
 interface SchemeItem {
   title?: string;
@@ -15,6 +16,7 @@ interface SchemeItem {
 interface SchemeResponse {
   count?: number;
   schemes?: SchemeItem[];
+  available?: boolean;
 }
 
 function isSchemeResponse(value: unknown): value is SchemeResponse {
@@ -25,9 +27,9 @@ function isSchemeResponse(value: unknown): value is SchemeResponse {
   const response = value as SchemeResponse;
   return (
     typeof response.count === "number" &&
-    response.count > 0 &&
+    response.count >= 0 &&
     Array.isArray(response.schemes) &&
-    response.schemes.length > 0 &&
+    response.schemes.length === response.count &&
     response.schemes.every((scheme) => Boolean(scheme && typeof scheme.title === "string" && scheme.title.trim()))
   );
 }
@@ -40,15 +42,15 @@ function formatSchemes(response: SchemeResponse) {
 }
 
 export default function SchemesPage() {
-  const { t } = useTranslation();
   const { session, checkingSession } = useRequireSession();
+  const { language, t } = useTranslation();
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sessionId, setSessionId] = useState<number | null>(null);
   const [cached, setCached] = useState(false);
   const [cachedTimestamp, setCachedTimestamp] = useState<string>();
+
   const quickQuestions = [
     {
       icon: "💰",
@@ -82,35 +84,14 @@ export default function SchemesPage() {
   ];
 
   useEffect(() => {
-    async function createSession() {
-      if (!session) return;
-      const userId = session.userId;
-      try {
-        const response = await fetch(
-          `${API_URL}/chat/session?user_id=` + userId,
-          {
-            method: "POST",
-          },
-        );
-        if (!response.ok) {
-          throw new Error("Failed to Create Chat Session");
-        }
-        const data = await response.json();
-        setSessionId(data.session_id);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
     async function loadSchemes() {
       if (!session) return;
       const userId = session.userId;
-
       const cacheKey = `schemes_${userId}`;
 
       try {
         setLoading(true);
-        const response = await fetch(`${API_URL}/schemes/${userId}`, {
+        const response = await apiFetch(`${API_URL}/schemes/${userId}`, {
           cache: "no-store",
         });
 
@@ -122,13 +103,13 @@ export default function SchemesPage() {
         if (!isSchemeResponse(data)) {
           throw new Error("Invalid Government Schemes Response");
         }
-
-        const formattedResponse = formatSchemes(data);
-        if (!formattedResponse) {
-          throw new Error("Invalid Government Schemes Response");
+        if (data.available === false) {
+          throw new Error("Government scheme information is temporarily unavailable.");
         }
 
-        setResponse(formattedResponse);
+        const formattedResponse = formatSchemes(data);
+
+        setResponse(formattedResponse || "");
         setError("");
         setCached(false);
         setCachedTimestamp(undefined);
@@ -152,67 +133,81 @@ export default function SchemesPage() {
     }
 
     if (!checkingSession) {
-      createSession();
       loadSchemes();
     }
   }, [checkingSession, session]);
 
-  async function searchScheme(customQuery?: string) {
-    if (!sessionId) {
-      setError(t("Creating Session for Schemes..."));
-      return;
-    }
+  async function searchScheme(customQuery?: string, sourceLanguage = language) {
     const finalQuery = customQuery || query;
+    const searchCacheKey = `scheme_search_${language}_${sourceLanguage}_${finalQuery.toLowerCase()}`;
+
     if (!finalQuery.trim()) {
       setError(t("Please Enter a Question about Government Schemes"));
       return;
     }
+
     try {
       setLoading(true);
       setError("");
       setResponse("");
-      if (!session) return;
-      const userId = session.userId;
-      const response = await fetch(`${API_URL}/chat`, {
+      setCached(false);
+      setCachedTimestamp(undefined);
+
+      const response = await apiFetch(`${API_URL}/schemes/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          session_id: String(sessionId),
-          user_id: String(userId),
-          message: finalQuery,
+          query: finalQuery,
+          language,
+          source_language: sourceLanguage,
         }),
       });
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(
           data.detail || "Unable to Retrieve Government Scheme Information",
         );
       }
-      setResponse(data.response_in_user_language || data.english_response || "No Scheme information was Found");
+
+      setResponse(data.answer || t("No Scheme information was Found"));
+      if (typeof data.answer === "string") {
+        saveCache(searchCacheKey, data.answer);
+      }
     } catch (err) {
       console.error(err);
+
+      const cachedSearch = loadCache<string>(searchCacheKey);
+      if (cachedSearch) {
+        setResponse(cachedSearch.data);
+        setError("");
+        setCached(true);
+        setCachedTimestamp(cachedSearch.timestamp);
+        return;
+      }
+
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Unable to Connect to the Government Schemes Service");
+        setError(t("Unable to Connect to the Government Schemes Service"));
       }
     } finally {
       setLoading(false);
     }
   }
 
-  function handleQuickQuestion(question: string) {
-    setQuery(question);
-    searchScheme(question);
+  async function handleQuickQuestion(question: string) {
+    const [localizedQuestion] = await translateTexts([question], language);
+    setQuery(localizedQuestion || question);
+    searchScheme(question, "en");
   }
 
   if (checkingSession) return null;
 
   return (
     <DashboardLayout>
-      {/* Header */}
       <div className="mt-6">
         <h1 className="text-3xl font-bold text-green-800">
           {t("Government Schemes")}
@@ -233,7 +228,6 @@ export default function SchemesPage() {
         </div>
       )}
 
-      {/* Search Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mt-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center text-xl">
@@ -269,14 +263,13 @@ export default function SchemesPage() {
 
           <button
             onClick={() => searchScheme()}
-            disabled={loading || sessionId === null}
+            disabled={loading}
             className="bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition"
           >
             {loading ? t("Searching...") : t("Find Schemes")}
           </button>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
             ⚠️ {error}
@@ -284,7 +277,6 @@ export default function SchemesPage() {
         )}
       </div>
 
-      {/* Quick Questions */}
       <div className="mt-7">
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-green-800">
@@ -321,36 +313,33 @@ export default function SchemesPage() {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="mt-7 bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
           <div className="text-5xl mb-4">🤖</div>
 
           <h2 className="text-lg font-semibold text-green-800">
-            Searching Government Schemes...
+            {t("Searching Government Schemes...")}
           </h2>
 
           <p className="text-gray-500 mt-2">
-            Our AI is searching the agricultural schemes knowledge base.
+            {t("Our AI is searching the agricultural schemes knowledge base.")}
           </p>
         </div>
       )}
 
-      {/* AI Response */}
       {response && !loading && (
         <div className="mt-7">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-green-800">
-              🤖 AI Scheme Advisor
+              🤖 {t("AI Scheme Advisor")}
             </h2>
 
             <p className="text-gray-500 mt-1">
-              Scheme information retrieved from the agricultural knowledge base.
+              {t("Scheme information retrieved from the agricultural knowledge base.")}
             </p>
           </div>
 
           <div className="bg-white border border-green-100 rounded-2xl shadow-sm overflow-hidden">
-            {/* Response Header */}
             <div className="bg-green-50 border-b border-green-100 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center">
@@ -359,17 +348,16 @@ export default function SchemesPage() {
 
                 <div>
                   <h3 className="font-semibold text-green-800">
-                    AgriAdvisor Scheme Assistant
+                    {t("AgriAdvisor Scheme Assistant")}
                   </h3>
 
                   <p className="text-xs text-gray-500">
-                    AI-powered government scheme guidance
+                    {t("AI-powered government scheme guidance")}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Response */}
             <div className="p-6">
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-5">
                 <p className="text-gray-700 leading-8 whitespace-pre-line">
@@ -381,7 +369,6 @@ export default function SchemesPage() {
         </div>
       )}
 
-      {/* Information Section */}
       {!response && !loading && (
         <div className="mt-7 grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="bg-green-50 border border-green-100 rounded-2xl p-6">
@@ -426,7 +413,6 @@ export default function SchemesPage() {
         </div>
       )}
 
-      {/* Disclaimer */}
       <div className="mt-7 mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-5">
         <div className="flex gap-3">
           <span className="text-xl">ℹ️</span>
