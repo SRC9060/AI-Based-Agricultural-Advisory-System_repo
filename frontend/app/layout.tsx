@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { ViewTransitions } from "next-view-transitions";
-import { I18nProvider } from "next-i18next/client";
-import { getResources, getT, initServerI18next } from "next-i18next/server";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import OfflineBanner from "@/components/OfflineBanner";
 import SessionGuard from "@/components/SessionGuard";
-import i18nConfig from "../i18n.config";
 import "./globals.css";
-
-initServerI18next(i18nConfig);
 
 export const metadata: Metadata = {
   title: "AgriAdvisor",
@@ -28,23 +23,26 @@ export const viewport: Viewport = {
   themeColor: "#1f7a35",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { i18n, lng } = await getT();
-  const resources = getResources(i18n);
   return (
     <ViewTransitions>
-      <html lang={lng} data-scroll-behavior="smooth">
-        <body>
-          <I18nProvider language={lng} resources={resources}>
-            <LanguageProvider>
-              <OfflineBanner />
-              <SessionGuard>{children}</SessionGuard>
-            </LanguageProvider>
-          </I18nProvider>
+      <html lang="en" data-scroll-behavior="smooth" className="notranslate" translate="no" suppressHydrationWarning>
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem("dashboard_theme")||"fresh";document.documentElement.setAttribute("data-theme",t);if(t==="dark"){document.documentElement.classList.add("dark");}else{document.documentElement.classList.remove("dark");}}catch(e){}})()`,
+            }}
+          />
+        </head>
+        <body className="transition-colors duration-200" suppressHydrationWarning>
+          <LanguageProvider>
+            <OfflineBanner />
+            <SessionGuard>{children}</SessionGuard>
+          </LanguageProvider>
         </body>
       </html>
     </ViewTransitions>

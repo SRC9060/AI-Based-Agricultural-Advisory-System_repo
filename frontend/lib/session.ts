@@ -29,7 +29,8 @@ const SESSION_KEYS = [
 
 function readSession(storage: Storage, rememberMe: boolean): AppSession | null {
   const userId = storage.getItem("user_id");
-  if (!userId) return null;
+  const token = storage.getItem("auth_token") || (typeof window !== "undefined" ? (sessionStorage.getItem("auth_token") || localStorage.getItem("auth_token")) : null);
+  if (!userId || !token) return null;
 
   return {
     userId,
@@ -44,7 +45,8 @@ export function getRememberedSession(): AppSession | null {
   if (typeof window === "undefined") return null;
   if (
     localStorage.getItem("remember_me") !== "true" ||
-    localStorage.getItem("logged_in") !== "true"
+    localStorage.getItem("logged_in") !== "true" ||
+    !localStorage.getItem("auth_token")
   ) {
     return null;
   }

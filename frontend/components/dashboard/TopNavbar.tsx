@@ -5,15 +5,17 @@ import { API_URL, apiFetch } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LogOut, Pencil, Settings } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import LanguageSelector from "@/components/LanguageSelector";
 import { getCurrentSession } from "@/lib/session";
 import { clearAuthenticatedSession } from "@/lib/auth";
 
 import {
   ArrowLeft,
   Bell,
+  Check,
   ChevronDown,
   Globe,
   LayoutDashboard,
@@ -22,6 +24,8 @@ import {
   Landmark,
   Bot,
   Sprout,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
@@ -148,7 +152,6 @@ export default function TopNavbar({
     router.replace("/login");
   };
 
-  const [langOpen, setLangOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -160,8 +163,32 @@ export default function TopNavbar({
   // would make the first browser render differ from the server render.
   const [displayName, setDisplayName] = useState("Farmer");
   const [displayRole] = useState("Farmer");
+  const [currentTheme, setCurrentTheme] = useState("fresh");
   const selectedLanguageCode = language;
   const translateNotification = (text: string) => notificationLabels[selectedLanguageCode]?.[text] ?? t(text);
+
+  useEffect(() => {
+    const syncTheme = () => {
+      const saved = localStorage.getItem("dashboard_theme") || "fresh";
+      setCurrentTheme(saved);
+    };
+    syncTheme();
+    window.addEventListener("themechange", syncTheme);
+    return () => window.removeEventListener("themechange", syncTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = currentTheme === "dark" ? "fresh" : "dark";
+    setCurrentTheme(nextTheme);
+    localStorage.setItem("dashboard_theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    window.dispatchEvent(new Event("themechange"));
+  };
 
   const loadNotifications = async (id: number) => {
     try {
@@ -233,7 +260,7 @@ export default function TopNavbar({
 
   return (
     <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 pt-4">
-      <div className="w-full bg-gradient-to-r from-green-50 via-white to-green-50 backdrop-blur-xl border border-green-100 shadow-xl rounded-2xl">
+      <div className="w-full bg-gradient-to-r from-green-50 via-white to-green-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 backdrop-blur-xl border border-green-100 dark:border-slate-800 shadow-xl rounded-2xl">
         <div className="flex items-center justify-between h-24 px-6">
           {/* Left */}
           <div className="flex items-center gap-4 sm:gap-6">
@@ -258,16 +285,16 @@ export default function TopNavbar({
 
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-14 h-14 rounded-2xl bg-green-700 flex items-center justify-center shadow-md">
+              <div className="w-14 h-14 rounded-2xl bg-green-700 dark:bg-green-800 flex items-center justify-center shadow-md">
                 <Sprout className="text-white" size={28} />
               </div>
 
               <div>
-                <h2 className="font-bold text-xl tracking-tight text-slate-900">
+                <h2 className="font-bold text-xl tracking-tight text-slate-900 dark:text-slate-100">
                   AgriAdvisor
                 </h2>
 
-                <p className="text-[0.9rem] text-slate-600">
+                <p className="text-[0.9rem] text-slate-600 dark:text-slate-400">
                   Smart Farming Platform
                 </p>
               </div>
@@ -282,11 +309,11 @@ export default function TopNavbar({
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 ease-out border border-slate-200
+                    className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 ease-out border border-slate-200 dark:border-slate-700
                     ${
                       pathname === item.href
-                        ? "bg-green-600 text-white font-semibold shadow-md"
-                        : "bg-slate-50 text-slate-600 hover:bg-green-50 hover:text-green-700 hover:shadow-sm"
+                        ? "bg-green-600 dark:bg-green-700 text-white font-semibold shadow-md"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-green-50 dark:hover:bg-slate-700 hover:text-green-700 dark:hover:text-green-400 hover:shadow-sm"
                     }
                     `}
                   >
@@ -305,38 +332,29 @@ export default function TopNavbar({
 
           {/* Right Side */}
           <div className="flex items-center gap-4">
-            {/* Language */}
-            <div className="relative">
-              <button
-                onClick={() => setLangOpen(!langOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
-              >
-                <Globe size={18} />
-                <span className="text-base font-medium">
-                  {languageNameMap[language] || "English"}
-                </span>
-                <ChevronDown size={16} />
-              </button>
-
-              {langOpen && (
-                <div className="absolute right-0 mt-2 bg-white rounded-lg shadow-lg z-50 border border-slate-200 overflow-hidden">
-                  {languageOptions.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => {
-                        const code =
-                          languageCodeMap[lang as keyof typeof languageCodeMap];
-                        setLanguage(code);
-                        setLangOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm hover:bg-green-100 whitespace-nowrap"
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
+            {/* Theme Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={currentTheme === "dark" ? t("Switch to Light Theme") : t("Switch to Dark Theme")}
+              title={currentTheme === "dark" ? t("Switch to Light Theme") : t("Switch to Dark Theme")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-slate-700 transition-all duration-300 text-slate-700 dark:text-slate-200"
+            >
+              {currentTheme === "dark" ? (
+                <>
+                  <Sun size={18} className="text-amber-400" />
+                  <span className="hidden sm:inline text-xs font-semibold">{t("Light")}</span>
+                </>
+              ) : (
+                <>
+                  <Moon size={18} className="text-slate-600 dark:text-slate-300" />
+                  <span className="hidden sm:inline text-xs font-semibold">{t("Dark")}</span>
+                </>
               )}
-            </div>
+            </button>
+
+            {/* Language */}
+            <LanguageSelector />
 
             {/* Notifications */}
             <div className="relative">
@@ -349,7 +367,7 @@ export default function TopNavbar({
                   setNotificationsOpen(opening);
                   if (opening && userId) loadNotifications(userId);
                 }}
-                className="group relative w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center hover:bg-green-50 transition-all duration-300"
+                className="group relative w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center hover:bg-green-50 dark:hover:bg-slate-700 transition-all duration-300 text-slate-700 dark:text-slate-200"
               >
                 <Bell
                   size={18}
@@ -363,24 +381,24 @@ export default function TopNavbar({
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl z-50">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <p className="font-semibold text-slate-800">
+                <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl z-50">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 px-4 py-3">
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">
                       {t("Notifications")}
                     </p>
                     {unreadNotifications > 0 && (
                       <button
                         type="button"
                         onClick={markAllNotificationsRead}
-                        className="text-xs font-medium text-green-700 hover:text-green-800"
+                        className="text-xs font-medium text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
                       >
                         {t("Mark all as read")}
                       </button>
                     )}
                   </div>
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
                     {notifications.length === 0 ? (
-                      <p className="px-4 py-6 text-center text-sm text-slate-500">
+                      <p className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
                         {t("No notifications yet.")}
                       </p>
                     ) : (
@@ -389,12 +407,12 @@ export default function TopNavbar({
                           type="button"
                           key={notification.id}
                           onClick={() => markNotificationRead(notification.id)}
-                          className={`block w-full px-4 py-3 text-left hover:bg-green-50 ${notification.is_read ? "" : "bg-green-50/70"}`}
+                          className={`block w-full px-4 py-3 text-left hover:bg-green-50 dark:hover:bg-slate-800 ${notification.is_read ? "" : "bg-green-50/70 dark:bg-slate-800/70"}`}
                         >
-                          <p className="text-sm font-semibold text-slate-800">
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                             {translateNotification(notification.title)}
                           </p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                          <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                             {translateNotification(notification.message)}
                           </p>
                         </button>
@@ -412,7 +430,7 @@ export default function TopNavbar({
                 aria-label={t("Open profile menu")}
                 aria-expanded={profileMenuOpen}
                 onClick={() => setProfileMenuOpen((isOpen) => !isOpen)}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-green-50 transition-all duration-300"
+                className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-green-50 dark:hover:bg-slate-700 transition-all duration-300 text-slate-700 dark:text-slate-200"
               >
                 {userAvatar ? (
                   <Image
@@ -423,31 +441,31 @@ export default function TopNavbar({
                     className="rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-full bg-green-700 dark:bg-green-800 text-white flex items-center justify-center font-bold">
                     {displayName.charAt(0)}
                   </div>
                 )}
 
                 <div className="hidden xl:block">
-                  <p className="font-semibold text-base">{displayName}</p>
-                  <p className="text-sm text-slate-500">{t(displayRole)}</p>
+                  <p className="font-semibold text-base text-slate-900 dark:text-slate-100">{displayName}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{t(displayRole)}</p>
                 </div>
 
                 <ChevronDown
                   size={16}
-                  className={`text-slate-500 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
+                  className={`text-slate-500 dark:text-slate-400 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
               {profileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl z-50">
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-1 shadow-xl z-50">
                   <button
                     type="button"
                     onClick={() => {
                       setProfileMenuOpen(false);
                       router.push("/profile");
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-green-50 hover:text-green-800"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-green-50 dark:hover:bg-slate-800 hover:text-green-800 dark:hover:text-green-300"
                   >
                     <Pencil size={17} />
                     {t("Edit Profile")}
@@ -458,16 +476,16 @@ export default function TopNavbar({
                       setProfileMenuOpen(false);
                       router.push("/settings");
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 hover:bg-green-50 hover:text-green-800"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-green-50 dark:hover:bg-slate-800 hover:text-green-800 dark:hover:text-green-300"
                   >
                     <Settings size={17} />
                     {t("Settings")}
                   </button>
-                  <div className="my-1 border-t border-slate-100" />
+                  <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
                     <LogOut size={17} />
                     {t("Logout")}

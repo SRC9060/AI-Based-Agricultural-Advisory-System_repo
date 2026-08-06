@@ -42,13 +42,13 @@ export default function GovernmentSchemes({
 
   if (safeSchemes.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm p-5">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm p-5">
 
-        <h2 className="text-2xl font-semibold mb-4 text-slate-900">
+        <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">
           {t("Government Schemes for You")}
         </h2>
 
-        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500">
+        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500 dark:text-slate-400">
 
           <span className="text-4xl mb-3">🌱</span>
 
@@ -67,17 +67,17 @@ export default function GovernmentSchemes({
   }
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm transition-all duration-300 p-5">
+    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm transition-all duration-300 p-5">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
 
-        <h2 className="text-[1.15rem] font-semibold text-slate-900">
+        <h2 className="text-[1.15rem] font-semibold text-slate-900 dark:text-slate-100">
           {t("Government Schemes for You")}
         </h2>
 
         <button
           onClick={() => router.push("/schemes")}
-          className="text-green-700 font-semibold hover:underline text-sm"
+          className="text-green-700 dark:text-green-400 font-semibold hover:underline text-sm"
         >
           {t("View All")}
         </button>
@@ -93,22 +93,22 @@ export default function GovernmentSchemes({
           return (
             <div
               key={index}
-              className="flex items-center justify-between border border-slate-200 rounded-2xl p-4 hover:shadow-sm transition duration-300 cursor-pointer"
+              className="flex items-center justify-between border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/60 rounded-2xl p-4 hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition duration-300 cursor-pointer"
             >
 
               <div className="flex items-center gap-4">
 
-                <div className={`${iconData.bg} rounded-2xl p-3`}>
+                <div className={`${iconData.bg} dark:bg-slate-800 rounded-2xl p-3`}>
                   {iconData.icon}
                 </div>
 
                 <div>
 
-                  <h3 className="font-semibold text-gray-900 text-sm">
-                    {scheme.title}
+                  <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                    {t(scheme.title)}
                   </h3>
 
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
                     {t("Recommended based on your farming profile.")}
                   </p>
 
@@ -118,13 +118,13 @@ export default function GovernmentSchemes({
 
               <div className="flex items-center gap-3">
 
-                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                <span className="bg-green-100 dark:bg-green-950/60 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-sm font-medium">
                   {t("Eligible")}
                 </span>
 
                 <ChevronRight
                   size={20}
-                  className="text-gray-400"
+                  className="text-gray-400 dark:text-slate-500"
                 />
 
               </div>

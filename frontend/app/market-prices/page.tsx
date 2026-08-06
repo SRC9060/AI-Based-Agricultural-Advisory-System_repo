@@ -178,13 +178,13 @@ export default function MarketPricesPage() {
   return (
     <DashboardLayout>
       <div className="mt-6">
-        <h1 className="text-3xl font-bold text-green-800">
+        <h1 className="text-3xl font-bold text-green-800 dark:text-emerald-400">
           {t("Market Prices")}
         </h1>
-        <p className="mt-2 text-gray-600">{t("Search today's mandi prices.")}</p>
+        <p className="mt-2 text-gray-600 dark:text-slate-400">{t("Search today's mandi prices.")}</p>
       </div>
       {marketNotice && (
-        <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800">
+        <div className="mt-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-amber-800 dark:text-amber-300">
           {marketNotice}
         </div>
       )}

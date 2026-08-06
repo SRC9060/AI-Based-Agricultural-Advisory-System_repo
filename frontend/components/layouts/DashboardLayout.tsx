@@ -14,7 +14,16 @@ export default function DashboardLayout({
   const [theme, setTheme] = useState("fresh");
 
   useEffect(() => {
-    const readTheme = () => setTheme(localStorage.getItem("dashboard_theme") || "fresh");
+    const readTheme = () => {
+      const current = localStorage.getItem("dashboard_theme") || "fresh";
+      setTheme(current);
+      document.documentElement.setAttribute("data-theme", current);
+      if (current === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    };
     readTheme();
     window.addEventListener("themechange", readTheme);
     return () => window.removeEventListener("themechange", readTheme);
@@ -36,6 +45,11 @@ export default function DashboardLayout({
       overlay: "from-white/45 via-[#fffaf2]/70 to-[#fff0d8]/85",
       accent: "bg-amber-300/25",
     },
+    dark: {
+      surface: "bg-slate-950 text-slate-100",
+      overlay: "from-slate-950/90 via-slate-900/90 to-emerald-950/80",
+      accent: "bg-emerald-500/10",
+    },
   }[theme] || {
     surface: "bg-[#f7fbf8]",
     overlay: "from-white/40 via-[#f7fbf8]/65 to-[#eaf7ed]/80",
@@ -43,7 +57,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className={`relative isolate min-h-screen overflow-hidden ${themeStyles.surface}`}>
+    <div className={`relative isolate min-h-screen overflow-x-clip ${themeStyles.surface}`}>
 
       <Image
         src="/images/dashboard-bg.jpg"

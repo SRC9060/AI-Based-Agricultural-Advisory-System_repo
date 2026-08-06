@@ -45,26 +45,26 @@ class ProfileResponse(BaseModel):
     id: int
     name: str
     email: str
-    phone: str
-    state: str
-    district: str
-    city: str
-    language: str
-    farmer_type: str
-    crop: str
-    farm_size: str
-    soil_type: str
+    phone: str | None = ""
+    state: str | None = ""
+    district: str | None = ""
+    city: str | None = ""
+    language: str | None = "English"
+    farmer_type: str | None = ""
+    crop: str | None = ""
+    farm_size: str | None = ""
+    soil_type: str | None = ""
 
 class ProfileUpdateRequest(BaseModel):
-    phone: str
-    state: str
-    district: str
-    city: str
-    language: str
-    farmer_type: str
-    crop: str
-    farm_size: str
-    soil_type: str
+    phone: str | None = None
+    state: str | None = None
+    district: str | None = None
+    city: str | None = None
+    language: str | None = None
+    farmer_type: str | None = None
+    crop: str | None = None
+    farm_size: str | None = None
+    soil_type: str | None = None
 
 class ChatRequest(BaseModel):
     session_id: str

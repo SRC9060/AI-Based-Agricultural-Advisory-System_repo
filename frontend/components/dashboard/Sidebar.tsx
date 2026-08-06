@@ -115,7 +115,7 @@ export default function Sidebar() {
             </button>
 
             {langOpen && (
-              <div className="bg-white text-[#166534] rounded-xl mx-2 mb-2 overflow-hidden shadow-lg">
+              <div className="bg-white dark:bg-slate-900 text-[#166534] dark:text-slate-100 rounded-xl mx-2 mb-2 overflow-hidden shadow-lg border border-transparent dark:border-slate-800">
                 {languages.map((lang) => (
                   <button
                     key={lang}
@@ -129,9 +129,9 @@ export default function Sidebar() {
 
                       setLangOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-green-100 ${
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-green-100 dark:hover:bg-slate-800 ${
                       selectedLang === lang
-                        ? "font-semibold bg-green-50"
+                        ? "font-semibold bg-green-50 dark:bg-slate-800/80 text-green-800 dark:text-green-400"
                         : ""
                     }`}
                   >

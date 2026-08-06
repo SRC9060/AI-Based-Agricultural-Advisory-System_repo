@@ -67,13 +67,16 @@ export default function MarketSearch({
 
   useEffect(() => {
     let cancelled = false;
-    setLocalizingOptions(language !== "en" && visibleOptions.length > 0);
-    setLocalizedOptions({});
+    if (visibleOptions.length === 0) return;
+
+    if (language === "en") {
+      setLocalizedOptions({});
+      return;
+    }
 
     translateTextMap(visibleOptions, language).then((translations) => {
       if (!cancelled) {
         setLocalizedOptions(translations);
-        setLocalizingOptions(false);
       }
     });
 
@@ -82,15 +85,24 @@ export default function MarketSearch({
     };
   }, [language, visibleOptions]);
 
-  const localizeOption = (value: string) =>
-    localizedOptions[value] || t(value);
+  const localizeOption = (value: string) => {
+    if (!value) return value;
+    const staticTranslation = t(value);
+    if (staticTranslation && staticTranslation !== value) {
+      return staticTranslation;
+    }
+    if (localizedOptions[value]) {
+      return localizedOptions[value];
+    }
+    return value;
+  };
 
   const isFormIncomplete =
     !commodity || !state || !district;
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6">
-      <h2 className="text-xl font-semibold text-green-800 mb-5">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-6 border border-slate-100 dark:border-slate-800">
+      <h2 className="text-xl font-semibold text-green-800 dark:text-emerald-400 mb-5">
         {t("Search Market Prices")}
       </h2>
 
@@ -98,26 +110,26 @@ export default function MarketSearch({
 
         {/* Commodity */}
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             {t("Commodity")}
           </label>
 
           <select
             value={commodity}
-            disabled={loading || localizingOptions}
+            disabled={loading}
             onChange={(e) => {
               setCommodity(e.target.value);
               setState("");
               setDistrict("");
             }}
-            className="w-full border rounded-xl px-4 py-3"
+            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500"
           >
-            <option value="">
-              {localizingOptions ? t("Loading...") : t("Select Commodity")}
+            <option value="" className="dark:bg-slate-900 dark:text-slate-100">
+              {t("Select Commodity")}
             </option>
 
-            {!localizingOptions && commodities.map((item) => (
-              <option key={item} value={item}>
+            {commodities.map((item) => (
+              <option key={item} value={item} className="dark:bg-slate-900 dark:text-slate-100">
                 {localizeOption(item)}
               </option>
             ))}
@@ -126,27 +138,27 @@ export default function MarketSearch({
 
         {/* State */}
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             {t("State")}
           </label>
 
           <select
             value={state}
-            disabled={!commodity || loading || localizingOptions}
+            disabled={!commodity || loading}
             onChange={(e) => {
               setState(e.target.value);
               setDistrict("");
             }}
-            className="w-full border rounded-xl px-4 py-3"
+            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500 disabled:opacity-50"
           >
-            <option value="">
+            <option value="" className="dark:bg-slate-900 dark:text-slate-100">
               {commodity
                 ? t("Select State")
                 : t("Select Commodity First")}
             </option>
 
-            {!localizingOptions && availableStates.map((item) => (
-              <option key={item} value={item}>
+            {availableStates.map((item) => (
+              <option key={item} value={item} className="dark:bg-slate-900 dark:text-slate-100">
                 {localizeOption(item)}
               </option>
             ))}
@@ -155,26 +167,26 @@ export default function MarketSearch({
 
         {/* District */}
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             {t("District")}
           </label>
 
           <select
             value={district}
-            disabled={!state || loading || localizingOptions}
+            disabled={!state || loading}
             onChange={(e) =>
               setDistrict(e.target.value)
             }
-            className="w-full border rounded-xl px-4 py-3"
+            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500 disabled:opacity-50"
           >
-            <option value="">
+            <option value="" className="dark:bg-slate-900 dark:text-slate-100">
               {state
                 ? t("Select District")
                 : t("Select State First")}
             </option>
 
-            {!localizingOptions && availableDistricts.map((item) => (
-              <option key={item} value={item}>
+            {availableDistricts.map((item) => (
+              <option key={item} value={item} className="dark:bg-slate-900 dark:text-slate-100">
                 {localizeOption(item)}
               </option>
             ))}
@@ -184,13 +196,13 @@ export default function MarketSearch({
       </div>
 
       {formError && (
-        <p className="text-red-600 mt-3">
+        <p className="text-red-600 dark:text-red-400 mt-3">
           {formError}
         </p>
       )}
 
       <button
-        disabled={loading || localizingOptions || isFormIncomplete}
+        disabled={loading || isFormIncomplete}
         onClick={() => {
           if (isFormIncomplete) {
             setFormError(
@@ -207,10 +219,10 @@ export default function MarketSearch({
             district
           );
         }}
-        className={`mt-6 px-8 py-3 rounded-xl font-semibold ${
-          loading || localizingOptions || isFormIncomplete
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : "bg-green-600 hover:bg-green-700 text-white"
+        className={`mt-6 px-8 py-3 rounded-xl font-semibold transition-all ${
+          loading || isFormIncomplete
+            ? "bg-gray-300 dark:bg-slate-800 text-gray-500 dark:text-slate-500 cursor-not-allowed"
+            : "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 text-white"
         }`}
       >
         {loading ? t("Searching...") : t("Search")}

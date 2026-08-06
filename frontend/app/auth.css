@@ -58,6 +58,18 @@
   }
 }
 
+html.dark .auth-card {
+  background: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.96),
+    rgba(30, 41, 59, 0.92)
+  ) !important;
+  border-color: #334155 !important;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.6),
+    0 2px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .auth-card {
     animation: auth-card-entrance 500ms ease-out both;

@@ -14,6 +14,15 @@ def add_message(user_id, message):
 def get_session(user_id):
     return sessions.get(user_id)
 
+def add_ai_message(user_id, message):
+    if user_id in sessions:
+        sessions[user_id]["conversation_history"].append(
+            {
+                "role": "assistant",
+                "content": message
+            }
+        )
+
 if __name__ == "__main__":
     create_session("farmer1", "kn")
     add_message("farmer1", "Crop disease problem")

@@ -89,10 +89,18 @@ export default function SessionGuard({
             profileCompleted:
               currentSession.profileCompleted,
           },
-          currentSession.rememberMe,
+          currentSession.rememberMe
         );
 
-        setLanguage(normalizeLanguage(data.user.language));
+        const currentLocalLang =
+          typeof window !== "undefined"
+            ? localStorage.getItem("language")
+            : null;
+        console.log(`[SessionGuard] verify session check: currentLocalLang = "${currentLocalLang}", data.user.language = "${data.user?.language}"`);
+        if (!currentLocalLang && data.user?.language) {
+          console.log(`[SessionGuard] No local language found, setting language from profile: ${data.user.language}`);
+          setLanguage(normalizeLanguage(data.user.language));
+        }
 
         setAllowed(true);
       })
@@ -113,8 +121,8 @@ export default function SessionGuard({
 
   if (!allowed) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-emerald-50 px-6">
-        <div className="rounded-2xl border border-emerald-200 bg-white px-8 py-6 font-semibold text-emerald-800 shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-emerald-50 dark:bg-slate-950 px-6">
+        <div className="rounded-2xl border border-emerald-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-8 py-6 font-semibold text-emerald-800 dark:text-emerald-400 shadow-sm">
           {t("Checking your secure session...")}
         </div>
       </main>

@@ -65,6 +65,7 @@ app.middleware("http")(enforce_rate_limit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=Config.ALLOWED_ORIGINS,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,31 +74,114 @@ app.add_middleware(
 
 AGRICULTURE_DOMAIN_TERMS = {
     "agriculture", "agricultural", "agri", "apmc", "crop", "crops",
-    "cultivation", "disease", "fertilizer", "fertiliser", "farm",
-    "farmer", "farming", "harvest", "irrigation", "kcc", "kisan",
-    "kvk", "mandi", "market price", "pest", "pesticide", "pm kisan",
-    "pm-kisan", "pmfby", "rain", "scheme", "soil", "spray", "subsidy",
-    "weather", "weed", "yojana",
-    "aphid", "blast", "bollworm", "chilli", "cotton", "groundnut",
-    "maize", "onion", "paddy", "potato", "rice", "sugarcane",
-    "tomato", "wheat", "whitefly",
+    "cultivation", "disease", "diseases", "fertilizer", "fertiliser", "farm",
+    "farmer", "farming", "harvest", "harvesting", "irrigation", "kcc", "kisan",
+    "kvk", "mandi", "market price", "pest", "pests", "pesticide", "pm kisan",
+    "pm-kisan", "pmfby", "rain", "rainfall", "scheme", "schemes", "soil", "spray",
+    "spraying", "subsidy", "weather", "weed", "yojana", "seed", "seeds", "sowing",
+    "npk", "urea", "dap", "potash", "yield", "acre", "hectare", "monsoon",
+    "tractor", "plough", "plowing", "organic", "compost", "livestock", "cattle",
+    "cow", "dairy", "poultry", "goat", "sheep", "fodder", "kharif", "rabi",
+    "zaid", "bazaar", "bhav", "dam", "drip", "sprinkler", "borewell", "pump",
+    "fungus", "fungicide", "insect", "insecticide", "worm", "rot", "wilt",
+    "blight", "bacterial blight", "rust", "yellow rust", "virus", "mosaic virus",
+    "mildew", "powdery mildew", "downy mildew", "mite", "mites", "borer", "stem borer",
+    "weevil", "caterpillar", "locust", "thrips", "whitefly", "aphid", "aphids",
+    "blast", "bollworm", "leaf curl", "leaf spot", "canker", "scab", "damping off",
+    "yellowing", "chilli", "cotton", "groundnut", "maize", "onion", "paddy",
+    "potato", "rice", "sugarcane", "tomato", "wheat", "mustard", "pulses",
+    "gram", "turmeric", "garlic", "ginger", "banana", "mango", "apple", "papaya",
+    "grapes", "guava", "pomegranate", "lemon", "soybean", "sunflower", "jute",
+    "tea", "coffee", "cabbage", "brinjal", "cluster beans", "bitter gourd",
+    "cauliflower", "ridge gourd", "ladies finger", "lady finger", "watermelon",
+    "water melon",
+    # Indic language terms (Kannada, Hindi, Telugu, Tamil, Malayalam, Marathi, Gujarati)
+    "ಬೆಳೆ", "ಕೃಷಿ", "ರೈತ", "ಬೀಜ", "ಮಣ್ಣು", "ಗೊಬ್ಬರ", "ಕೀಟನಾಶಕ", "ರೋಗ", "ಕೀಟ",
+    "ನೀರಾವರಿ", "ಹವಾಮಾನ", "ಮಳೆ", "ಮಾರುಕಟ್ಟೆ", "ಬೆಲೆ", "ಯೋಜನೆ", "ಎಲೆ", "ಮುರುಟು",
+    "ಫಸಲ", "फसल", "खेती", "कृषि", "किसान", "बीज", "मिट्टी", "खाद", "उर्वरक",
+    "कीटनाशक", "बीमारी", "रोग", "कीड़ा", "सिंचाई", "मौसम", "बारिश", "मंडी",
+    "भाव", "दाम", "योजना", "पत्ता", "पिके", "शेतकरी", "పంట", "వ్యవసాయం", "రైతు",
+    "విత్తనం", "నేల", "ఎరువు", "పురుగుమందు", "తెగులు", "పురుగు", "నీటిపారుదల",
+    "వాతావరణం", "వర్షం", "మార్కెట్", "ధర", "పథకం", "பயிர்", "விவசாயம்", "உழவர்",
+    "விதை", "மண்", "உரம்", "பூச்சிகொல்லி", "நோய்", "பூச்சி", "பாசனம்", "வானிலை",
+    "மழை", "சந்தை", "விலை", "திட்டம்", "വിള", "കൃഷി", "കർഷകൻ", "വിത്ത്", "മണ്ണ്",
+    "വളം", "കീടനാശിനി", "രോഗം", "കീടം", "കാലാവസ്ഥ", "മഴ", "മാർക്കറ്റ്", "വില",
+    "പദ്ധതി", "પાક", "ખેતી", "ખેડૂત", "બિયારણ", "જમીન", "ખાતર", "જંતુનાશક",
+    "રોગ", "જીવાત", "સિંચાઈ", "હવામાન", "વરસાદ", "બજાર", "ભાવ", "યોજના",
+}
+
+OUT_OF_DOMAIN_KEYWORDS = {
+    "virat", "kohli", "cricket", "football", "soccer", "actor", "actress",
+    "movie", "cinema", "song", "singing", "singer", "music", "president",
+    "prime minister", "capital of", "who is", "what is python", "coding",
+    "programming", "recipe", "game", "bollywood", "hollywood", "modi",
+    "trump", "biden", "dhoni", "rohit", "sharma", "ipl", "match", "score",
+    "hero", "heroine", "film", "politics", "election", "crypto", "bitcoin",
 }
 
 
-def is_agriculture_domain_query(text: str, agri_entities: dict) -> bool:
-    normalized = text.lower()
-    if agri_entities:
-        return True
-    if any(term in normalized for term in AGRICULTURE_DOMAIN_TERMS):
-        return True
-    return False
+def is_agriculture_domain_query(
+    english_text: str,
+    original_text: str,
+    agri_entities: dict,
+    intent_name: str = "",
+) -> tuple[bool, str]:
+    norm_english = english_text.lower().strip() if english_text else ""
+    norm_original = original_text.lower().strip() if original_text else ""
+
+    if not norm_english and not norm_original:
+        return False, "Empty query text"
+
+    combined = f"{norm_english} {norm_original}".strip()
+
+    # 1. Check if explicit non-agricultural keywords are present
+    has_out_of_domain = any(keyword in combined for keyword in OUT_OF_DOMAIN_KEYWORDS)
+
+    # 2. Check if agricultural terms exist using word boundaries for ASCII terms
+    has_agri_entities = bool(agri_entities)
+    has_agri_terms = False
+    for term in AGRICULTURE_DOMAIN_TERMS:
+        if term.isascii():
+            if re.search(r'\b' + re.escape(term) + r'\b', combined):
+                has_agri_terms = True
+                break
+        else:
+            if term in combined:
+                has_agri_terms = True
+                break
+
+    valid_intents = {
+        "disease_query", "fertilizer_query", "government_scheme_query",
+        "weather_query", "soil_query", "pest_control_query",
+        "crop_management_query", "market_price_query", "irrigation_query",
+        "seed_query", "harvesting_query", "crop_variety_query",
+        "organic_farming_query", "planting_query", "weed_management_query",
+        "general_agriculture_query"
+    }
+    has_agri_intent = intent_name in valid_intents
+
+    # Rejection rule:
+    # If explicit out-of-domain keyword is present AND no agri entity/terms exist -> Reject
+    if has_out_of_domain and not has_agri_entities and not has_agri_terms:
+        return False, "Matched non-agricultural keyword without agricultural context"
+
+    # Acceptance rule:
+    if has_agri_entities or has_agri_terms or (has_agri_intent and not has_out_of_domain):
+        return True, "Valid agricultural query"
+
+    # Default rule: If no explicit non-agri keywords match, treat as general agriculture query
+    if not has_out_of_domain:
+        return True, "No non-agricultural keywords detected (defaulting to agriculture domain)"
+
+    return False, "Failed all agricultural domain checks"
 
 
 def out_of_domain_response() -> str:
     return (
-        "I can help with agriculture, farming, crop health, weather, market "
-        "prices, and government schemes for farmers. Please ask a farming "
-        "related question."
+        "I am an AI-powered Agricultural Advisory Assistant. I can only answer "
+        "questions related to farming, crops, soil health, pest management, "
+        "weather, government schemes, and market prices. Please ask an "
+        "agriculture-related question."
     )
 
 
@@ -234,9 +318,23 @@ def create_response_feedback(
     finally:
         db.close()
 
+def normalize_city_query(city: str) -> str:
+    cleaned = city.strip()
+    if not cleaned:
+        return cleaned
+    if any(ord(char) > 127 for char in cleaned):
+        try:
+            translated = translate_text(cleaned, "auto", "en-IN").translated_text
+            if translated and translated.strip():
+                return translated.strip()
+        except Exception:
+            pass
+    return cleaned
+
 @app.get("/weather", dependencies=[Depends(require_authenticated_user)])
 def weather(city: str):
-    result = get_weather(city)
+    search_city = normalize_city_query(city)
+    result = get_weather(search_city)
     if "error" in result:
         raise HTTPException(
             status_code=result.get("status_code", 400),
@@ -246,7 +344,8 @@ def weather(city: str):
 
 @app.get("/weather/forecast", dependencies=[Depends(require_authenticated_user)])
 def weather_forecast(city: str):
-    result = get_forecast(city)
+    search_city = normalize_city_query(city)
+    result = get_forecast(search_city)
     if "error" in result:
         raise HTTPException(
             status_code=result.get("status_code", 400),
@@ -286,6 +385,7 @@ def search_schemes(
     request: SchemeSearchRequest,
     _user_id: int = Depends(require_authenticated_user),
 ):
+    print(f"[SchemesSearch] Request received: query='{request.query}', lang='{request.language}', source_lang='{request.source_language}'")
     target_language = get_voice_language_code(request.language)
     source_language = get_voice_language_code(
         request.source_language or request.language
@@ -293,28 +393,38 @@ def search_schemes(
     english_query = request.query
 
     if source_language != "en-IN":
-        english_query = translate_text(
-            request.query,
-            source_language,
-            "en-IN",
-        ).translated_text
+        try:
+            english_query = translate_text(
+                request.query,
+                source_language,
+                "en-IN",
+            ).translated_text
+        except Exception as err:
+            print(f"[SchemesSearch] Input translation failed: {err}")
+            english_query = request.query
 
+    print(f"[SchemesSearch] Search started with query='{english_query}'")
     try:
         answer = scheme_agent(english_query)
+        print(f"[SchemesSearch] Search finished. Answer length={len(answer) if answer else 0}")
     except Exception as error:
-        print(f"Government scheme search failed: {error}")
+        print(f"[SchemesSearch] Exception during scheme_agent: {error}")
         raise HTTPException(
             status_code=503,
             detail="Government scheme information is temporarily unavailable.",
         ) from error
 
     if target_language != "en-IN":
-        answer = translate_text(
-            answer,
-            "en-IN",
-            target_language,
-        ).translated_text
+        try:
+            answer = translate_text(
+                answer,
+                "en-IN",
+                target_language,
+            ).translated_text
+        except Exception as err:
+            print(f"[SchemesSearch] Output translation failed: {err}")
 
+    print(f"[SchemesSearch] Response returned for query='{request.query}'")
     return {
         "query": request.query,
         "answer": answer,
@@ -431,15 +541,15 @@ def get_profile(
         id=user.id,
         name=user.name,
         email=user.email,
-        phone=user.phone,
-        state=user.state,
-        district=user.district,
-        city=user.city,
-        language=user.language,
-        farmer_type=user.farmer_type,
-        crop=user.crop,
-        farm_size=user.farm_size,
-        soil_type=user.soil_type
+        phone=user.phone or "",
+        state=user.state or "",
+        district=user.district or "",
+        city=user.city or "",
+        language=user.language or "English",
+        farmer_type=user.farmer_type or "",
+        crop=user.crop or "",
+        farm_size=user.farm_size or "",
+        soil_type=user.soil_type or ""
     )
     db.close()
     return response
@@ -461,25 +571,34 @@ def update_profile(
             status_code=404,
             detail="User not found"
         )
-    profile_changed = any([
-        user.phone != request.phone,
-        user.state != request.state,
-        user.district != request.district,
-        user.city != request.city,
-        user.crop != request.crop,
-        user.farmer_type != request.farmer_type,
-        user.farm_size != request.farm_size,
-        user.soil_type != request.soil_type,
-    ])
-    user.phone = request.phone
-    user.state = request.state
-    user.district = request.district
-    user.city = request.city
-    user.language = request.language
-    user.farmer_type = request.farmer_type
-    user.crop = request.crop
-    user.farm_size = request.farm_size
-    user.soil_type = request.soil_type
+    profile_changed = False
+    if request.phone is not None and user.phone != request.phone:
+        user.phone = request.phone
+        profile_changed = True
+    if request.state is not None and user.state != request.state:
+        user.state = request.state
+        profile_changed = True
+    if request.district is not None and user.district != request.district:
+        user.district = request.district
+        profile_changed = True
+    if request.city is not None and user.city != request.city:
+        user.city = request.city
+        profile_changed = True
+    if request.language is not None and user.language != request.language:
+        user.language = request.language
+    if request.farmer_type is not None and user.farmer_type != request.farmer_type:
+        user.farmer_type = request.farmer_type
+        profile_changed = True
+    if request.crop is not None and user.crop != request.crop:
+        user.crop = request.crop
+        profile_changed = True
+    if request.farm_size is not None and user.farm_size != request.farm_size:
+        user.farm_size = request.farm_size
+        profile_changed = True
+    if request.soil_type is not None and user.soil_type != request.soil_type:
+        user.soil_type = request.soil_type
+        profile_changed = True
+
     if profile_changed:
         db.add(Notification(
             user_id=user.id,
@@ -603,33 +722,49 @@ def get_schemes(
     user_id: int,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    print(f"[GetSchemes] Request received for user_id={user_id}")
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            print(f"[GetSchemes] Exception: User {user_id} not found")
             raise HTTPException(
                 status_code=404,
                 detail="User Not Found"
             )
+        if not user.state and not user.crop:
+            return {
+                "count": 0,
+                "schemes": [],
+                "available": False,
+                "message": "Please set your location and primary crop in Profile settings to view relevant government schemes."
+            }
+
+        details_parts = []
+        if user.state:
+            details_parts.append(f"State: {user.state}")
+        if user.crop:
+            details_parts.append(f"Crop: {user.crop}")
+        if user.farmer_type:
+            details_parts.append(f"Farmer Type: {user.farmer_type}")
+        if user.farm_size:
+            details_parts.append(f"Farm Size: {user.farm_size}")
+
         query = f"""
 Government schemes for farmers.
 
 Farmer Details:
-State: {user.state}
-Crop: {user.crop}
-Farmer Type: {user.farmer_type}
-Farm Size: {user.farm_size}
+{chr(10).join(details_parts) if details_parts else "General farming schemes in India"}
 
 Return only the most relevant government scheme names.
 One scheme per line.
 No explanation.
 """
+        print(f"[GetSchemes] Search started for user {user_id}")
         try:
             answer = scheme_titles_agent(query)
         except Exception as error:
-            # The scheme index is a generated local cache.  Do not let an
-            # index failure break the whole dashboard while it is rebuilt.
             print(f"Scheme search unavailable: {error}")
             return {"count": 0, "schemes": [], "available": False}
         scheme_list = []
@@ -651,20 +786,113 @@ def create_chat_session(
     user_id: int,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    print(f"[CreateChatSession] Request received for user_id={user_id} (authenticated as {authenticated_user_id})")
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
-    session = ChatSession(
-        user_id=user_id,
-    
-        title="New Chat"
-    )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    db.close()
-    return {
-        "session_id": session.id
-    }
+    try:
+        session = ChatSession(
+            user_id=user_id,
+            title="New Chat"
+        )
+        db.add(session)
+        db.commit()
+        db.refresh(session)
+        print(f"[CreateChatSession] Session created successfully with session_id={session.id}")
+        return {
+            "session_id": session.id
+        }
+    except Exception as error:
+        print(f"[CreateChatSession] Error creating session for user_id={user_id}: {error}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create chat session"
+        ) from error
+    finally:
+        db.close()
+
+@app.get("/chat/sessions/{user_id}")
+def get_user_chat_sessions(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
+    db = SessionLocal()
+    try:
+        sessions = (
+            db.query(ChatSession)
+            .filter(ChatSession.user_id == user_id)
+            .order_by(ChatSession.updated_at.desc(), ChatSession.id.desc())
+            .all()
+        )
+        return [
+            {
+                "id": session.id,
+                "title": session.title or "New Chat",
+                "created_at": session.created_at.isoformat() if session.created_at else "",
+                "updated_at": session.updated_at.isoformat() if session.updated_at else "",
+            }
+            for session in sessions
+        ]
+    finally:
+        db.close()
+
+@app.get("/chat/session/{session_id}/messages")
+def get_session_messages(
+    session_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    db = SessionLocal()
+    try:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == authenticated_user_id,
+        ).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        messages = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session_id)
+            .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+            .all()
+        )
+        return {
+            "session_id": session.id,
+            "title": session.title,
+            "messages": [
+                {
+                    "id": msg.id,
+                    "type": "user" if msg.role == "user" else "ai",
+                    "text": msg.message,
+                    "created_at": msg.created_at.isoformat() if msg.created_at else "",
+                }
+                for msg in messages
+            ],
+        }
+    finally:
+        db.close()
+
+@app.delete("/chat/session/{session_id}")
+def delete_chat_session(
+    session_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    db = SessionLocal()
+    try:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == authenticated_user_id,
+        ).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete(synchronize_session=False)
+        db.delete(session)
+        db.commit()
+        return {"message": "Session deleted successfully"}
+    finally:
+        db.close()
 
 @app.post("/speech-to-text", dependencies=[Depends(require_authenticated_user)])
 async def transcribe_speech(
@@ -762,6 +990,11 @@ def chat(
             detail="Session Not Found"
         )
     user_message = request.message
+    translated_text = user_message or ""
+    if session.title == "New Chat" or not session.title:
+        session.title = user_message[:45] + ("..." if len(user_message) > 45 else "")
+    session.updated_at = datetime.utcnow()
+    db.commit()
     processing_message = user_message
     recent_messages = (
         db.query(ChatMessage)
@@ -800,7 +1033,7 @@ def chat(
                 )
             )
             or any(term in user_message.lower() for term in ("rain", "weather", "tomorrow", "ಮಳೆ", "ಹವಾಮಾನ", "ನಾಳೆ", "ತಾಪಮಾನ", "ಗೋಧಿ", "ಬೆಳೆ"))
-            or (translated_text and any(term in translated_text.lower() for term in ("rain", "weather", "tomorrow", "forecast", "temperature")))
+            or any(term in (translated_text or "").lower() for term in ("rain", "weather", "tomorrow", "forecast", "temperature"))
         )
     )
     previous_user_message_from_query = (
@@ -863,34 +1096,57 @@ def chat(
         "ur": "ur-IN",
         "ne": "ne-IN"
     }
-    translated_text = processing_message
+    translated_text = processing_message or ""
     source_language = lang_map.get(language, "en-IN")
     if source_language != "en-IN":
-        result = translate_text(
-            processing_message,
-            source_language,
-            "en-IN"
-        )
-        translated_text = result.translated_text
+        try:
+            result = translate_text(
+                processing_message,
+                source_language,
+                "en-IN"
+            )
+            if result and result.translated_text:
+                translated_text = result.translated_text
+        except Exception as error:
+            print("Translation to English failed in /chat:", error)
+            translated_text = processing_message
+
+    translated_text = translated_text or ""
     intent_result = classify_intent(translated_text)
     if intent_result["intent"] == "government_scheme_query":
         entities = []
     else:
         entities = extract_entities(translated_text)
     agri_entities = extract_agri_entities(translated_text)
-    if not is_agriculture_domain_query(
+    is_agri, rejection_reason = is_agriculture_domain_query(
         translated_text,
+        user_message,
         agri_entities,
-    ):
+        intent_result.get("intent", ""),
+    )
+
+    print("Original Query:", user_message)
+    print("Translated Query:", translated_text)
+    print(f"Detected Intent: {intent_result['intent']} (score: {intent_result.get('score', 0.0)})")
+    print("Domain Classification:", "Agriculture" if is_agri else "Out of Domain")
+    print("Reason for rejection:", rejection_reason if not is_agri else "None")
+
+    if not is_agri:
         response_text = out_of_domain_response()
         target_language = lang_map.get(language, "en-IN")
         translated_response = response_text
         if target_language != "en-IN":
-            translated_response = translate_text(
-                response_text,
-                "en-IN",
-                target_language,
-            ).translated_text
+            try:
+                res = translate_text(
+                    response_text,
+                    "en-IN",
+                    target_language,
+                )
+                if res and res.translated_text:
+                    translated_response = res.translated_text
+            except Exception as error:
+                print("Out-of-domain response translation failed:", error)
+                translated_response = response_text
         user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
         user_chat = ChatMessage(
             session_id=session.id,
@@ -1036,12 +1292,13 @@ def chat(
     requested_location = (
         found_city
         or previous_location
-        or (location_match.group(1).strip() if location_match else (user.city or user.district if user else "Bagalkot"))
+        or (location_match.group(1).strip() if location_match else (user.city or user.district if user else None))
     )
-    requested_location = weather_location_aliases.get(
-        requested_location.lower(),
-        requested_location,
-    )
+    if requested_location:
+        requested_location = weather_location_aliases.get(
+            requested_location.lower(),
+            requested_location,
+        )
 
     comparison_locations = []
     response_is_localized = False
@@ -1059,7 +1316,7 @@ def chat(
             try:
                 price = get_market_price(
                     commodity=commodity,
-                    state=(user.state if user and user.state else "Karnataka"),
+                    state=(user.state if user and user.state else None),
                     district=district,
                 )
                 market_results.append(price)
@@ -1126,7 +1383,7 @@ def chat(
                 try:
                     price = get_market_price(
                         commodity=commodity,
-                        state=(user.state if user and user.state else "Karnataka"),
+                        state=(user.state if user and user.state else None),
                         district=requested_location,
                     )
                     live_context_parts.append(
@@ -1214,10 +1471,10 @@ def chat(
         if intent_result["intent"] == "market_price_query":
             response_text = route_query(
                 intent=intent_result["intent"],
-                commodity=agri_entities.get("crop"),
+                commodity=agri_entities.get("crop") or (user.crop if user else None),
                 state=(
                     market_state
-                    or (user.state if user and user.state else "Karnataka")
+                    or (user.state if user and user.state else None)
                 ),
                 district=(
                     market_district
@@ -1240,12 +1497,17 @@ def chat(
     translated_response = response_text
     target_language = lang_map.get(language, "en-IN")
     if target_language != "en-IN" and not response_is_localized:
-        result = translate_text(
-            response_text,
-            "en-IN",
-            target_language
-        )
-        translated_response = result.translated_text
+        try:
+            result = translate_text(
+                response_text,
+                "en-IN",
+                target_language
+            )
+            if result and result.translated_text:
+                translated_response = result.translated_text
+        except Exception as error:
+            print("Response translation failed:", error)
+            translated_response = response_text
     user_chat = ChatMessage(
         session_id=session.id,
         role="user",
@@ -1418,7 +1680,7 @@ def get_chat_activity(
             .all()
         )
         if not sessions:
-            return []
+            return {"count": 0, "activities": []}
         query = (
             db.query(ChatMessage)
             .filter(

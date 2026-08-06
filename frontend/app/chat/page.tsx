@@ -8,7 +8,16 @@ import {
 
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Mic, ArrowLeft } from "lucide-react";
+import {
+  Mic,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
+  MessageSquare,
+} from "lucide-react";
 import "@/app/globals.css";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -23,6 +32,13 @@ interface Message {
   confidenceScore?: number;
   confidenceLevel?: string;
   needsHumanReview?: boolean;
+}
+
+interface ChatSessionItem {
+  id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
 }
 
 function ChatContent() {
@@ -50,6 +66,109 @@ function ChatContent() {
   const hasAutoAsked = useRef(false);
   const cacheReady = useRef(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
+
+  const [sessionsList, setSessionsList] = useState<ChatSessionItem[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
+  const loadSessions = useCallback(async (userId: string | number) => {
+    try {
+      setLoadingSessions(true);
+      const res = await apiFetch(`${API_URL}/chat/sessions/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setSessionsList(list);
+        return list;
+      }
+    } catch (err) {
+      console.error("Failed to fetch chat sessions:", err);
+    } finally {
+      setLoadingSessions(false);
+    }
+    return [];
+  }, []);
+
+  const selectSession = useCallback(
+    async (id: number) => {
+      try {
+        setSessionId(id);
+        const res = await apiFetch(`${API_URL}/chat/session/${id}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.messages) && data.messages.length > 0) {
+            setMessages(data.messages);
+          } else {
+            setMessages([{ type: "ai", text: t("Chat greeting") }]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load session messages:", err);
+      }
+    },
+    [t],
+  );
+
+  const createNewSession = useCallback(async () => {
+    console.log("New Chat clicked");
+    if (!session) {
+      console.warn("[createNewSession] No active user session found");
+      return;
+    }
+
+    try {
+      setStatus("Starting new chat...");
+      console.log(`[createNewSession] Sending request: POST ${API_URL}/chat/session?user_id=${session.userId}`);
+      const response = await apiFetch(
+        `${API_URL}/chat/session?user_id=` + session.userId,
+        { method: "POST" },
+      );
+
+      console.log("[createNewSession] Response status:", response.status);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to create new chat session");
+      }
+
+      const data = await response.json();
+      console.log("[createNewSession] Parsed response data:", data);
+
+      if (!data.session_id) {
+        throw new Error("Invalid session ID returned from server");
+      }
+
+      setSessionId(data.session_id);
+      setMessages([{ type: "ai", text: t("Chat greeting") }]);
+      setQuestion("");
+      setStatus("");
+      localStorage.removeItem("agriadvisor_last_conversation");
+
+      const updatedSessions = await loadSessions(session.userId);
+      console.log("[createNewSession] Updated sessions list:", updatedSessions);
+    } catch (err) {
+      console.error("[createNewSession] Error creating new chat session:", err);
+      const msg = err instanceof Error ? err.message : "Failed to create new chat session";
+      setStatus(`❌ ${msg}`);
+    }
+  }, [session, t, loadSessions]);
+
+  const deleteSession = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session) return;
+    try {
+      const res = await apiFetch(`${API_URL}/chat/session/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setSessionsList((prev) => prev.filter((s) => s.id !== id));
+        if (sessionId === id) {
+          void createNewSession();
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     const syncConnection = () => {
@@ -103,39 +222,30 @@ useEffect(() => {
 }, [t]);
 
   useEffect(() => {
-    async function createSession() {
-      if (!connectionChecked) return;
+    async function initSessions() {
+      if (!connectionChecked || !session || checkingSession) return;
       if (!isOnline) {
         setStatus("Offline — reconnect to ask new questions.");
         return;
       }
-
-      if (!session) return;
-
-      const userId = session.userId;
-      try {
-        const response = await apiFetch(
-          `${API_URL}/chat/session?user_id=` + userId,
-          {
-            method: "POST",
-          },
-        );
-        if (!response.ok) {
-          throw new Error("Failed to Create Chat Session");
-        }
-        const data = await response.json();
-        setSessionId(data.session_id);
-        setStatus("");
-      } catch (err) {
-        console.error(err);
-        setStatus("Unable to connect to the agricultural AI server.");
+      const existing = await loadSessions(session.userId);
+      if (existing && existing.length > 0) {
+        void selectSession(existing[0].id);
+      } else {
+        void createNewSession();
       }
     }
 
-    if (!checkingSession) {
-      createSession();
-    }
-  }, [checkingSession, session, connectionChecked, isOnline]);
+    initSessions();
+  }, [
+    checkingSession,
+    session,
+    connectionChecked,
+    isOnline,
+    loadSessions,
+    selectSession,
+    createNewSession,
+  ]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -215,6 +325,7 @@ useEffect(() => {
         ]);
 
         setStatus("");
+        if (session) void loadSessions(session.userId);
         if (localStorage.getItem("voice_output") !== "off") {
           void speakAnswer(answer);
         }
@@ -236,7 +347,7 @@ useEffect(() => {
     // surrounding scope, so keeping its per-render identity out of this
     // dependency list avoids unnecessarily recreating the callback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOnline, language, question, session, sessionId],
+    [isOnline, language, question, session, sessionId, loadSessions],
   );
 
   useEffect(() => {
@@ -679,27 +790,104 @@ async function speakAnswer(text: string) {
 
   return (
     <DashboardLayout>
-      <section className="chat-area">
-        <div className="flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur border border-emerald-200 rounded-2xl mb-4 shadow-md">
+      <div className="chat-container-layout">
+        {/* Left Sidebar */}
+        <aside className={`chat-sidebar ${sidebarOpen ? "" : "collapsed"}`}>
+          <div className="chat-sidebar-header">
+            <h2 className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100 text-base">
+              <History size={18} className="text-emerald-600 dark:text-emerald-400" />
+              <span>{t("Chat History")}</span>
+            </h2>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              title={t("Close Sidebar")}
+            >
+              <PanelLeftClose size={18} />
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => {
-              if (typeof window !== "undefined" && window.history.length > 1) {
-                router.back();
-              } else {
-                router.push("/dashboard");
-              }
+              console.log("New Chat clicked");
+              void createNewSession();
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all duration-300 font-bold text-sm sm:text-base shadow-md group cursor-pointer"
+            className="new-chat-btn"
           >
-            <ArrowLeft size={20} className="transition-transform group-hover:-translate-x-1" />
-            <span>{t("Back")}</span>
+            <Plus size={18} />
+            <span>{t("New Chat")}</span>
           </button>
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-sm sm:text-base">
-            <span className="text-xl">🤖</span>
-            <span>{t("AI Assistant")}</span>
+
+          <div className="session-list">
+            {loadingSessions && sessionsList.length === 0 ? (
+              <p className="py-6 text-center text-xs text-slate-400">{t("Loading chats...")}</p>
+            ) : sessionsList.length === 0 ? (
+              <p className="py-6 text-center text-xs text-slate-400">{t("No previous chats.")}</p>
+            ) : (
+              sessionsList.map((item) => {
+                const isActive = item.id === sessionId;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => void selectSession(item.id)}
+                    className={`session-item ${isActive ? "active" : ""}`}
+                  >
+                    <div className="session-item-content">
+                      <MessageSquare size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span className="session-title">{item.title}</span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Delete chat session"
+                      onClick={(e) => void deleteSession(item.id, e)}
+                      className="session-delete-btn"
+                      title={t("Delete Chat")}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
-        </div>
+        </aside>
+
+        {/* Main Chat Area */}
+        <section className="chat-area flex-1">
+          <div className="flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-900/90 backdrop-blur border border-emerald-200 dark:border-slate-800 rounded-2xl mb-4 shadow-md">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                title={sidebarOpen ? t("Close History") : t("Open History")}
+              >
+                {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push("/dashboard");
+                  }
+                }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all duration-300 font-bold text-sm shadow-md group cursor-pointer"
+              >
+                <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
+                <span>{t("Back")}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-sm sm:text-base">
+              <span className="text-xl">🤖</span>
+              <span>{t("AI Assistant")}</span>
+            </div>
+          </div>
 
         <div className="chat-messages">
           {messages.map((message, index) => (
@@ -838,6 +1026,7 @@ async function speakAnswer(text: string) {
           </div>
         </div>
       </section>
+      </div>
     </DashboardLayout>
   );
 }

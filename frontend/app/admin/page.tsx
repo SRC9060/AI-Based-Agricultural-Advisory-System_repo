@@ -5,6 +5,9 @@ import { API_URL } from "@/lib/api";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import "./admin.css";
 
+import { useTranslation } from "@/components/LanguageProvider";
+import LanguageSelector from "@/components/LanguageSelector";
+
 type Analytics = {
   users: number;
   sessions: number;
@@ -21,6 +24,7 @@ type Unanswered = { id: number; query: string; response: string; created_at: str
 type KnowledgeFile = { name: string; folder: string; size_bytes: number };
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const [adminKey, setAdminKey] = useState("");
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [unanswered, setUnanswered] = useState<Unanswered[]>([]);
@@ -86,41 +90,44 @@ export default function AdminPage() {
     <main className="admin-shell">
       <header className="admin-header">
         <div>
-          <p className="admin-kicker">AgriAdvisor internal tool</p>
-          <h1>Admin dashboard</h1>
+          <p className="admin-kicker">{t("AgriAdvisor internal tool")}</p>
+          <h1>{t("Admin dashboard")}</h1>
         </div>
-        <a href="/chat">Open farmer PWA</a>
+        <div className="flex items-center gap-4">
+          <LanguageSelector />
+          <a href="/chat">{t("Open farmer PWA")}</a>
+        </div>
       </header>
 
       <section className="admin-auth">
-        <label htmlFor="admin-key">Admin API key</label>
+        <label htmlFor="admin-key">{t("Admin API key")}</label>
         <input
           id="admin-key"
           type="password"
           value={adminKey}
           onChange={(event) => setAdminKey(event.target.value)}
-          placeholder="Enter ADMIN_API_KEY"
+          placeholder={t("Enter ADMIN_API_KEY")}
         />
-        <button onClick={() => loadDashboard()}>Load dashboard</button>
-        <span role="status">{status}</span>
+        <button onClick={() => loadDashboard()}>{t("Load dashboard")}</button>
+        <span role="status">{t(status)}</span>
       </section>
 
       {analytics && (
         <>
-          <section className="metric-grid" aria-label="Usage analytics">
-            <article><strong>{analytics.users}</strong><span>Farmers</span></article>
-            <article><strong>{analytics.sessions}</strong><span>Sessions</span></article>
-            <article><strong>{analytics.messages}</strong><span>Messages</span></article>
-            <article><strong>{analytics.unanswered_queries}</strong><span>Unanswered</span></article>
-            <article><strong>{analytics.response_feedback.satisfaction_percent}%</strong><span>Satisfaction</span></article>
+          <section className="metric-grid" aria-label={t("Usage analytics")}>
+            <article><strong>{analytics.users}</strong><span>{t("Farmers")}</span></article>
+            <article><strong>{analytics.sessions}</strong><span>{t("Sessions")}</span></article>
+            <article><strong>{analytics.messages}</strong><span>{t("Messages")}</span></article>
+            <article><strong>{analytics.unanswered_queries}</strong><span>{t("Unanswered")}</span></article>
+            <article><strong>{analytics.response_feedback.satisfaction_percent}%</strong><span>{t("Satisfaction")}</span></article>
           </section>
 
           <div className="admin-columns">
             <section className="admin-panel">
-              <h2>Unanswered query log</h2>
+              <h2>{t("Unanswered query log")}</h2>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Question</th><th>Logged</th></tr></thead>
+                  <thead><tr><th>{t("Question")}</th><th>{t("Logged")}</th></tr></thead>
                   <tbody>
                     {unanswered.map((item) => (
                       <tr key={item.id}>
@@ -128,20 +135,20 @@ export default function AdminPage() {
                         <td>{new Date(item.created_at).toLocaleString()}</td>
                       </tr>
                     ))}
-                    {!unanswered.length && <tr><td colSpan={2}>No unanswered queries.</td></tr>}
+                    {!unanswered.length && <tr><td colSpan={2}>{t("No unanswered queries.")}</td></tr>}
                   </tbody>
                 </table>
               </div>
             </section>
 
             <section className="admin-panel">
-              <h2>Knowledge base</h2>
+              <h2>{t("Knowledge base")}</h2>
               <form onSubmit={uploadPdf} className="upload-form">
                 <input name="file" type="file" accept="application/pdf" required />
-                <input name="folder" defaultValue="Admin_Uploads" aria-label="Knowledge folder" />
-                <button type="submit">Upload PDF</button>
+                <input name="folder" defaultValue="Admin_Uploads" aria-label={t("Knowledge folder")} />
+                <button type="submit">{t("Upload PDF")}</button>
               </form>
-              <button className="secondary-button" onClick={rebuildIndex}>Rebuild search index</button>
+              <button className="secondary-button" onClick={rebuildIndex}>{t("Rebuild search index")}</button>
               <ul className="file-list">
                 {files.map((file) => (
                   <li key={`${file.folder}/${file.name}`}>

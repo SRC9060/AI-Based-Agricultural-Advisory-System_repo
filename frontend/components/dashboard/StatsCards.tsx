@@ -27,28 +27,28 @@ export default function StatCard({
   linkColor,
 }: StatCardProps) {
   return (
-    <div className="h-full rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-white to-green-50 shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all duration-300 p-4 flex flex-col justify-between">
+    <div className="h-full rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-white via-white to-green-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900/90 shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all duration-300 p-4 flex flex-col justify-between">
       <div className="flex justify-between items-start gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-500">{title}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
 
           <div className="mt-3 flex items-baseline gap-1 flex-wrap">
-            <h2 className="text-2xl font-semibold text-slate-900">{value}</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</h2>
             {valueSuffix ? (
-              <span className="text-sm text-slate-500">{valueSuffix}</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400">{valueSuffix}</span>
             ) : null}
           </div>
 
           {details && details.length > 0 ? (
             <div className="mt-2 space-y-0.5">
               {details.map((detail, index) => (
-                <p key={`${title}-${index}`} className="text-sm text-slate-500">
+                <p key={`${title}-${index}`} className="text-sm text-slate-500 dark:text-slate-400">
                   {detail}
                 </p>
               ))}
             </div>
           ) : subtitle ? (
-            <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p>
           ) : null}
         </div>
 
@@ -62,7 +62,7 @@ export default function StatCard({
       {linkText && linkHref ? (
         <Link
           href={linkHref}
-          className={`mt-2 text-sm font-medium ${linkColor || "text-slate-600"} hover:underline`}
+          className={`mt-2 text-sm font-medium ${linkColor || "text-slate-600 dark:text-slate-300"} hover:underline`}
         >
           {linkText}
         </Link>

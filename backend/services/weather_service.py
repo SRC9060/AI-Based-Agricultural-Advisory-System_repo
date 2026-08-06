@@ -30,6 +30,13 @@ def _location_candidates(city: str):
 
 
 def _fetch_openweather(endpoint: str, city: str):
+    candidates = _location_candidates(city)
+    if not candidates:
+        return {
+            "error": "Location not specified. Please enter a city or update your profile location.",
+            "status_code": 400,
+        }
+
     if not Config.OPENWEATHER_API_KEY:
         return {
             "error": "The weather service is not configured.",
@@ -37,7 +44,7 @@ def _fetch_openweather(endpoint: str, city: str):
         }
 
     last_message = "Location not found."
-    for candidate in _location_candidates(city):
+    for candidate in candidates:
         try:
             response = _session.get(
                 f"https://api.openweathermap.org/data/2.5/{endpoint}",

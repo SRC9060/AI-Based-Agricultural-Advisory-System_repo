@@ -82,6 +82,44 @@ th, td { padding: 12px; border-bottom: 1px solid #e5ece6; text-align: left; vert
 .file-list li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid #e5ece6; }
 .file-list small { color: #657268; }
 
+html.dark .admin-shell {
+  color: #f1f5f9;
+  background: #090d16;
+}
+
+html.dark .admin-header a {
+  color: #4ade80;
+}
+
+html.dark .admin-kicker {
+  color: #94a3b8;
+}
+
+html.dark .admin-auth,
+html.dark .metric-grid article,
+html.dark .admin-panel {
+  border-color: #1e293b;
+  background: #0f172a;
+}
+
+html.dark .admin-auth input,
+html.dark .upload-form input {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+html.dark .metric-grid span,
+html.dark .file-list small {
+  color: #94a3b8;
+}
+
+html.dark th,
+html.dark td,
+html.dark .file-list li {
+  border-bottom-color: #1e293b;
+}
+
 @media (max-width: 800px) {
   .admin-shell { padding: 18px; }
   .admin-auth { grid-template-columns: 1fr; }

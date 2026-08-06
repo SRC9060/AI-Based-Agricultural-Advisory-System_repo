@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useT } from "next-i18next/client";
+import { useTranslation } from "@/components/LanguageProvider";
 
 export default function OfflineBanner() {
-  const { t } = useT("common");
+  const { t } = useTranslation();
   const [online, setOnline] = useState(true);
 
   useEffect(() => {

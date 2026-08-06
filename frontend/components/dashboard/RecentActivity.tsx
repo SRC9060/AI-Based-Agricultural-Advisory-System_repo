@@ -94,11 +94,11 @@ export default function RecentActivity({
 
   if (activities.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm p-5">
-        <h2 className="text-2xl font-semibold mb-4 text-slate-900">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm p-5">
+        <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">
           {t("Recent Activity")}
         </h2>
-        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500">
+        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500 dark:text-slate-400">
           <span className="text-4xl mb-3">🌱</span>
           <p className="font-semibold">{t("No recent activity yet.")}</p>
           <p className="text-sm mt-2">
@@ -110,14 +110,14 @@ export default function RecentActivity({
   }
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/90 shadow-sm transition-all duration-300 p-5">
+    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm transition-all duration-300 p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-        <h2 className="text-[1.15rem] font-semibold text-slate-900">
+        <h2 className="text-[1.15rem] font-semibold text-slate-900 dark:text-slate-100">
           {t("Recent Activity")}
         </h2>
         <Link
           href="/queries"
-          className="text-green-700 font-semibold hover:underline text-sm"
+          className="text-green-700 dark:text-green-400 font-semibold hover:underline text-sm"
         >
           {t("View All")}
         </Link>
@@ -130,20 +130,20 @@ export default function RecentActivity({
           return (
             <div key={index} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <div className={`rounded-full p-2.5 z-10 ${bg}`}>
+                <div className={`rounded-full p-2.5 z-10 ${bg} dark:bg-slate-800`}>
                   {icon}
                 </div>
               </div>
               <div className="flex-1 pb-4">
-                <p className="font-semibold text-gray-900 text-sm">
-                  {formatActivityTitle(activity.type)}
+                <p className="font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                  {t(formatActivityTitle(activity.type))}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   {question.length > 50
                   ? `${question.slice(0, 45)}...`
                   : question}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
                   {t(relativeTime(activity.created_at))}
                 </p>
               </div>

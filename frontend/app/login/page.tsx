@@ -11,13 +11,14 @@ import {
   saveLoginSession,
 } from "@/lib/session";
 import { useTranslation } from "@/components/LanguageProvider";
+import LanguageSelector from "@/components/LanguageSelector";
 import { saveAuthenticatedSession } from "@/lib/auth";
 import { normalizeLanguage } from "@/lib/languages";
 import "@/app/auth.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setLanguage, t } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,14 +28,17 @@ export default function LoginPage() {
   const [checkingRememberedLogin, setCheckingRememberedLogin] = useState(true);
 
   useEffect(() => {
-    const rememberedSession = getRememberedSession();
+    try {
+      const rememberedSession = getRememberedSession();
 
-    if (rememberedSession) {
-      router.replace(getLoginRedirectPath(rememberedSession));
-      return;
+      if (rememberedSession) {
+        router.replace(getLoginRedirectPath(rememberedSession));
+      }
+    } catch (error) {
+      console.error("Error checking remembered session:", error);
+    } finally {
+      setCheckingRememberedLogin(false);
     }
-
-    setCheckingRememberedLogin(false);
   }, [router]);
 
   async function handleLogin() {
@@ -57,7 +61,7 @@ export default function LoginPage() {
         saveAuthenticatedSession(data.access_token, rememberMe);
         setLanguage(normalizeLanguage(data.user.language));
 
-const statusResponse = await apiFetch(
+        const statusResponse = await apiFetch(
           `${API_URL}/profile-status/${data.user.id}`
         );
 
@@ -95,6 +99,7 @@ const statusResponse = await apiFetch(
   return (
     <div
       className="
+        relative
         min-h-screen
         flex
         items-center
@@ -104,6 +109,9 @@ const statusResponse = await apiFetch(
         py-10
       "
     >
+      <div className="absolute top-5 right-5 z-50">
+        <LanguageSelector variant="auth" />
+      </div>
       {/* Login Card */}
       <div
         className="
@@ -142,11 +150,11 @@ const statusResponse = await apiFetch(
             <Sprout className="text-white" size={36} />
           </div>
 
-          <h1 className="text-3xl font-bold text-emerald-950">
+          <h1 className="text-3xl font-bold text-emerald-950 dark:text-emerald-300">
             {t("Welcome Back")}
           </h1>
 
-          <p className="text-base text-slate-600 mt-2">
+          <p className="text-base text-slate-600 dark:text-slate-400 mt-2">
             {t("Sign in to continue to your account")}
           </p>
         </div>
@@ -169,6 +177,7 @@ const statusResponse = await apiFetch(
                 top-1/2
                 -translate-y-1/2
                 text-emerald-600
+                dark:text-emerald-400
               "
             />
 
@@ -183,18 +192,23 @@ const statusResponse = await apiFetch(
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-5
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -211,6 +225,7 @@ const statusResponse = await apiFetch(
                 top-1/2
                 -translate-y-1/2
                 text-emerald-600
+                dark:text-emerald-400
               "
             />
 
@@ -225,18 +240,23 @@ const statusResponse = await apiFetch(
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-14
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -251,8 +271,10 @@ const statusResponse = await apiFetch(
                 top-1/2
                 -translate-y-1/2
                 text-slate-400
+                dark:text-slate-500
                 transition
                 hover:text-emerald-600
+                dark:hover:text-emerald-400
               "
               tabIndex={-1}
             >
@@ -271,7 +293,7 @@ const statusResponse = await apiFetch(
 
             <label
               htmlFor="remember"
-              className="text-sm text-slate-600 cursor-pointer"
+              className="text-sm text-slate-600 dark:text-slate-300 cursor-pointer"
             >
               Remember Me
             </label>
@@ -292,7 +314,7 @@ const statusResponse = await apiFetch(
               duration-300
               ${
                 loading
-                  ? "bg-slate-400 cursor-not-allowed"
+                  ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed"
                   : `
                     bg-gradient-to-r
                     from-emerald-600
@@ -312,15 +334,17 @@ const statusResponse = await apiFetch(
         </form>
 
         {/* Register */}
-        <p className="text-center text-base text-slate-600 mt-8">
+        <p className="text-center text-base text-slate-600 dark:text-slate-400 mt-8">
           {t("Don't have an account?")}{" "}
           <a
             href="/register"
             className="
               font-bold
               text-emerald-700
+              dark:text-emerald-400
               transition
               hover:text-emerald-900
+              dark:hover:text-emerald-300
               hover:underline
             "
           >

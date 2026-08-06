@@ -129,6 +129,46 @@ def classify_intent(text):
             "score": 1.0
         }
 
+    # ---------- Disease ----------
+    disease_keywords = [
+        "leaf curl", "blight", "powdery mildew", "downy mildew", "rust",
+        "wilt", "mosaic", "rot", "canker", "scab", "disease", "infection",
+        "fungus", "fungal", "virus", "viral", "bacterial", "blossom end rot",
+        "yellowing", "spot", "spots", "ಎಲೆ ಮುರುಟು", "ರೋಗ", "रोग", "बीमारी",
+        "తెగులు", "நோய்", "രോഗം", "રોગ"
+    ]
+    if any(keyword in query for keyword in disease_keywords):
+        return {
+            "intent": "disease_query",
+            "score": 1.0
+        }
+
+    # ---------- Pest Control ----------
+    pest_keywords = [
+        "whitefly", "aphid", "aphids", "thrips", "bollworm", "stem borer",
+        "borer", "caterpillar", "locust", "pest", "pests", "insect", "insects",
+        "pesticide", "insecticide", "spray", "spraying", "mite", "mites",
+        "weevil", "grub", "bug", "ಕೀಟ", "कीड़ा", "పురుగు", "பூச்சி", "കീടം", "જીવાત"
+    ]
+    if any(keyword in query for keyword in pest_keywords):
+        return {
+            "intent": "pest_control_query",
+            "score": 1.0
+        }
+
+    # ---------- Fertilizer & Soil ----------
+    fertilizer_keywords = [
+        "fertilizer", "fertiliser", "urea", "dap", "npk", "potash", "compost",
+        "manure", "soil", "nitrogen", "zinc", "phosphorus", "potassium",
+        "vermicompost", "biofertilizer", "nutrient", "खाद", "उर्वरक", "ಗೊಬ್ಬರ",
+        "ಮಣ್ಣು", "ఎరువు", "உரம்", "വളം", "ખાતર"
+    ]
+    if any(keyword in query for keyword in fertilizer_keywords):
+        return {
+            "intent": "fertilizer_query",
+            "score": 1.0
+        }
+
     # ---------- Zero-shot fallback ----------
     clf = _get_classifier()
     if clf is not None:

@@ -5,6 +5,7 @@ import { API_URL } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/LanguageProvider";
+import LanguageSelector from "@/components/LanguageSelector";
 import { APP_LANGUAGES, LanguageCode } from "@/lib/languages";
 import {
   Sprout,
@@ -81,6 +82,7 @@ export default function RegisterPage() {
   return (
     <div
       className="
+        relative
         min-h-screen
         flex
         items-center
@@ -90,6 +92,9 @@ export default function RegisterPage() {
         py-10
       "
     >
+      <div className="absolute top-5 right-5 z-50">
+        <LanguageSelector variant="auth" />
+      </div>
       {/* Register Card */}
       <div
         className="
@@ -127,11 +132,11 @@ export default function RegisterPage() {
             <Sprout className="text-white" size={32} />
           </div>
 
-          <h1 className="text-3xl font-bold text-emerald-950">
+          <h1 className="text-3xl font-bold text-emerald-950 dark:text-emerald-300">
             {t("Create Account")}
           </h1>
 
-          <p className="text-base text-slate-600 mt-2">
+          <p className="text-base text-slate-600 dark:text-slate-400 mt-2">
             {t("Join the AI Agricultural Advisory System")}
           </p>
         </div>
@@ -148,7 +153,7 @@ export default function RegisterPage() {
           <div className="relative">
             <User
               size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
             />
 
             <input
@@ -162,18 +167,23 @@ export default function RegisterPage() {
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-5
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -184,7 +194,7 @@ export default function RegisterPage() {
           <div className="relative">
             <Mail
               size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
             />
 
             <input
@@ -198,18 +208,23 @@ export default function RegisterPage() {
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-5
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -220,7 +235,7 @@ export default function RegisterPage() {
           <div className="relative">
             <Lock
               size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
             />
 
             <input
@@ -234,18 +249,23 @@ export default function RegisterPage() {
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-14
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -260,8 +280,10 @@ export default function RegisterPage() {
                 top-1/2
                 -translate-y-1/2
                 text-slate-400
+                dark:text-slate-500
                 transition
                 hover:text-emerald-600
+                dark:hover:text-emerald-400
               "
               tabIndex={-1}
             >
@@ -273,7 +295,7 @@ export default function RegisterPage() {
           <div className="relative">
             <Lock
               size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
             />
 
             <input
@@ -287,18 +309,23 @@ export default function RegisterPage() {
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-14
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 placeholder:text-slate-400
+                dark:placeholder:text-slate-500
                 outline-none
                 transition-all
                 duration-200
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
@@ -315,8 +342,10 @@ export default function RegisterPage() {
                 top-1/2
                 -translate-y-1/2
                 text-slate-400
+                dark:text-slate-500
                 transition
                 hover:text-emerald-600
+                dark:hover:text-emerald-400
               "
               tabIndex={-1}
             >
@@ -332,7 +361,7 @@ export default function RegisterPage() {
           <div className="relative">
             <Globe
               size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600"
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
             />
 
             <select
@@ -348,24 +377,28 @@ export default function RegisterPage() {
                 rounded-2xl
                 border
                 border-emerald-200
+                dark:border-slate-700
                 bg-white/80
+                dark:bg-slate-800/80
                 pl-14
                 pr-5
                 py-4
                 text-base
                 text-slate-800
+                dark:text-slate-100
                 outline-none
                 transition-all
                 duration-200
                 appearance-none
                 focus:border-emerald-500
                 focus:bg-white
+                dark:focus:bg-slate-800
                 focus:ring-4
                 focus:ring-emerald-500/10
               "
             >
               {APP_LANGUAGES.map((item) => (
-                <option key={item.code} value={item.code}>
+                <option key={item.code} value={item.code} className="dark:bg-slate-900 dark:text-slate-100">
                   {item.nativeName}
                 </option>
               ))}
@@ -387,7 +420,7 @@ export default function RegisterPage() {
               duration-300
               ${
                 loading
-                  ? "bg-slate-400 cursor-not-allowed"
+                  ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed"
                   : `
                     bg-gradient-to-r
                     from-emerald-600
@@ -407,15 +440,17 @@ export default function RegisterPage() {
         </form>
 
         {/* Login Link */}
-        <p className="text-center text-base text-slate-600 mt-7">
+        <p className="text-center text-base text-slate-600 dark:text-slate-400 mt-7">
           {t("Already have an account?")}{" "}
           <a
             href="/login"
             className="
               font-bold
               text-emerald-700
+              dark:text-emerald-400
               transition
               hover:text-emerald-900
+              dark:hover:text-emerald-300
               hover:underline
             "
           >

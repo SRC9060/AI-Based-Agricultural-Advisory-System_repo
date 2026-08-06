@@ -9,6 +9,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+try:
+    import whisper
+except ImportError:
+    whisper = None
+
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 
@@ -23,6 +28,9 @@ def get_whisper_model():
     and loaded into memory.
     """
     global _whisper_model
+
+    if whisper is None:
+        return None
 
     if _whisper_model is None:
         print("Loading Whisper base model...")
@@ -187,9 +195,13 @@ def whisper_speech_to_text(
             suffix=suffix,
         ) as temporary_file:
             temporary_file.write(audio_bytes)
-            temporary_path = temporary_file.name
-
-        model = get_whisper_model()
+            model = get_whisper_model()
+        if model is None:
+            return {
+                "success": False,
+                "error": "Whisper STT package is not installed on the server.",
+                "engine": "whisper",
+            }
 
         whisper_language = language_map.get(language_code)
 

@@ -1,8 +1,5 @@
-import { createProxy } from "next-i18next/proxy";
 import { NextRequest, NextResponse } from "next/server";
-import i18nConfig from "./i18n.config";
 
-const i18nProxy = createProxy(i18nConfig);
 const protectedRoutes = [
   "/dashboard",
   "/weather",
@@ -27,7 +24,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return i18nProxy(request);
+  return NextResponse.next();
 }
 
 export const config = {

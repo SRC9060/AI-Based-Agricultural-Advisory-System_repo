@@ -57,14 +57,14 @@ export default function MarketResult({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg border border-gray-200 p-10 text-center">
-        <TrendingUp className="mx-auto h-14 w-14 text-green-600 animate-pulse" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-gray-200 dark:border-slate-800 p-10 text-center">
+        <TrendingUp className="mx-auto h-14 w-14 text-green-600 dark:text-emerald-400 animate-pulse" />
 
-        <h2 className="mt-5 text-2xl font-bold text-gray-800">
+        <h2 className="mt-5 text-2xl font-bold text-gray-800 dark:text-slate-100">
           {t("Fetching Latest Market Prices...")}
         </h2>
 
-        <p className="mt-2 text-gray-500">
+        <p className="mt-2 text-gray-500 dark:text-slate-400">
           {t("Please wait while we retrieve today's market prices.")}
         </p>
       </div>
@@ -73,22 +73,22 @@ export default function MarketResult({
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-300 bg-red-50 p-5">
-        <h3 className="font-semibold text-red-700">{error}</h3>
+      <div className="rounded-2xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-5">
+        <h3 className="font-semibold text-red-700 dark:text-red-400">{error}</h3>
       </div>
     );
   }
 
   if (!data || !data.records || data.records.length === 0) {
     return (
-      <div className="bg-white rounded-3xl shadow-lg border border-gray-200 p-12 text-center">
-        <Search className="mx-auto h-12 w-12 text-green-600" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-gray-200 dark:border-slate-800 p-12 text-center">
+        <Search className="mx-auto h-12 w-12 text-green-600 dark:text-emerald-400" />
 
-        <h2 className="mt-4 text-2xl font-bold text-gray-800">
+        <h2 className="mt-4 text-2xl font-bold text-gray-800 dark:text-slate-100">
           {t("Search Market Prices")}
         </h2>
 
-        <p className="mt-2 text-gray-500">
+        <p className="mt-2 text-gray-500 dark:text-slate-400">
           {t("Select Commodity, State and District to view today's market prices.")}
         </p>
       </div>
@@ -98,17 +98,17 @@ export default function MarketResult({
   const market = data.records[0];
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-800 p-8">
 
       <div className="flex items-center gap-3 mb-8">
-        <TrendingUp className="h-8 w-8 text-green-700" />
+        <TrendingUp className="h-8 w-8 text-green-700 dark:text-emerald-400" />
 
         <div>
-          <h2 className="text-3xl font-bold text-green-800">
+          <h2 className="text-3xl font-bold text-green-800 dark:text-emerald-400">
             {t("Today's Market Details")}
           </h2>
 
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-slate-400">
             {t("Live AGMARKNET Market Information")}
           </p>
         </div>
@@ -117,19 +117,19 @@ export default function MarketResult({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <InfoCard
-          icon={<Package className="h-5 w-5 text-green-600" />}
+          icon={<Package className="h-5 w-5 text-green-600 dark:text-emerald-400" />}
           title={t("Commodity")}
           value={market.localized?.commodity || market.commodity}
         />
 
         <InfoCard
-          icon={<Store className="h-5 w-5 text-blue-600" />}
+          icon={<Store className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
           title={t("Market")}
           value={market.localized?.market || market.market}
         />
 
         <InfoCard
-          icon={<MapPin className="h-5 w-5 text-red-500" />}
+          icon={<MapPin className="h-5 w-5 text-red-500 dark:text-red-400" />}
           title={t("Location")}
           value={`${market.localized?.district || market.district}, ${market.localized?.state || market.state}`}
         />
@@ -157,14 +157,14 @@ export default function MarketResult({
 
       </div>
 
-      <div className="mt-8 bg-gray-50 border border-gray-200 rounded-2xl p-5 flex items-center gap-4">
+      <div className="mt-8 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 flex items-center gap-4">
 
-        <CalendarDays className="h-7 w-7 text-gray-600" />
+        <CalendarDays className="h-7 w-7 text-gray-600 dark:text-slate-300" />
 
         <div>
-          <p className="text-sm text-gray-500">{t("Arrival Date")}</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">{t("Arrival Date")}</p>
 
-          <p className="text-lg font-semibold">
+          <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             {market.arrival_date}
           </p>
         </div>
@@ -185,13 +185,13 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-lg transition-all">
-      <div className="flex items-center gap-2 text-gray-500">
+    <div className="group rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-5 shadow-sm hover:shadow-lg transition-all">
+      <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
         {icon}
         <span className="font-medium">{title}</span>
       </div>
 
-      <p className="mt-4 text-xl font-bold text-gray-800 wrap-break-word">
+      <p className="mt-4 text-xl font-bold text-gray-800 dark:text-slate-100 wrap-break-word">
         {value}
       </p>
     </div>
@@ -212,9 +212,9 @@ function PriceCard({
   color,
 }: PriceCardProps) {
   const colorClasses = {
-    green: "bg-green-50 border-green-200 text-green-700",
-    orange: "bg-orange-50 border-orange-200 text-orange-700",
-    blue: "bg-blue-50 border-blue-200 text-blue-700",
+    green: "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400",
+    orange: "bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400",
+    blue: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400",
   };
 
   return (
@@ -222,7 +222,7 @@ function PriceCard({
       className={`rounded-2xl border p-5 shadow-sm hover:shadow-lg transition-all ${colorClasses[color]}`}
     >
       <div className="flex items-center gap-2">
-        <div className="rounded-full bg-white p-2 shadow-sm">
+        <div className="rounded-full bg-white dark:bg-slate-900 p-2 shadow-sm">
           {icon}
         </div>
 

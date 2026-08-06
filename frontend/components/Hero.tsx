@@ -49,7 +49,7 @@ export default function Hero() {
             <div className="hero-stats">
 
               <div>
-                <h2>10+</h2>
+                <h2>8</h2>
                 <p>Languages</p>
               </div>
 

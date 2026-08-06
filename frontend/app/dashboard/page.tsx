@@ -139,24 +139,24 @@ export default function DashboardPage() {
 if (
   !isProfile(profileData) ||
   !isRecord(schemeData) ||
-  schemeData.available === false ||
-  !Array.isArray(schemeData.schemes) ||
-  !schemeData.schemes.every(isScheme) ||
-  typeof schemeData.count !== "number" ||
+  !Array.isArray(schemeData.schemes || []) ||
   !isRecord(activityData) ||
-  !Array.isArray(activityData.activities) ||
-  !activityData.activities.every(isChatActivity) ||
-  typeof activityData.count !== "number"
+  !Array.isArray(activityData.activities || [])
 ) {
   throw new Error("Invalid dashboard response.");
 }
 
+      const schemesList = Array.isArray(schemeData.schemes) ? schemeData.schemes.filter(isScheme) : [];
+      const schemeCountVal = typeof schemeData.count === "number" ? schemeData.count : schemesList.length;
+      const activityList = Array.isArray(activityData.activities) ? activityData.activities.filter(isChatActivity) : [];
+      const queryCountVal = typeof activityData.count === "number" ? activityData.count : activityList.length;
+
       const dashboardData: DashboardData = {
         profile: profileData,
-        schemes: schemeData.schemes,
-        schemeCount: schemeData.count,
-        queryCount: activityData.count,
-        activities: activityData.activities,
+        schemes: schemesList,
+        schemeCount: schemeCountVal,
+        queryCount: queryCountVal,
+        activities: activityList,
       };
 
 setDashboardData(dashboardData, {

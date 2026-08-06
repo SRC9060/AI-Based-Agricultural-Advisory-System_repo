@@ -185,13 +185,42 @@ def get_market_price(
     state: str,
     district: str,
 ) -> MarketResponse:
-    response = client.get_market_prices(
-        commodity=commodity,
-        state=state,
-        district=district,
-        limit=1000,
-    )
-    records = response.get("records", [])
+    # 1. Primary: Exact match (commodity, state, district)
+    records = []
+    try:
+        response = client.get_market_prices(
+            commodity=commodity,
+            state=state,
+            district=district,
+            limit=1000,
+        )
+        records = response.get("records", [])
+    except Exception:
+        records = []
+
+    # 2. Secondary: Search same commodity across state
+    if not records and commodity and state:
+        try:
+            response = client.get_market_prices(
+                commodity=commodity,
+                state=state,
+                limit=1000,
+            )
+            records = response.get("records", [])
+        except Exception:
+            records = []
+
+    # 3. Tertiary: Search state-wide for any active market commodity
+    if not records and state:
+        try:
+            response = client.get_market_prices(
+                state=state,
+                limit=1000,
+            )
+            records = response.get("records", [])
+        except Exception:
+            records = []
+
     if not records:
         raise ValueError(
             f"No market data found for Commodity='{commodity}', "
@@ -200,14 +229,14 @@ def get_market_price(
 
     record = records[0]
     return MarketResponse(
-        commodity=record["commodity"],
-        state=record["state"],
-        district=record["district"],
-        market=record["market"],
-        min_price=float(record["min_price"]),
-        max_price=float(record["max_price"]),
-        modal_price=float(record["modal_price"]),
-        arrival_date=record["arrival_date"],
+        commodity=record.get("commodity", commodity),
+        state=record.get("state", state),
+        district=record.get("district", district),
+        market=record.get("market", "APMC"),
+        min_price=float(record.get("min_price", 0)),
+        max_price=float(record.get("max_price", 0)),
+        modal_price=float(record.get("modal_price", 0)),
+        arrival_date=record.get("arrival_date", ""),
     )
 
 

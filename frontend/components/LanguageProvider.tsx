@@ -7,12 +7,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
-import { useChangeLanguage } from "next-i18next/client";
+import { API_URL, apiFetch } from "@/lib/api";
 import { coreTranslations } from "@/lib/coreTranslations";
 import { fixTranslations } from "@/lib/fixTranslations";
 import { LanguageCode, normalizeLanguage } from "@/lib/languages";
+import { getCurrentUserId } from "@/lib/session";
 
 const extraLabels: Record<LanguageCode, Record<string, string>> = {
   en: {},
@@ -148,7 +150,7 @@ const addedLanguageExtraLabels: Partial<Record<LanguageCode, Record<string, stri
   ml: {
     "Discover government schemes, subsidies, insurance and financial support available for farmers.": "കർഷകർക്ക് ലഭ്യമായ സർക്കാർ പദ്ധതികൾ, സബ്‌സിഡികൾ, ഇൻഷുറൻസ്, സാമ്പത്തിക സഹായം എന്നിവ കണ്ടെത്തുക.", "Ask any question about agricultural government schemes.": "കാർഷിക സർക്കാർ പദ്ധതികളെക്കുറിച്ച് എന്തും ചോദിക്കുക.", "Example: What schemes are available for small farmers?": "ഉദാഹരണം: ചെറുകിട കർഷകർക്ക് എന്തെല്ലാം പദ്ധതികളുണ്ട്?", "Find Schemes": "പദ്ധതികൾ കണ്ടെത്തുക", "Select a category to quickly discover relevant farmer schemes.": "ബന്ധപ്പെട്ട കർഷക പദ്ധതികൾ വേഗത്തിൽ കണ്ടെത്താൻ ഒരു വിഭാഗം തിരഞ്ഞെടുക്കുക.", "Explore available schemes": "ലഭ്യമായ പദ്ധതികൾ കാണുക",
     "Financial Support": "സാമ്പത്തിക പിന്തുണ", "Crop Protection": "വിള സംരക്ഷണം", "Farming Assistance": "കൃഷി സഹായം", "Explore financial assistance and farmer support schemes available through government programs.": "സർക്കാർ പദ്ധതികളിലൂടെ ലഭ്യമായ സാമ്പത്തിക സഹായവും കർഷക പിന്തുണാ പദ്ധതികളും കാണുക.", "Find information about crop insurance and agricultural risk protection programs.": "വിള ഇൻഷുറൻസ്, കാർഷിക അപകട സംരക്ഷണ പദ്ധതികൾ എന്നിവയുടെ വിവരങ്ങൾ കണ്ടെത്തുക.", "Ask about irrigation, machinery and other agricultural support programs.": "ജലസേചനം, യന്ത്രങ്ങൾ, മറ്റ് കാർഷിക പിന്തുണാ പദ്ധതികൾ എന്നിവയെക്കുറിച്ച് ചോദിക്കുക.", "Scheme eligibility, benefits and application requirements may change. Verify important details through the relevant official government authority before applying.": "പദ്ധതിയുടെ അർഹത, ആനുകൂല്യങ്ങൾ, അപേക്ഷാ ആവശ്യകതകൾ മാറാം. അപേക്ഷിക്കുന്നതിന് മുമ്പ് ഔദ്യോഗിക സർക്കാർ അതോറിറ്റിയിൽ വിവരങ്ങൾ സ്ഥിരീകരിക്കുക.",
-    "Ask any question about crops, diseases, schemes, weather and more...": "വിളകൾ, രോഗങ്ങൾ, പദ്ധതികൾ, കാലാവസ്ഥ എന്നിവയെക്കുറിച്ച് എന്തും ചോദിക്കുക...", "Type your question here...": "നിങ്ങളുടെ ചോദ്യം ഇവിടെ എഴുതുക...", "Try asking:": "ചോദിച്ചു നോക്കൂ:", "How to control leaf curl?": "ഇല ചുരുളൽ എങ്ങനെ നിയന്ത്രിക്കാം?", "Best fertilizer for tomato": "തക്കാളിക്കുള്ള മികച്ച വളം", "PMFBY scheme details": "PMFBY പദ്ധതി വിവരങ്ങൾ", "Current weather": "നിലവിലെ കാലാവസ്ഥ", "Government Schemes for You": "നിങ്ങൾക്കുള്ള സർക്കാർ പദ്ധതികൾ", "Recent Activity": "സമീപകാല പ്രവർത്തനം", "View All": "എല്ലാം കാണുക", "Quick Access": "ദ്രുത പ്രവേശനം", "Crop Doctor": "വിള ഡോക്ടർ", "Weather Update": "കാലാവസ്ഥാ അറിയിപ്പ്", "Eligible": "അർഹതയുണ്ട്", "Recommended based on your farming profile.": "നിങ്ങളുടെ കൃഷി പ്രൊഫൈൽ അടിസ്ഥാനമാക്കി ശുപാർശ ചെയ്തത്.", "No government schemes available right now.": "ഇപ്പോൾ സർക്കാർ പദ്ധതികളൊന്നും ലഭ്യമല്ല.", "Complete your profile or check back later.": "നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക അല്ലെങ്കിൽ പിന്നീട് പരിശോധിക്കുക.", "Total Queries": "ആകെ ചോദ്യങ്ങൾ", "Matching Schemes": "പൊരുത്തപ്പെടുന്ന പദ്ധതികൾ", "Loading...": "ലോഡ് ചെയ്യുന്നു...",
+    "Ask any question about crops, diseases, schemes, weather and more...": "വിളകൾ, രോഗങ്ങൾ, പദ്ധതികൾ, കാലാവസ്ഥ എന്നിവയെക്കുറിച്ച് എന്തും ചോദിക്കുക...", "Type your question here...": "നിങ്ങളുടെ ചോദ്യം ഇവിടെ എഴുതുക...", "Try asking:": "ചോദിച്ചു നോക്കൂ:", "How to control leaf curl?": "ഇല ചുരുളൽ എങ്ങനെ നിയന്ത്രിക്കാം?", "Best fertilizer for tomato": "തക്കാളിക്കുള്ള മികച്ച വളം", "PMFBY പദ്ധതി വിവരങ്ങൾ": "PMFBY പദ്ധതി വിവരങ്ങൾ", "Current weather": "നിലവിലെ കാലാവസ്ഥ", "Government Schemes for You": "നിങ്ങൾക്കുള്ള സർക്കാർ പദ്ധതികൾ", "Recent Activity": "സമീപകാല പ്രവർത്തനം", "View All": "എല്ലാം കാണുക", "Quick Access": "ദ്രുത പ്രവേശനം", "Crop Doctor": "വിള ഡോക്ടർ", "Weather Update": "കാലാവസ്ഥാ അറിയിപ്പ്", "Eligible": "അർഹതയുണ്ട്", "Recommended based on your farming profile.": "നിങ്ങളുടെ കൃഷി പ്രൊഫൈൽ അടിസ്ഥാനമാക്കി ശുപാർശ ചെയ്തത്.", "No government schemes available right now.": "ഇപ്പോൾ സർക്കാർ പദ്ധതികളൊന്നും ലഭ്യമല്ല.", "Complete your profile or check back later.": "നിങ്ങളുടെ പ്രൊഫൈൽ പൂർത്തിയാക്കുക അല്ലെങ്കിൽ പിന്നീട് പരിശോധിക്കുക.", "Total Queries": "ആകെ ചോദ്യങ്ങൾ", "Matching Schemes": "പൊരുത്തപ്പെടുന്ന പദ്ധതികൾ", "Loading...": "ലോഡ് ചെയ്യുന്നു...",
   },
   mr: {
     "Discover government schemes, subsidies, insurance and financial support available for farmers.": "शेतकऱ्यांसाठी उपलब्ध सरकारी योजना, अनुदाने, विमा आणि आर्थिक मदत शोधा.", "Ask any question about agricultural government schemes.": "कृषी सरकारी योजनांबद्दल कोणताही प्रश्न विचारा.", "Example: What schemes are available for small farmers?": "उदाहरण: लहान शेतकऱ्यांसाठी कोणत्या योजना उपलब्ध आहेत?", "Find Schemes": "योजना शोधा", "Select a category to quickly discover relevant farmer schemes.": "संबंधित शेतकरी योजना पटकन शोधण्यासाठी श्रेणी निवडा.", "Explore available schemes": "उपलब्ध योजना पहा",
@@ -199,33 +201,44 @@ const dashboardFeedbackLabels: Partial<Record<LanguageCode, Record<string, strin
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const changeLanguage = useChangeLanguage();
   const [language, setLanguage] = useState<LanguageCode>("en");
 
-  const applyLanguage = useCallback(
-    (value: string | null | undefined) => {
-      const nextLanguage = normalizeLanguage(value);
-      setLanguage(nextLanguage);
-      changeLanguage(
-        ["en", "hi", "kn"].includes(nextLanguage) ? nextLanguage : "en",
-      );
-      document.documentElement.lang = nextLanguage;
-    },
-    [changeLanguage],
-  );
+  const applyLanguage = useCallback((value: string | null | undefined) => {
+    const nextLanguage = normalizeLanguage(value);
+    console.log(`[LanguageProvider] applyLanguage called with value: "${value}" -> normalized to: "${nextLanguage}"`);
+    setLanguage(nextLanguage);
+    document.documentElement.lang = nextLanguage;
+  }, []);
+
+  const applyLanguageRef = useRef(applyLanguage);
+  useEffect(() => {
+    applyLanguageRef.current = applyLanguage;
+  }, [applyLanguage]);
 
   const persistLanguage = useCallback(
     (nextLanguage: LanguageCode) => {
+      console.log(`[LanguageProvider] persistLanguage called with nextLanguage: "${nextLanguage}"`);
       localStorage.setItem("language", nextLanguage);
       applyLanguage(nextLanguage);
       window.dispatchEvent(new Event("languagechange"));
+
+      const userId = getCurrentUserId();
+      if (userId) {
+        apiFetch(`${API_URL}/profile/${userId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ language: nextLanguage }),
+        }).catch(() => {});
+      }
     },
     [applyLanguage],
   );
 
   useEffect(() => {
     const sync = () => {
-      applyLanguage(localStorage.getItem("language"));
+      const stored = localStorage.getItem("language");
+      console.log(`[LanguageProvider] sync called, localStorage["language"] = "${stored}"`);
+      applyLanguageRef.current(stored);
     };
     sync();
     window.addEventListener("languagechange", sync);
@@ -234,7 +247,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("languagechange", sync);
       window.removeEventListener("storage", sync);
     };
-  }, [applyLanguage]);
+  }, []);
 
   return (
     <LanguageContext.Provider
