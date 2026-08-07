@@ -51,7 +51,7 @@ def _safe_console_preview(text, length):
     return text[:length].encode(encoding, errors="replace").decode(encoding)
 
 
-# Load PDF Documents
+# Load Documents (.pdf, .txt, .md)
 def load_documents():
     documents = []
     if not os.path.exists(KNOWLEDGE_BASE_PATH):
@@ -59,21 +59,26 @@ def load_documents():
         return documents
     for root, dirs, files in os.walk(KNOWLEDGE_BASE_PATH):
         for file in files:
-            if file.lower().endswith(".pdf"):
-                pdf_path = os.path.join(root, file)
+            ext = file.lower().split(".")[-1]
+            if ext in ("pdf", "txt", "md"):
+                file_path = os.path.join(root, file)
                 try:
-                    print("Loading:", pdf_path)
-                    from langchain_community.document_loaders import PyPDFLoader
-                    loader = PyPDFLoader(pdf_path)
+                    print("Loading:", file_path)
+                    if ext == "pdf":
+                        from langchain_community.document_loaders import PyPDFLoader
+                        loader = PyPDFLoader(file_path)
+                    else:
+                        from langchain_community.document_loaders import TextLoader
+                        loader = TextLoader(file_path, encoding="utf-8")
                     docs = loader.load()
                     folder_name = os.path.basename(root)
                     for doc in docs:
                         doc.metadata["folder"] = folder_name
-                        doc.metadata["source"] = pdf_path
+                        doc.metadata["source"] = file_path
                         doc.metadata["filename"] = file
                     documents.extend(docs)
                 except Exception as e:
-                    print("Skipping:", pdf_path)
+                    print("Skipping:", file_path)
                     print("Reason:", e)
     return documents
 

@@ -88,14 +88,33 @@ def classify_intent(text):
         "soil health card",
         "government scheme",
         "subsidy",
+        "subsidies",
+        "machinery",
+        "farm machinery",
+        "agricultural machinery",
+        "mechanization",
+        "mechanisation",
+        "smam",
+        "sub-mission on agricultural mechanization",
+        "implements",
+        "equipment",
         "yojana",
         "scheme",
         "ಯೋಜನೆ",    # Kannada yojana
         "ಯೋಜನೆಗಳು", # Kannada schemes
+        "ಯಂತ್ರೋಪಕರಣ", # Kannada machinery
         "योजना",     # Hindi/Marathi yojana
+        "मशीनरी",   # Hindi machinery
+        "यंत्रसामग्री", # Marathi machinery
         "పథకం",     # Telugu pathakam
         "పథకాలు",   # Telugu pathakalu
+        "యంత్రాలు", # Telugu machinery
         "திட்டம்",   # Tamil thittam
+        "இயந்திரங்கள்", # Tamil machinery
+        "പദ്ധതി",   # Malayalam scheme
+        "യന്ത്രങ്ങൾ", # Malayalam machinery
+        "યોજના",    # Gujarati scheme
+        "મશીનરી",   # Gujarati machinery
     ]
 
     if any(keyword in query for keyword in government_keywords):

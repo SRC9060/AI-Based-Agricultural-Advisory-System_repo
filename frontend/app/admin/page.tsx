@@ -1,12 +1,13 @@
 "use client";
 
-
 import { API_URL } from "@/lib/api";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import "./admin.css";
 
 import { useTranslation } from "@/components/LanguageProvider";
 import LanguageSelector from "@/components/LanguageSelector";
+import { LogOut } from "lucide-react";
 
 type Analytics = {
   users: number;
@@ -25,18 +26,26 @@ type KnowledgeFile = { name: string; folder: string; size_bytes: number };
 
 export default function AdminPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [adminKey, setAdminKey] = useState("");
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [unanswered, setUnanswered] = useState<Unanswered[]>([]);
   const [files, setFiles] = useState<KnowledgeFile[]>([]);
-  const [status, setStatus] = useState("Enter the admin API key to load dashboard data.");
+  const [status, setStatus] = useState("Loading admin dashboard...");
+  const [authenticating, setAuthenticating] = useState(true);
 
-  useEffect(() => {
-    setAdminKey(sessionStorage.getItem("agriadvisor_admin_key") ?? "");
-  }, []);
+  const handleLogout = useCallback(() => {
+    sessionStorage.removeItem("agriadvisor_admin_key");
+    localStorage.removeItem("agriadvisor_admin_key");
+    setAdminKey("");
+    router.replace("/admin/login");
+  }, [router]);
 
-  const loadDashboard = useCallback(async (key = adminKey) => {
-    if (!key) return;
+  const loadDashboard = useCallback(async (key: string) => {
+    if (!key) {
+      handleLogout();
+      return;
+    }
     setStatus("Loading dashboard…");
     try {
       const headers = { "X-Admin-Key": key };
@@ -45,6 +54,10 @@ export default function AdminPage() {
         fetch(`${API_URL}/admin/unanswered`, { headers }),
         fetch(`${API_URL}/admin/knowledge-base`, { headers }),
       ]);
+      if (responses.some((response) => response.status === 401)) {
+        handleLogout();
+        return;
+      }
       if (responses.some((response) => !response.ok)) {
         throw new Error("Access denied or the backend is unavailable.");
       }
@@ -55,8 +68,23 @@ export default function AdminPage() {
       setStatus("Dashboard updated.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not load dashboard.");
+    } finally {
+      setAuthenticating(false);
     }
-  }, [adminKey]);
+  }, [handleLogout]);
+
+  useEffect(() => {
+    const storedKey =
+      sessionStorage.getItem("agriadvisor_admin_key") ||
+      localStorage.getItem("agriadvisor_admin_key") ||
+      "";
+    if (!storedKey) {
+      router.replace("/admin/login");
+      return;
+    }
+    setAdminKey(storedKey);
+    void loadDashboard(storedKey);
+  }, [loadDashboard, router]);
 
   async function uploadPdf(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,7 +100,7 @@ export default function AdminPage() {
     setStatus(result.message ?? result.detail ?? "Upload finished.");
     if (response.ok) {
       form.reset();
-      await loadDashboard();
+      await loadDashboard(adminKey);
     }
   }
 
@@ -86,6 +114,16 @@ export default function AdminPage() {
     setStatus(result.message ?? result.detail ?? "Rebuild finished.");
   }
 
+  if (authenticating) {
+    return (
+      <main className="admin-shell flex items-center justify-center min-h-screen">
+        <p className="text-slate-600 dark:text-slate-300 font-medium">
+          {t("Verifying admin authorization...")}
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="admin-shell">
       <header className="admin-header">
@@ -96,21 +134,21 @@ export default function AdminPage() {
         <div className="flex items-center gap-4">
           <LanguageSelector />
           <a href="/chat">{t("Open farmer PWA")}</a>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg font-semibold text-sm transition-colors"
+          >
+            <LogOut size={16} />
+            <span>{t("Logout")}</span>
+          </button>
         </div>
       </header>
 
-      <section className="admin-auth">
-        <label htmlFor="admin-key">{t("Admin API key")}</label>
-        <input
-          id="admin-key"
-          type="password"
-          value={adminKey}
-          onChange={(event) => setAdminKey(event.target.value)}
-          placeholder={t("Enter ADMIN_API_KEY")}
-        />
-        <button onClick={() => loadDashboard()}>{t("Load dashboard")}</button>
-        <span role="status">{t(status)}</span>
-      </section>
+      {status && (
+        <div className="w-full max-w-[1180px] mx-auto mb-4 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300">
+          {t(status)}
+        </div>
+      )}
 
       {analytics && (
         <>

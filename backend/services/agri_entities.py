@@ -36,7 +36,14 @@ def extract_agri_entities(text: str) -> dict:
     schemes = [
         "pm kisan", "pm-kisan", "pm kisan yojana", "pmfby",
         "pradhan mantri fasal bima yojana", "kisan credit card", "kcc",
-        "soil health card", "rkvy", "pkvy", "pmksy"
+        "soil health card", "rkvy", "pkvy", "pmksy", "smam",
+        "sub-mission on agricultural mechanization", "farm machinery",
+        "agricultural machinery", "machinery subsidy", "machinery"
+    ]
+    equipment = [
+        "tractor", "power tiller", "rotavator", "harvester", "combine harvester",
+        "thresher", "seeder", "sprayer", "plough", "cultivator", "implements",
+        "machinery", "equipment"
     ]
 
     for crop in crops:
@@ -58,5 +65,9 @@ def extract_agri_entities(text: str) -> dict:
     for scheme in schemes:
         if scheme in text_lower:
             entities["government_scheme"] = scheme
+            break
+    for item in equipment:
+        if item in text_lower:
+            entities["equipment"] = item
             break
     return entities

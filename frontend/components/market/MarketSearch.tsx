@@ -94,6 +94,43 @@ export default function MarketSearch({
     if (localizedOptions[value]) {
       return localizedOptions[value];
     }
+    const withSpace = value.replace(/([^\s])\(/g, "$1 (");
+    const transWithSpace = t(withSpace);
+    if (transWithSpace && transWithSpace !== withSpace) {
+      return transWithSpace;
+    }
+    const withoutSpace = value.replace(/\s+\(/g, "(");
+    const transWithoutSpace = t(withoutSpace);
+    if (transWithoutSpace && transWithoutSpace !== withoutSpace) {
+      return transWithoutSpace;
+    }
+    if (value.includes("(")) {
+      const parts = value.split(/\s*(?=[()])/);
+      const translatedParts = parts.map((part) => {
+        const clean = part.replace(/[()]/g, "").trim();
+        if (!clean) return part;
+        const trans = t(clean);
+        if (trans && trans !== clean) {
+          return part.startsWith("(") ? `(${trans})` : trans;
+        }
+        return part;
+      });
+      const result = translatedParts.join(" ").replace(/\s+/g, " ").trim();
+      if (result && result !== value) {
+        return result;
+      }
+    }
+    if (value.includes("-")) {
+      const subParts = value.split("-");
+      const transSubParts = subParts.map((sp) => {
+        const tr = t(sp.trim());
+        return tr && tr !== sp.trim() ? tr : sp;
+      });
+      const dashResult = transSubParts.join("-");
+      if (dashResult && dashResult !== value) {
+        return dashResult;
+      }
+    }
     return value;
   };
 

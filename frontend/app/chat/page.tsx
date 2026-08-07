@@ -404,9 +404,36 @@ useEffect(() => {
     }
   }
 
-  // Voice Input
+// Voice Input & Output Management
 const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 const audioChunksRef = useRef<Blob[]>([]);
+const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+const activeAudioUrlRef = useRef<string | null>(null);
+const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(null);
+
+const stopSpeechPlayback = useCallback(() => {
+  if (activeAudioRef.current) {
+    activeAudioRef.current.pause();
+    activeAudioRef.current.currentTime = 0;
+    activeAudioRef.current = null;
+  }
+  if (activeAudioUrlRef.current) {
+    URL.revokeObjectURL(activeAudioUrlRef.current);
+    activeAudioUrlRef.current = null;
+  }
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+  setIsSpeaking(false);
+  setPlayingMessageIndex(null);
+  setStatus("");
+}, []);
+
+useEffect(() => {
+  return () => {
+    stopSpeechPlayback();
+  };
+}, [stopSpeechPlayback]);
 
 async function recordAudio(forceBackendRecorder = false) {
   type BrowserSpeechRecognitionResultEvent = {
@@ -637,9 +664,14 @@ async function recordAudio(forceBackendRecorder = false) {
 }
 
   // Speak AI Response
-async function speakAnswer(text: string) {
+async function speakAnswer(text: string, messageIndex?: number) {
   if (!text.trim()) {
     return;
+  }
+
+  stopSpeechPlayback();
+  if (messageIndex !== undefined) {
+    setPlayingMessageIndex(messageIndex);
   }
 
   const cleanText = text
@@ -656,6 +688,7 @@ async function speakAnswer(text: string) {
     if (!("speechSynthesis" in window)) {
       setStatus("❌ Browser voice output is not supported.");
       setIsSpeaking(false);
+      setPlayingMessageIndex(null);
       return;
     }
 
@@ -699,6 +732,7 @@ async function speakAnswer(text: string) {
       utterance.voice = matchingVoice;
     } else if (voiceLanguage !== "en") {
       setIsSpeaking(false);
+      setPlayingMessageIndex(null);
       setStatus(
         "❌ Online voice is unavailable and this device has no matching language voice.",
       );
@@ -712,12 +746,14 @@ async function speakAnswer(text: string) {
 
     utterance.onend = () => {
       setIsSpeaking(false);
+      setPlayingMessageIndex(null);
       setStatus("");
     };
 
     utterance.onerror = (event) => {
       console.error("Browser TTS error:", event);
       setIsSpeaking(false);
+      setPlayingMessageIndex(null);
       setStatus("❌ Browser voice output failed.");
     };
 
@@ -761,14 +797,26 @@ async function speakAnswer(text: string) {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
 
+    activeAudioRef.current = audio;
+    activeAudioUrlRef.current = audioUrl;
+
     audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
+      if (activeAudioUrlRef.current) {
+        URL.revokeObjectURL(activeAudioUrlRef.current);
+        activeAudioUrlRef.current = null;
+      }
+      activeAudioRef.current = null;
       setIsSpeaking(false);
+      setPlayingMessageIndex(null);
       setStatus("");
     };
 
     audio.onerror = () => {
-      URL.revokeObjectURL(audioUrl);
+      if (activeAudioUrlRef.current) {
+        URL.revokeObjectURL(activeAudioUrlRef.current);
+        activeAudioUrlRef.current = null;
+      }
+      activeAudioRef.current = null;
       void playBrowserTTS();
     };
 
@@ -912,11 +960,19 @@ async function speakAnswer(text: string) {
                 <p>{message.text}</p>
                 {message.type === "ai" && index !== 0 && (
                   <button
-                    className="speak-message-btn"
-                    disabled={isSpeaking || loading || isRecording}
-                    onClick={() => speakAnswer(message.text)}
+                    className={`speak-message-btn ${playingMessageIndex === index && isSpeaking ? "playing font-bold text-red-600 dark:text-red-400" : ""}`}
+                    disabled={loading || isRecording}
+                    onClick={() => {
+                      if (playingMessageIndex === index && isSpeaking) {
+                        stopSpeechPlayback();
+                      } else {
+                        void speakAnswer(message.text, index);
+                      }
+                    }}
                   >
-                    🔊 {t("Listen")}
+                    {playingMessageIndex === index && isSpeaking
+                      ? `⏹️ ${t("Stop")}`
+                      : `🔊 ${t("Listen")}`}
                   </button>
                 )}
                 {message.type === "ai" && index !== 0 && message.id && (

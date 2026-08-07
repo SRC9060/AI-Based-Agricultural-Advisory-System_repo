@@ -97,6 +97,52 @@ export default function MarketResult({
 
   const market = data.records[0];
 
+  const localizeValue = (value: string) => {
+    if (!value) return value;
+    const staticTranslation = t(value);
+    if (staticTranslation && staticTranslation !== value) {
+      return staticTranslation;
+    }
+    const withSpace = value.replace(/([^\s])\(/g, "$1 (");
+    const transWithSpace = t(withSpace);
+    if (transWithSpace && transWithSpace !== withSpace) {
+      return transWithSpace;
+    }
+    const withoutSpace = value.replace(/\s+\(/g, "(");
+    const transWithoutSpace = t(withoutSpace);
+    if (transWithoutSpace && transWithoutSpace !== withoutSpace) {
+      return transWithoutSpace;
+    }
+    if (value.includes("(")) {
+      const parts = value.split(/\s*(?=[()])/);
+      const translatedParts = parts.map((part) => {
+        const clean = part.replace(/[()]/g, "").trim();
+        if (!clean) return part;
+        const trans = t(clean);
+        if (trans && trans !== clean) {
+          return part.startsWith("(") ? `(${trans})` : trans;
+        }
+        return part;
+      });
+      const result = translatedParts.join(" ").replace(/\s+/g, " ").trim();
+      if (result && result !== value) {
+        return result;
+      }
+    }
+    if (value.includes("-")) {
+      const subParts = value.split("-");
+      const transSubParts = subParts.map((sp) => {
+        const tr = t(sp.trim());
+        return tr && tr !== sp.trim() ? tr : sp;
+      });
+      const dashResult = transSubParts.join("-");
+      if (dashResult && dashResult !== value) {
+        return dashResult;
+      }
+    }
+    return value;
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-800 p-8">
 
@@ -119,19 +165,19 @@ export default function MarketResult({
         <InfoCard
           icon={<Package className="h-5 w-5 text-green-600 dark:text-emerald-400" />}
           title={t("Commodity")}
-          value={market.localized?.commodity || market.commodity}
+          value={market.localized?.commodity || localizeValue(market.commodity)}
         />
 
         <InfoCard
           icon={<Store className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
           title={t("Market")}
-          value={market.localized?.market || market.market}
+          value={market.localized?.market || localizeValue(market.market)}
         />
 
         <InfoCard
           icon={<MapPin className="h-5 w-5 text-red-500 dark:text-red-400" />}
           title={t("Location")}
-          value={`${market.localized?.district || market.district}, ${market.localized?.state || market.state}`}
+          value={`${market.localized?.district || localizeValue(market.district)}, ${market.localized?.state || localizeValue(market.state)}`}
         />
 
         <PriceCard
