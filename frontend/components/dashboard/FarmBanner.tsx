@@ -67,24 +67,24 @@ export default function FarmBanner() {
   }
 
   return (
-    <aside className="flex h-full flex-col rounded-2xl border border-white/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-6 shadow-sm backdrop-blur-sm">
+    <aside className="flex h-full flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
       <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-        <div className="rounded-xl bg-green-100 dark:bg-green-950/60 p-2 text-green-700 dark:text-green-400"><MessageSquare size={20} /></div>
+        <div className="rounded-xl bg-emerald-50 dark:bg-green-950/60 border border-emerald-100/80 dark:border-transparent p-2 text-emerald-600 dark:text-green-400"><MessageSquare size={20} /></div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{t("Help us grow better")}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">{t("Share a quick suggestion or report an issue.")}</p>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 font-heading">{t("Help us grow better")}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-body">{t("Share a quick suggestion or report an issue.")}</p>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 font-body">
         <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">{t("Feedback type")}
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-base font-normal outline-none text-slate-900 dark:text-slate-100 focus:border-green-600">
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-normal outline-none text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
             {categories.map((item) => <option key={item} value={item} className="dark:bg-slate-900 dark:text-slate-100">{t(item)}</option>)}
           </select>
         </label>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
           <div className="flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-slate-300">
-            <span>{t("Rate AgriAdvisor")}</span><span className="text-green-700 dark:text-green-400">{rating}/5</span>
+            <span>{t("Rate AgriAdvisor")}</span><span className="text-emerald-600 dark:text-green-400">{rating}/5</span>
           </div>
           <div className="mt-1 flex gap-1">
             {[1, 2, 3, 4, 5].map((value) => (
@@ -96,11 +96,11 @@ export default function FarmBanner() {
         </div>
       </div>
 
-      <label className="mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-300">{t("Your feedback")}
-        <textarea value={message} maxLength={500} onChange={(event) => setMessage(event.target.value)} placeholder={t("Tell us what worked well or what we can improve...")} className="mt-1 h-24 w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-base font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-green-600" />
+      <label className="mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-300 font-body">{t("Your feedback")}
+        <textarea value={message} maxLength={500} onChange={(event) => setMessage(event.target.value)} placeholder={t("Tell us what worked well or what we can improve...")} className="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
       </label>
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500 dark:text-slate-400"><span>{t("Saved to your account.")}</span><span>{message.length}/500</span></div>
-      <button disabled={saving} onClick={submitFeedback} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 dark:bg-green-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-60"><Send size={16} />{saving ? t("Saving...") : t("Submit feedback")}</button>
+      <div className="mt-1 flex justify-between text-[11px] text-slate-500 dark:text-slate-400 font-body"><span>{t("Saved to your account.")}</span><span>{message.length}/500</span></div>
+      <button disabled={saving} onClick={submitFeedback} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-700 hover:to-green-700 dark:hover:bg-green-600 disabled:opacity-60 font-heading"><Send size={16} />{saving ? t("Saving...") : t("Submit feedback")}</button>
       {status && <p className="mt-2 text-xs font-medium text-green-700 dark:text-green-400">{status}</p>}
 
       <div className="mt-5 border-t border-slate-100 dark:border-slate-800 pt-4">

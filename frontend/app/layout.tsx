@@ -1,9 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Poppins } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import OfflineBanner from "@/components/OfflineBanner";
 import SessionGuard from "@/components/SessionGuard";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AgriAdvisor",
@@ -30,7 +44,13 @@ export default function RootLayout({
 }>) {
   return (
     <ViewTransitions>
-      <html lang="en" data-scroll-behavior="smooth" className="notranslate" translate="no" suppressHydrationWarning>
+      <html
+        lang="en"
+        data-scroll-behavior="smooth"
+        className={`${inter.variable} ${poppins.variable} notranslate`}
+        translate="no"
+        suppressHydrationWarning
+      >
         <head>
           <script
             dangerouslySetInnerHTML={{

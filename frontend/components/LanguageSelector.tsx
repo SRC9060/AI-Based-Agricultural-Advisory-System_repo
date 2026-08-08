@@ -60,7 +60,7 @@ export default function LanguageSelector({
 
   const buttonClasses =
     variant === "auth"
-      ? "flex items-center gap-2 px-3.5 py-2 rounded-xl border border-emerald-200/80 bg-white/90 dark:bg-slate-900/90 dark:border-slate-800 backdrop-blur shadow-sm hover:bg-emerald-50 dark:hover:bg-slate-800 transition-all duration-200 text-slate-700 dark:text-slate-200 font-medium text-sm cursor-pointer"
+      ? "flex items-center gap-2 px-3.5 py-2 rounded-2xl border border-white/15 bg-slate-900/80 backdrop-blur-xl shadow-lg hover:bg-slate-800/90 transition-all duration-200 text-white font-medium text-sm cursor-pointer"
       : "flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-700 dark:text-slate-200 shadow-xs cursor-pointer";
 
   return (

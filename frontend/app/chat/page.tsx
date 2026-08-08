@@ -10,6 +10,7 @@ import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Mic,
+  Square,
   ArrowLeft,
   Plus,
   Trash2,
@@ -327,7 +328,7 @@ useEffect(() => {
         setStatus("");
         if (session) void loadSessions(session.userId);
         if (localStorage.getItem("voice_output") !== "off") {
-          void speakAnswer(answer);
+          void speakAnswer(answer, undefined, data.assistant_message_id);
         }
       } catch (error) {
         console.error(error);
@@ -406,36 +407,117 @@ useEffect(() => {
 
 // Voice Input & Output Management
 const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+const speechRecognitionRef = useRef<any>(null);
+const mediaStreamRef = useRef<MediaStream | null>(null);
+const autoStopTimerRef = useRef<NodeJS.Timeout | null>(null);
+const isManualStopRef = useRef<boolean>(false);
+const isRecordingRef = useRef<boolean>(false);
 const audioChunksRef = useRef<Blob[]>([]);
 const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 const activeAudioUrlRef = useRef<string | null>(null);
+const activeTtsIdRef = useRef<number>(0);
+const activeTtsMessageIdRef = useRef<string | number | null>(null);
 const [playingMessageIndex, setPlayingMessageIndex] = useState<number | null>(null);
 
 const stopSpeechPlayback = useCallback(() => {
+  activeTtsIdRef.current += 1;
+  activeTtsMessageIdRef.current = null;
+
   if (activeAudioRef.current) {
-    activeAudioRef.current.pause();
-    activeAudioRef.current.currentTime = 0;
+    try {
+      activeAudioRef.current.pause();
+      activeAudioRef.current.currentTime = 0;
+      activeAudioRef.current.src = "";
+    } catch {
+      // ignore
+    }
     activeAudioRef.current = null;
   }
   if (activeAudioUrlRef.current) {
-    URL.revokeObjectURL(activeAudioUrlRef.current);
+    try {
+      URL.revokeObjectURL(activeAudioUrlRef.current);
+    } catch {
+      // ignore
+    }
     activeAudioUrlRef.current = null;
   }
   if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // ignore
+    }
   }
   setIsSpeaking(false);
   setPlayingMessageIndex(null);
   setStatus("");
 }, []);
 
+const cleanupMicrophone = useCallback(() => {
+  if (autoStopTimerRef.current) {
+    clearTimeout(autoStopTimerRef.current);
+    autoStopTimerRef.current = null;
+  }
+  if (mediaStreamRef.current) {
+    mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+    mediaStreamRef.current = null;
+  }
+}, []);
+
+const stopRecording = useCallback(() => {
+  isManualStopRef.current = true;
+  isRecordingRef.current = false;
+
+  if (speechRecognitionRef.current) {
+    const rec = speechRecognitionRef.current;
+    speechRecognitionRef.current = null;
+    rec.onstart = null;
+    rec.onresult = null;
+    rec.onerror = null;
+    rec.onend = null;
+    try {
+      rec.stop();
+    } catch {
+      try {
+        rec.abort();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (mediaRecorderRef.current) {
+    const mr = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    if (mr.state !== "inactive") {
+      try {
+        mr.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  cleanupMicrophone();
+  setIsRecording(false);
+  setStatus("");
+}, [cleanupMicrophone]);
+
 useEffect(() => {
   return () => {
+    stopRecording();
     stopSpeechPlayback();
   };
-}, [stopSpeechPlayback]);
+}, [stopRecording, stopSpeechPlayback]);
 
 async function recordAudio(forceBackendRecorder = false) {
+  if (isRecordingRef.current) {
+    stopRecording();
+    return;
+  }
+
+  isManualStopRef.current = false;
+
   type BrowserSpeechRecognitionResultEvent = {
     results: { [index: number]: { [index: number]: { transcript: string } } };
   };
@@ -452,6 +534,7 @@ async function recordAudio(forceBackendRecorder = false) {
     onend: (() => void) | null;
     start: () => void;
     stop: () => void;
+    abort: () => void;
   };
 
   const speechRecognitionWindow = window as typeof window & {
@@ -467,6 +550,7 @@ async function recordAudio(forceBackendRecorder = false) {
   // a local FFmpeg installation. Sarvam/Whisper remains the browser fallback.
   if (SpeechRecognitionConstructor && !forceBackendRecorder) {
     const recognition = new SpeechRecognitionConstructor();
+    speechRecognitionRef.current = recognition;
     const recognitionLanguage =
       getVoiceLanguageCode(language);
 
@@ -474,58 +558,80 @@ async function recordAudio(forceBackendRecorder = false) {
     recognition.interimResults = false;
     recognition.lang = recognitionLanguage;
     recognition.onstart = () => {
+      isRecordingRef.current = true;
       setIsRecording(true);
-      setStatus(`🎙 Listening in ${recognitionLanguage}...`);
+      setStatus(`🔴 Listening in ${recognitionLanguage}...`);
     };
     recognition.onresult = (
       event: BrowserSpeechRecognitionResultEvent,
     ) => {
+      if (isManualStopRef.current) return;
       const transcript = event.results[0]?.[0]?.transcript?.trim();
       if (transcript) {
         setQuestion(transcript);
         setStatus(
-          `✅ Voice recognized in ${recognitionLanguage}. Sending your question...`,
+          `✅ Voice recognized in ${recognitionLanguage}. Click Send to ask your question.`,
         );
-        void askAI(transcript);
       } else {
-        setStatus(
-          "Chrome did not detect speech. Switching to multilingual recording—please speak again.",
-        );
-        window.setTimeout(() => {
-          void recordAudio(true);
-        }, 250);
+        setStatus("No speech detected. Tap 'Ask by voice' to try again.");
       }
     };
     recognition.onerror = (
       event: BrowserSpeechRecognitionErrorEvent,
     ) => {
       console.error("Browser speech recognition error:", event.error);
+      if (isManualStopRef.current || event.error === "aborted") {
+        setIsRecording(false);
+        isRecordingRef.current = false;
+        cleanupMicrophone();
+        return;
+      }
+      if (event.error === "no-speech") {
+        setStatus("No speech detected. Tap 'Ask by voice' to try again.");
+        setIsRecording(false);
+        isRecordingRef.current = false;
+        cleanupMicrophone();
+        return;
+      }
       if (event.error === "not-allowed") {
         setStatus(
           "Microphone permission denied. Allow microphone access in Chrome.",
         );
+        setIsRecording(false);
+        isRecordingRef.current = false;
+        cleanupMicrophone();
         return;
       }
       setStatus(
         "Chrome voice recognition was unavailable. Switching to multilingual recording—please speak again.",
       );
+      cleanupMicrophone();
       window.setTimeout(() => {
-        void recordAudio(true);
+        if (!isManualStopRef.current) {
+          void recordAudio(true);
+        }
       }, 250);
     };
     recognition.onend = () => {
+      speechRecognitionRef.current = null;
       setIsRecording(false);
+      isRecordingRef.current = false;
+      cleanupMicrophone();
     };
     try {
       recognition.start();
     } catch (error) {
       console.error("Unable to start browser speech recognition:", error);
-      setStatus(
-        "Switching to multilingual recording—please speak after the microphone activates.",
-      );
-      window.setTimeout(() => {
-        void recordAudio(true);
-      }, 250);
+      if (!isManualStopRef.current) {
+        setStatus(
+          "Switching to multilingual recording—please speak after the microphone activates.",
+        );
+        window.setTimeout(() => {
+          if (!isManualStopRef.current) {
+            void recordAudio(true);
+          }
+        }, 250);
+      }
     }
     return;
   }
@@ -538,6 +644,14 @@ async function recordAudio(forceBackendRecorder = false) {
         autoGainControl: true,
       },
     });
+
+    mediaStreamRef.current = stream;
+
+    if (isManualStopRef.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      return;
+    }
 
     const preferredMimeType = [
       "audio/webm;codecs=opus",
@@ -564,25 +678,33 @@ async function recordAudio(forceBackendRecorder = false) {
     };
 
     mediaRecorder.onstart = () => {
+      isRecordingRef.current = true;
       setIsRecording(true);
-      setStatus("🎙 Listening...");
+      setStatus("🔴 Listening...");
     };
 
     mediaRecorder.onstop = async () => {
       setIsRecording(false);
+      isRecordingRef.current = false;
+      const wasManualStop = isManualStopRef.current;
 
-      setStatus("🎤 Converting speech...");
+      cleanupMicrophone();
 
       const audioBlob = new Blob(audioChunksRef.current, {
         type: mediaRecorder.mimeType || "audio/webm",
       });
       if (audioBlob.size < 800) {
-        stream.getTracks().forEach((track) => track.stop());
-        setStatus(
-          "No usable audio was captured. Check the selected microphone and try again.",
-        );
+        if (!wasManualStop) {
+          setStatus(
+            "No usable audio was captured. Check the selected microphone and try again.",
+          );
+        } else {
+          setStatus("");
+        }
         return;
       }
+
+      setStatus("🎤 Converting speech...");
 
       const mimeType = mediaRecorder.mimeType || "audio/webm";
       const extension = mimeType.includes("webm")
@@ -632,44 +754,61 @@ async function recordAudio(forceBackendRecorder = false) {
 
         setStatus(
           result.engine === "whisper"
-            ? "✅ Whisper recognized your voice. Sending your question..."
-            : "✅ Sarvam recognized your voice. Sending your question...",
+            ? "✅ Whisper recognized your voice. Click Send to ask your question."
+            : "✅ Sarvam recognized your voice. Click Send to ask your question.",
         );
-        await askAI(transcript);
       } catch (error) {
         console.error(error);
-
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Voice recognition failed.";
-        setStatus(`❌ ${message}`);
+        if (!wasManualStop) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Voice recognition failed.";
+          setStatus(`❌ ${message}`);
+        } else {
+          setStatus("");
+        }
       }
-
-      stream.getTracks().forEach((track) => track.stop());
     };
 
     mediaRecorder.start();
 
-    setTimeout(() => {
-      if (mediaRecorder.state === "recording") {
-        mediaRecorder.stop();
+    if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+    autoStopTimerRef.current = setTimeout(() => {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state === "recording"
+      ) {
+        mediaRecorderRef.current.stop();
       }
     }, 7000);
   } catch (error) {
     console.error(error);
-
+    setIsRecording(false);
+    isRecordingRef.current = false;
+    cleanupMicrophone();
     setStatus("❌ Microphone permission denied.");
   }
 }
 
   // Speak AI Response
-async function speakAnswer(text: string, messageIndex?: number) {
+async function speakAnswer(text: string, messageIndex?: number, messageId?: string | number) {
   if (!text.trim()) {
     return;
   }
 
+  // Prevent duplicate trigger if this exact message is already playing
+  if (messageId !== undefined && activeTtsMessageIdRef.current === messageId && isSpeaking) {
+    return;
+  }
+
+  // Stop any existing TTS audio and increment token to invalidate pending async fetches
   stopSpeechPlayback();
+
+  const currentTtsId = activeTtsIdRef.current;
+  if (messageId !== undefined) {
+    activeTtsMessageIdRef.current = messageId;
+  }
   if (messageIndex !== undefined) {
     setPlayingMessageIndex(messageIndex);
   }
@@ -685,19 +824,31 @@ async function speakAnswer(text: string, messageIndex?: number) {
   );
 
   async function playBrowserTTS() {
-    if (!("speechSynthesis" in window)) {
-      setStatus("❌ Browser voice output is not supported.");
-      setIsSpeaking(false);
-      setPlayingMessageIndex(null);
+    if (activeTtsIdRef.current !== currentTtsId) {
       return;
     }
 
-    window.speechSynthesis.cancel();
+    if (!("speechSynthesis" in window)) {
+      if (activeTtsIdRef.current === currentTtsId) {
+        setStatus("❌ Browser voice output is not supported.");
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+      }
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+    } catch {
+      // ignore
+    }
+
+    if (activeTtsIdRef.current !== currentTtsId) {
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
-
     utterance.lang = getVoiceLanguageCode(voiceLanguage);
-
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
@@ -720,6 +871,10 @@ async function speakAnswer(text: string, messageIndex?: number) {
       });
     }
 
+    if (activeTtsIdRef.current !== currentTtsId) {
+      return;
+    }
+
     const matchingVoice = voices.find((voice) =>
       voice.lang
         .toLowerCase()
@@ -731,33 +886,47 @@ async function speakAnswer(text: string, messageIndex?: number) {
     if (matchingVoice) {
       utterance.voice = matchingVoice;
     } else if (voiceLanguage !== "en") {
-      setIsSpeaking(false);
-      setPlayingMessageIndex(null);
-      setStatus(
-        "❌ Online voice is unavailable and this device has no matching language voice.",
-      );
+      if (activeTtsIdRef.current === currentTtsId) {
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+        setStatus(
+          "❌ Online voice is unavailable and this device has no matching language voice.",
+        );
+      }
       return;
     }
 
     utterance.onstart = () => {
+      if (activeTtsIdRef.current !== currentTtsId) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {}
+        return;
+      }
       setIsSpeaking(true);
       setStatus("🔊 Playing browser voice...");
     };
 
     utterance.onend = () => {
-      setIsSpeaking(false);
-      setPlayingMessageIndex(null);
-      setStatus("");
+      if (activeTtsIdRef.current === currentTtsId) {
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+        setStatus("");
+      }
     };
 
     utterance.onerror = (event) => {
       console.error("Browser TTS error:", event);
-      setIsSpeaking(false);
-      setPlayingMessageIndex(null);
-      setStatus("❌ Browser voice output failed.");
+      if (activeTtsIdRef.current === currentTtsId) {
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+        setStatus("❌ Browser voice output failed.");
+      }
     };
 
-    window.speechSynthesis.speak(utterance);
+    if (activeTtsIdRef.current === currentTtsId) {
+      window.speechSynthesis.speak(utterance);
+    }
   }
 
   try {
@@ -778,9 +947,13 @@ async function speakAnswer(text: string, messageIndex?: number) {
       },
     );
 
+    if (activeTtsIdRef.current !== currentTtsId) {
+      return;
+    }
+
     if (!response.ok) {
       console.warn(
-        "Sarvam TTS failed. Using browser TTS.",
+        "Edge TTS / Sarvam TTS failed. Using browser TTS.",
       );
 
       void playBrowserTTS();
@@ -793,7 +966,13 @@ async function speakAnswer(text: string, messageIndex?: number) {
     const voiceCode =
       response.headers.get("X-Voice-Language") ||
       getVoiceLanguageCode(voiceLanguage);
+
     const audioBlob = await response.blob();
+
+    if (activeTtsIdRef.current !== currentTtsId) {
+      return;
+    }
+
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
 
@@ -802,23 +981,42 @@ async function speakAnswer(text: string, messageIndex?: number) {
 
     audio.onended = () => {
       if (activeAudioUrlRef.current) {
-        URL.revokeObjectURL(activeAudioUrlRef.current);
+        try {
+          URL.revokeObjectURL(activeAudioUrlRef.current);
+        } catch {}
         activeAudioUrlRef.current = null;
       }
       activeAudioRef.current = null;
-      setIsSpeaking(false);
-      setPlayingMessageIndex(null);
-      setStatus("");
+      if (activeTtsIdRef.current === currentTtsId) {
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+        setStatus("");
+      }
     };
 
     audio.onerror = () => {
       if (activeAudioUrlRef.current) {
-        URL.revokeObjectURL(activeAudioUrlRef.current);
+        try {
+          URL.revokeObjectURL(activeAudioUrlRef.current);
+        } catch {}
         activeAudioUrlRef.current = null;
       }
       activeAudioRef.current = null;
-      void playBrowserTTS();
+      if (activeTtsIdRef.current === currentTtsId) {
+        void playBrowserTTS();
+      }
     };
+
+    if (activeTtsIdRef.current !== currentTtsId) {
+      if (activeAudioUrlRef.current) {
+        try {
+          URL.revokeObjectURL(activeAudioUrlRef.current);
+        } catch {}
+        activeAudioUrlRef.current = null;
+      }
+      activeAudioRef.current = null;
+      return;
+    }
 
     setStatus(
       `🔊 Playing ${voiceCode} using ${voiceEngine}...`,
@@ -826,11 +1024,13 @@ async function speakAnswer(text: string, messageIndex?: number) {
     await audio.play();
   } catch (error) {
     console.error(
-      "Sarvam unavailable; browser fallback started:",
+      "TTS unavailable; browser fallback started:",
       error,
     );
 
-    void playBrowserTTS();
+    if (activeTtsIdRef.current === currentTtsId) {
+      void playBrowserTTS();
+    }
   }
 }
 
@@ -904,7 +1104,7 @@ async function speakAnswer(text: string, messageIndex?: number) {
 
         {/* Main Chat Area */}
         <section className="chat-area flex-1">
-          <div className="flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-900/90 backdrop-blur border border-emerald-200 dark:border-slate-800 rounded-2xl mb-4 shadow-md">
+          <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl mb-4 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -1027,24 +1227,36 @@ async function speakAnswer(text: string, messageIndex?: number) {
             type="button"
             className={isRecording ? "voice-btn recording" : "voice-btn"}
             onClick={() => {
-              void recordAudio();
+              if (isRecording) {
+                stopRecording();
+              } else {
+                void recordAudio();
+              }
             }}
             disabled={
               !isOnline ||
               loading ||
-              isRecording ||
               isSpeaking ||
               sessionId === null
             }
             aria-label={
               isRecording
-                ? "Recording voice question"
+                ? "Stop listening"
                 : "Tap to ask your farming question by voice"
             }
-            title={isRecording ? "Listening..." : "Tap and speak"}
+            title={isRecording ? "Stop listening" : "Tap and speak"}
           >
-            <Mic size={34} strokeWidth={2.1} />
-            <span>{isRecording ? "Listening…" : "Ask by voice"}</span>
+            {isRecording ? (
+              <>
+                <Square size={26} strokeWidth={2.5} className="fill-current text-white" />
+                <span>{t("Stop listening")}</span>
+              </>
+            ) : (
+              <>
+                <Mic size={34} strokeWidth={2.1} />
+                <span>{t("Ask by voice")}</span>
+              </>
+            )}
           </button>
 
           <div className="text-fallback-label">

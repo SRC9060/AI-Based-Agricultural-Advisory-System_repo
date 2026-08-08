@@ -241,11 +241,11 @@ export default function WeatherPage() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 mt-6 border border-slate-100 dark:border-slate-800">
-        <h2 className="text-xl font-semibold text-green-800 dark:text-emerald-400 mb-4">{t("Select Location")}</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 mt-6 border border-slate-200 dark:border-slate-800">
+        <h2 className="text-xl font-bold font-heading text-slate-900 dark:text-slate-100 mb-4">{t("Select Location")}</h2>
         <h2 className="sr-only">📍 Select Location</h2>
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 font-body">
           <input
             type="text"
             placeholder={t("Enter city name (e.g. Chennai)")}
@@ -256,29 +256,29 @@ export default function WeatherPage() {
                 fetchWeather();
               }
             }}
-            className="flex-1 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl px-4 py-3 outline-none focus:border-green-600 dark:focus:border-emerald-500 text-gray-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            className="flex-1 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
 
           <button
             onClick={fetchWeather}
             disabled={loading}
-            className="bg-green-700 dark:bg-green-800 hover:bg-green-800 dark:hover:bg-green-700 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition"
+            className="bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-800 hover:from-emerald-700 hover:to-green-700 dark:hover:bg-green-700 disabled:opacity-60 text-white px-7 py-3 rounded-xl font-semibold transition font-heading shadow-sm"
           >
             {loading ? t("Checking...") : t("Check Weather")}
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl">
+          <div className="mt-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
             ⚠️ {error}
           </div>
         )}
       </div>
 
       {loading && (
-        <div className="mt-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center shadow-sm">
+        <div className="mt-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center shadow-sm">
           <div className="text-4xl mb-3">🌦️</div>
-          <p className="text-green-800 dark:text-emerald-400 font-semibold">
+          <p className="text-slate-800 dark:text-emerald-400 font-semibold font-body">
             {t("Fetching weather information...")}
           </p>
         </div>
@@ -287,44 +287,44 @@ export default function WeatherPage() {
       {weather && !loading && (
         <div className="mt-6">
           <div className="mb-5">
-            <h2 className="text-2xl font-bold text-green-800 dark:text-emerald-400">📍 {weather.city}</h2>
-            <p className="text-gray-500 dark:text-slate-400 mt-1">{t("Current weather conditions")}</p>
+            <h2 className="text-2xl font-bold font-heading text-slate-900 dark:text-slate-100">📍 {weather.city}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 font-body">{t("Current weather conditions")}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-slate-800 hover:shadow-md transition">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 hover:shadow-md transition">
               <div className="text-4xl mb-4">🌡️</div>
-              <p className="text-gray-500 dark:text-slate-400">{t("Temperature")}</p>
-              <h3 className="text-3xl font-bold text-green-800 dark:text-emerald-400 mt-2">{weather.temperature}°C</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-body">{t("Temperature")}</p>
+              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2 font-heading">{weather.temperature}°C</h3>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-slate-800 hover:shadow-md transition">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 hover:shadow-md transition">
               <div className="text-4xl mb-4">💧</div>
-              <p className="text-gray-500 dark:text-slate-400">{t("Humidity")}</p>
-              <h3 className="text-3xl font-bold text-green-800 dark:text-emerald-400 mt-2">{weather.humidity}%</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-body">{t("Humidity")}</p>
+              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2 font-heading">{weather.humidity}%</h3>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-slate-800 hover:shadow-md transition">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 hover:shadow-md transition">
               <div className="text-4xl mb-4">{getWeatherIcon(weather.weather)}</div>
-              <p className="text-gray-500 dark:text-slate-400">{t("Weather")}</p>
-              <h3 className="text-xl font-bold text-green-800 dark:text-emerald-400 mt-2 capitalize">
+              <p className="text-slate-500 dark:text-slate-400 font-body">{t("Weather")}</p>
+              <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-2 capitalize font-heading">
                 {localizeCondition(weather.weather)}
               </h3>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-gray-100 dark:border-slate-800 hover:shadow-md transition">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800 hover:shadow-md transition">
               <div className="text-4xl mb-4">💨</div>
-              <p className="text-gray-500 dark:text-slate-400">{t("Wind Speed")}</p>
-              <h3 className="text-3xl font-bold text-green-800 dark:text-emerald-400 mt-2">{weather.wind_speed}</h3>
-              <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">m/s</p>
+              <p className="text-slate-500 dark:text-slate-400 font-body">{t("Wind Speed")}</p>
+              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2 font-heading">{weather.wind_speed}</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-body">m/s</p>
             </div>
           </div>
 
           {forecast.length > 0 && (
             <div className="mt-8">
               <div className="mb-5">
-                <h2 className="text-2xl font-bold text-green-800 dark:text-emerald-400">📅 {t("Upcoming Forecast")}</h2>
-                <p className="text-gray-500 dark:text-slate-400 mt-1">
+                <h2 className="text-2xl font-bold font-heading text-slate-900 dark:text-slate-100">📅 {t("Upcoming Forecast")}</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-1 font-body">
                   {t("Plan your farming activities using the upcoming weather forecast.")}
                 </p>
               </div>
@@ -333,23 +333,23 @@ export default function WeatherPage() {
                 {forecast.map((day, index) => (
                   <div
                     key={`${day.date}-${index}`}
-                    className="bg-white dark:bg-slate-900 border border-green-100 dark:border-slate-800 rounded-2xl p-5 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition"
                   >
-                    <p className="font-semibold text-green-800 dark:text-emerald-400 text-sm">
+                    <p className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm font-heading">
                       {formatDate(day.date, index)}
                     </p>
 
                     <div className="text-5xl my-4">{getWeatherIcon(day.weather)}</div>
-                    <h3 className="text-2xl font-bold text-gray-800 dark:text-slate-100">{day.temperature}°C</h3>
-                    <p className="text-gray-600 dark:text-slate-300 capitalize mt-2 text-sm">
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 font-heading">{day.temperature}°C</h3>
+                    <p className="text-slate-600 dark:text-slate-300 capitalize mt-2 text-sm font-body">
                       {localizeCondition(day.weather)}
                     </p>
 
-                    <div className="border-t border-gray-100 dark:border-slate-800 mt-4 pt-4">
-                      <p className="text-sm text-gray-500 dark:text-slate-400">
+                    <div className="border-t border-slate-100 dark:border-slate-800 mt-4 pt-4 font-body">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         💧 {day.humidity}% {t("Humidity")}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                         💨 {day.wind_speed} m/s
                       </p>
                     </div>
@@ -359,11 +359,11 @@ export default function WeatherPage() {
             </div>
           )}
 
-          <div className="mt-8 bg-green-50 dark:bg-slate-900 border border-green-200 dark:border-slate-800 rounded-2xl p-6">
-            <h2 className="text-xl font-bold text-green-800 dark:text-emerald-400">
+          <div className="mt-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold font-heading text-slate-900 dark:text-slate-100">
               🌱 {t("Farming Weather Summary")}
             </h2>
-            <p className="text-gray-700 dark:text-slate-200 mt-3 leading-7">
+            <p className="text-slate-700 dark:text-slate-200 mt-3 leading-7 font-body">
               {localize(buildWeatherSummary(weather))}
             </p>
           </div>

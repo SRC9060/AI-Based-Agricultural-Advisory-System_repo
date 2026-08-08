@@ -260,7 +260,7 @@ export default function TopNavbar({
 
   return (
     <header className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8 pt-4">
-      <div className="w-full bg-gradient-to-r from-green-50 via-white to-green-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 backdrop-blur-xl border border-green-100 dark:border-slate-800 shadow-xl rounded-2xl">
+      <div className="w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-md shadow-slate-200/40 dark:shadow-none rounded-2xl">
         <div className="flex items-center justify-between h-24 px-6">
           {/* Left */}
           <div className="flex items-center gap-4 sm:gap-6">
@@ -275,7 +275,7 @@ export default function TopNavbar({
                   }
                 }}
                 aria-label={t("Back")}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all duration-300 font-bold text-sm sm:text-base shadow-md group shrink-0"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700 active:scale-95 transition-all duration-300 font-bold text-sm sm:text-base shadow-md shadow-emerald-600/20 group shrink-0"
                 title={t("Back")}
               >
                 <ArrowLeft size={20} className="transition-transform group-hover:-translate-x-1" />
@@ -285,23 +285,23 @@ export default function TopNavbar({
 
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-14 h-14 rounded-2xl bg-green-700 dark:bg-green-800 flex items-center justify-center shadow-md">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-600 dark:bg-green-800 flex items-center justify-center shadow-md shadow-emerald-600/20">
                 <Sprout className="text-white" size={28} />
               </div>
 
               <div>
-                <h2 className="font-bold text-xl tracking-tight text-slate-900 dark:text-slate-100">
+                <h2 className="font-bold text-xl tracking-tight text-slate-900 dark:text-slate-100 font-heading">
                   AgriAdvisor
                 </h2>
 
-                <p className="text-[0.9rem] text-slate-600 dark:text-slate-400">
+                <p className="text-[0.9rem] text-slate-500 dark:text-slate-400 font-body">
                   Smart Farming Platform
                 </p>
               </div>
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden lg:flex items-center gap-4">
+            <nav className="hidden lg:flex items-center gap-3">
               {navItems.map((item) => {
                 const Icon = item.icon;
 
@@ -309,11 +309,11 @@ export default function TopNavbar({
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 ease-out border border-slate-200 dark:border-slate-700
+                    className={`group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-all duration-300 ease-out border
                     ${
                       pathname === item.href
-                        ? "bg-green-600 dark:bg-green-700 text-white font-semibold shadow-md"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-green-50 dark:hover:bg-slate-700 hover:text-green-700 dark:hover:text-green-400 hover:shadow-sm"
+                        ? "bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold border-transparent shadow-md shadow-emerald-600/20"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-700 dark:hover:text-green-400 hover:border-emerald-200"
                     }
                     `}
                   >
@@ -321,7 +321,7 @@ export default function TopNavbar({
                       size={18}
                       className="transition-transform duration-300 group-hover:scale-110"
                     />
-                    <span className="text-base transition-all duration-300">
+                    <span className="text-sm font-medium transition-all duration-300">
                       {t(item.name)}
                     </span>
                   </Link>

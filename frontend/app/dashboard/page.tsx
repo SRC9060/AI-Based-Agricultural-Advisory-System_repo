@@ -203,7 +203,7 @@ saveCache(DASHBOARD_CACHE_KEY, dashboardData);
     <DashboardLayout>
 
       <div className="mt-8">
-        <h1 className="text-3xl font-bold text-green-800">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 font-heading">Dashboard</h1>
         <OfflineStatus
           cached={dashboardDataSource.cached}
           timestamp={dashboardDataSource.timestamp}

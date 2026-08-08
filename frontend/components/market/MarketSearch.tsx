@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@/components/LanguageProvider";
-import { translateTextMap } from "@/lib/translation";
+import { getLocalizedMarketLabel } from "@/lib/marketLocalization";
 
 interface MarketSearchProps {
   onSearch: (
@@ -29,8 +29,6 @@ export default function MarketSearch({
   const [state, setState] = useState("");
   const [district, setDistrict] = useState("");
   const [formError, setFormError] = useState("");
-  const [localizedOptions, setLocalizedOptions] = useState<Record<string, string>>({});
-  const [localizingOptions, setLocalizingOptions] = useState(false);
 
   // Commodity list
   const commodities = useMemo(
@@ -56,94 +54,18 @@ export default function MarketSearch({
     [commodity, marketOptions, state],
   );
 
-  const visibleOptions = useMemo(
-    () => [
-      ...commodities,
-      ...availableStates,
-      ...availableDistricts,
-    ],
-    [availableDistricts, availableStates, commodities],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (visibleOptions.length === 0) return;
-
-    if (language === "en") {
-      setLocalizedOptions({});
-      return;
-    }
-
-    translateTextMap(visibleOptions, language).then((translations) => {
-      if (!cancelled) {
-        setLocalizedOptions(translations);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [language, visibleOptions]);
-
-  const localizeOption = (value: string) => {
-    if (!value) return value;
-    const staticTranslation = t(value);
-    if (staticTranslation && staticTranslation !== value) {
-      return staticTranslation;
-    }
-    if (localizedOptions[value]) {
-      return localizedOptions[value];
-    }
-    const withSpace = value.replace(/([^\s])\(/g, "$1 (");
-    const transWithSpace = t(withSpace);
-    if (transWithSpace && transWithSpace !== withSpace) {
-      return transWithSpace;
-    }
-    const withoutSpace = value.replace(/\s+\(/g, "(");
-    const transWithoutSpace = t(withoutSpace);
-    if (transWithoutSpace && transWithoutSpace !== withoutSpace) {
-      return transWithoutSpace;
-    }
-    if (value.includes("(")) {
-      const parts = value.split(/\s*(?=[()])/);
-      const translatedParts = parts.map((part) => {
-        const clean = part.replace(/[()]/g, "").trim();
-        if (!clean) return part;
-        const trans = t(clean);
-        if (trans && trans !== clean) {
-          return part.startsWith("(") ? `(${trans})` : trans;
-        }
-        return part;
-      });
-      const result = translatedParts.join(" ").replace(/\s+/g, " ").trim();
-      if (result && result !== value) {
-        return result;
-      }
-    }
-    if (value.includes("-")) {
-      const subParts = value.split("-");
-      const transSubParts = subParts.map((sp) => {
-        const tr = t(sp.trim());
-        return tr && tr !== sp.trim() ? tr : sp;
-      });
-      const dashResult = transSubParts.join("-");
-      if (dashResult && dashResult !== value) {
-        return dashResult;
-      }
-    }
-    return value;
-  };
+  const localizeOption = (value: string) => getLocalizedMarketLabel(value, language);
 
   const isFormIncomplete =
     !commodity || !state || !district;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-md p-6 border border-slate-100 dark:border-slate-800">
-      <h2 className="text-xl font-semibold text-green-800 dark:text-emerald-400 mb-5">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-800">
+      <h2 className="text-xl font-bold font-heading text-slate-900 dark:text-slate-100 mb-5">
         {t("Search Market Prices")}
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 font-body">
 
         {/* Commodity */}
         <div>
@@ -159,7 +81,7 @@ export default function MarketSearch({
               setState("");
               setDistrict("");
             }}
-            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500"
+            className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
           >
             <option value="" className="dark:bg-slate-900 dark:text-slate-100">
               {t("Select Commodity")}
@@ -186,7 +108,7 @@ export default function MarketSearch({
               setState(e.target.value);
               setDistrict("");
             }}
-            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500 disabled:opacity-50"
+            className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
           >
             <option value="" className="dark:bg-slate-900 dark:text-slate-100">
               {commodity
@@ -214,7 +136,7 @@ export default function MarketSearch({
             onChange={(e) =>
               setDistrict(e.target.value)
             }
-            className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-green-600 dark:focus:border-emerald-500 disabled:opacity-50"
+            className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-3 cursor-pointer outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
           >
             <option value="" className="dark:bg-slate-900 dark:text-slate-100">
               {state
@@ -233,7 +155,7 @@ export default function MarketSearch({
       </div>
 
       {formError && (
-        <p className="text-red-600 dark:text-red-400 mt-3">
+        <p className="text-red-600 dark:text-red-400 mt-3 text-sm font-body">
           {formError}
         </p>
       )}
@@ -256,10 +178,10 @@ export default function MarketSearch({
             district
           );
         }}
-        className={`mt-6 px-8 py-3 rounded-xl font-semibold transition-all ${
+        className={`mt-6 px-8 py-3 rounded-xl font-semibold transition-all font-heading shadow-sm ${
           loading || isFormIncomplete
-            ? "bg-gray-300 dark:bg-slate-800 text-gray-500 dark:text-slate-500 cursor-not-allowed"
-            : "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 text-white"
+            ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed"
+            : "bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-700 hover:from-emerald-700 hover:to-green-700 dark:hover:bg-green-600 text-white"
         }`}
       >
         {loading ? t("Searching...") : t("Search")}

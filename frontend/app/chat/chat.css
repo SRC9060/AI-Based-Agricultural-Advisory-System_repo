@@ -15,8 +15,9 @@
   overflow: hidden;
   padding: 24px 28px 16px;
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, #f7fff5, #edf7eb);
-  border: 1px solid #e2f0e3;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
 html.dark .chat-area {
@@ -90,9 +91,9 @@ html.dark .ai-avatar {
 }
 
 .ai-message {
-  background: white;
-  color: #26352a;
-  border: 1px solid #dbe9da;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
   border-top-left-radius: 4px;
 }
 

@@ -94,11 +94,11 @@ export default function RecentActivity({
 
   if (activities.length === 0) {
     return (
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm p-5">
-        <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+        <h2 className="text-xl font-semibold mb-4 text-slate-900 dark:text-slate-100 font-heading">
           {t("Recent Activity")}
         </h2>
-        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500 dark:text-slate-400">
+        <div className="flex flex-col items-center justify-center text-center py-10 text-slate-500 dark:text-slate-400 font-body">
           <span className="text-4xl mb-3">🌱</span>
           <p className="font-semibold">{t("No recent activity yet.")}</p>
           <p className="text-sm mt-2">
@@ -110,14 +110,14 @@ export default function RecentActivity({
   }
 
   return (
-    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-2xl border border-white/90 dark:border-slate-800 shadow-sm transition-all duration-300 p-5">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-        <h2 className="text-[1.15rem] font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-[1.15rem] font-semibold text-slate-900 dark:text-slate-100 font-heading">
           {t("Recent Activity")}
         </h2>
         <Link
           href="/queries"
-          className="text-green-700 dark:text-green-400 font-semibold hover:underline text-sm"
+          className="text-emerald-700 dark:text-green-400 font-semibold hover:underline text-sm font-body"
         >
           {t("View All")}
         </Link>

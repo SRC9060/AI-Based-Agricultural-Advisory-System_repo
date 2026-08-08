@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
 import { getLanguageLocale } from "@/lib/languages";
+import { getLocalizedMarketLabel } from "@/lib/marketLocalization";
 
 interface MarketRecord {
   state: string;
@@ -57,14 +58,14 @@ export default function MarketResult({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-gray-200 dark:border-slate-800 p-10 text-center">
-        <TrendingUp className="mx-auto h-14 w-14 text-green-600 dark:text-emerald-400 animate-pulse" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-10 text-center">
+        <TrendingUp className="mx-auto h-14 w-14 text-emerald-600 dark:text-emerald-400 animate-pulse" />
 
-        <h2 className="mt-5 text-2xl font-bold text-gray-800 dark:text-slate-100">
+        <h2 className="mt-5 text-2xl font-bold font-heading text-slate-900 dark:text-slate-100">
           {t("Fetching Latest Market Prices...")}
         </h2>
 
-        <p className="mt-2 text-gray-500 dark:text-slate-400">
+        <p className="mt-2 text-slate-500 dark:text-slate-400 font-body">
           {t("Please wait while we retrieve today's market prices.")}
         </p>
       </div>
@@ -73,7 +74,7 @@ export default function MarketResult({
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-5">
+      <div className="rounded-2xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-5 font-body">
         <h3 className="font-semibold text-red-700 dark:text-red-400">{error}</h3>
       </div>
     );
@@ -81,14 +82,14 @@ export default function MarketResult({
 
   if (!data || !data.records || data.records.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-gray-200 dark:border-slate-800 p-12 text-center">
-        <Search className="mx-auto h-12 w-12 text-green-600 dark:text-emerald-400" />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 text-center">
+        <Search className="mx-auto h-12 w-12 text-emerald-600 dark:text-emerald-400" />
 
-        <h2 className="mt-4 text-2xl font-bold text-gray-800 dark:text-slate-100">
+        <h2 className="mt-4 text-2xl font-bold font-heading text-slate-900 dark:text-slate-100">
           {t("Search Market Prices")}
         </h2>
 
-        <p className="mt-2 text-gray-500 dark:text-slate-400">
+        <p className="mt-2 text-slate-500 dark:text-slate-400 font-body">
           {t("Select Commodity, State and District to view today's market prices.")}
         </p>
       </div>
@@ -97,73 +98,29 @@ export default function MarketResult({
 
   const market = data.records[0];
 
-  const localizeValue = (value: string) => {
-    if (!value) return value;
-    const staticTranslation = t(value);
-    if (staticTranslation && staticTranslation !== value) {
-      return staticTranslation;
-    }
-    const withSpace = value.replace(/([^\s])\(/g, "$1 (");
-    const transWithSpace = t(withSpace);
-    if (transWithSpace && transWithSpace !== withSpace) {
-      return transWithSpace;
-    }
-    const withoutSpace = value.replace(/\s+\(/g, "(");
-    const transWithoutSpace = t(withoutSpace);
-    if (transWithoutSpace && transWithoutSpace !== withoutSpace) {
-      return transWithoutSpace;
-    }
-    if (value.includes("(")) {
-      const parts = value.split(/\s*(?=[()])/);
-      const translatedParts = parts.map((part) => {
-        const clean = part.replace(/[()]/g, "").trim();
-        if (!clean) return part;
-        const trans = t(clean);
-        if (trans && trans !== clean) {
-          return part.startsWith("(") ? `(${trans})` : trans;
-        }
-        return part;
-      });
-      const result = translatedParts.join(" ").replace(/\s+/g, " ").trim();
-      if (result && result !== value) {
-        return result;
-      }
-    }
-    if (value.includes("-")) {
-      const subParts = value.split("-");
-      const transSubParts = subParts.map((sp) => {
-        const tr = t(sp.trim());
-        return tr && tr !== sp.trim() ? tr : sp;
-      });
-      const dashResult = transSubParts.join("-");
-      if (dashResult && dashResult !== value) {
-        return dashResult;
-      }
-    }
-    return value;
-  };
+  const localizeValue = (value: string) => getLocalizedMarketLabel(value, language);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-200 dark:border-slate-800 p-8">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
 
       <div className="flex items-center gap-3 mb-8">
-        <TrendingUp className="h-8 w-8 text-green-700 dark:text-emerald-400" />
+        <TrendingUp className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
 
         <div>
-          <h2 className="text-3xl font-bold text-green-800 dark:text-emerald-400">
+          <h2 className="text-3xl font-bold font-heading text-slate-900 dark:text-slate-100">
             {t("Today's Market Details")}
           </h2>
 
-          <p className="text-gray-500 dark:text-slate-400">
+          <p className="text-slate-500 dark:text-slate-400 font-body">
             {t("Live AGMARKNET Market Information")}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-body">
 
         <InfoCard
-          icon={<Package className="h-5 w-5 text-green-600 dark:text-emerald-400" />}
+          icon={<Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
           title={t("Commodity")}
           value={market.localized?.commodity || localizeValue(market.commodity)}
         />
@@ -203,12 +160,12 @@ export default function MarketResult({
 
       </div>
 
-      <div className="mt-8 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-5 flex items-center gap-4">
+      <div className="mt-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 flex items-center gap-4 font-body">
 
-        <CalendarDays className="h-7 w-7 text-gray-600 dark:text-slate-300" />
+        <CalendarDays className="h-7 w-7 text-slate-600 dark:text-slate-300" />
 
         <div>
-          <p className="text-sm text-gray-500 dark:text-slate-400">{t("Arrival Date")}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t("Arrival Date")}</p>
 
           <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             {market.arrival_date}
@@ -231,13 +188,13 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="group rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-5 shadow-sm hover:shadow-lg transition-all">
-      <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
+    <div className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-5 shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
         {icon}
         <span className="font-medium">{title}</span>
       </div>
 
-      <p className="mt-4 text-xl font-bold text-gray-800 dark:text-slate-100 wrap-break-word">
+      <p className="mt-4 text-xl font-bold font-heading text-slate-900 dark:text-slate-100 wrap-break-word">
         {value}
       </p>
     </div>

@@ -87,29 +87,29 @@ export default function QueriesPage() {
       <main className="mx-auto max-w-5xl py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-green-800 dark:text-emerald-400">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 font-heading">
               {t("My Queries")}
             </h1>
-            <p className="mt-2 text-slate-600 dark:text-slate-400">
+            <p className="mt-2 text-slate-600 dark:text-slate-400 font-body">
               {t("Your questions saved from AI Assistant conversations.")}
             </p>
           </div>
           <Link
             href="/chat"
-            className="rounded-xl bg-green-700 dark:bg-green-800 px-5 py-3 font-semibold text-white hover:bg-green-800 dark:hover:bg-green-700"
+            className="rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-800 px-5 py-3 font-semibold text-white hover:from-emerald-700 hover:to-green-700 font-heading shadow-sm"
           >
             {t("Ask a question")}
           </Link>
         </div>
-        <section className="mt-6 rounded-2xl border border-white/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-6 shadow-sm backdrop-blur">
+        <section className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
           {loading ? (
-            <p className="py-10 text-center text-slate-500 dark:text-slate-400">
+            <p className="py-10 text-center text-slate-500 dark:text-slate-400 font-body">
               {t("Loading...")}
             </p>
           ) : activities.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 dark:text-slate-400">
+            <div className="py-12 text-center text-slate-500 dark:text-slate-400 font-body">
               <MessageCircle
-                className="mx-auto mb-3 text-green-600 dark:text-emerald-400"
+                className="mx-auto mb-3 text-emerald-600 dark:text-emerald-400"
                 size={34}
               />
               <p className="font-semibold">{t("No queries yet.")}</p>
@@ -126,22 +126,22 @@ export default function QueriesPage() {
                   <Link
                     key={activity.id}
                     href={`/chat?q=${encodeURIComponent(question)}`}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-4 transition hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-slate-800"
+                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 p-4 transition hover:border-emerald-300 dark:hover:border-green-600 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-2xs"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3 font-body">
                       <div className="flex flex-col items-center">
                         <div className={`rounded-full p-2.5 z-10 ${bg} dark:bg-slate-700`}>
                           {icon}
                         </div>
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-gray-900 dark:text-slate-100 text-sm">
+                        <p className="truncate font-semibold text-slate-900 dark:text-slate-100 text-sm">
                           {t(formatActivityTitle(activity.type))}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
                           {question}
                         </p>
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-500">
+                        <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                           {new Date(activity.created_at).toLocaleTimeString("en-IN", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -156,7 +156,7 @@ export default function QueriesPage() {
                         </p>
                       </div>
                     </div>
-                    <ArrowUpRight className="shrink-0 text-green-700 dark:text-green-400" size={18} />
+                    <ArrowUpRight className="shrink-0 text-emerald-600 dark:text-green-400" size={18} />
                   </Link>
                 );
               })}

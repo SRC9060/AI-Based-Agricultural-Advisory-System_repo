@@ -80,63 +80,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div
-      className="
-        relative
-        min-h-screen
-        flex
-        items-center
-        justify-center
-        auth-page
-        px-5
-        py-10
-      "
-    >
-      <div className="absolute top-5 right-5 z-50">
+    <div className="relative min-h-screen flex items-center justify-center auth-page px-5 py-12">
+      <div className="absolute top-6 right-6 z-50">
         <LanguageSelector variant="auth" />
       </div>
+
       {/* Register Card */}
-      <div
-        className="
-          w-full
-          max-w-xl
-          rounded-[32px]
-          border
-          border-emerald-200/70
-          auth-card
-          px-10
-          py-10
-          shadow-2xl
-          shadow-emerald-950/30
-        "
-      >
+      <div className="w-full max-w-[520px] auth-card p-10 sm:p-12 text-white shadow-2xl">
         {/* Header */}
-        <div className="text-center mb-7">
-          <div
-            className="
-              w-18
-              h-18
-              mx-auto
-              rounded-3xl
-              bg-gradient-to-br
-              from-emerald-400
-              to-green-600
-              flex
-              items-center
-              justify-center
-              mb-5
-              shadow-xl
-              shadow-emerald-500/30
-            "
-          >
-            <Sprout className="text-white" size={32} />
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#66BB6A] to-[#2E7D32] flex items-center justify-center mb-6 shadow-xl shadow-emerald-950/60">
+            <Sprout className="text-white" size={40} />
           </div>
 
-          <h1 className="text-3xl font-bold text-emerald-950 dark:text-emerald-300">
+          <h1 className="font-heading text-3xl sm:text-4xl lg:text-[42px] font-bold text-white tracking-tight leading-tight">
             {t("Create Account")}
           </h1>
 
-          <p className="text-base text-slate-600 dark:text-slate-400 mt-2">
+          <p className="font-body text-base text-slate-300 mt-3">
             {t("Join the AI Agricultural Advisory System")}
           </p>
         </div>
@@ -147,13 +108,13 @@ export default function RegisterPage() {
             e.preventDefault();
             handleRegister();
           }}
-          className="space-y-4"
+          className="space-y-5"
         >
           {/* Full Name */}
           <div className="relative">
             <User
-              size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -162,39 +123,15 @@ export default function RegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-5
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-5 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
           </div>
 
           {/* Email */}
           <div className="relative">
             <Mail
-              size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -203,39 +140,15 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-5
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-5 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
           </div>
 
           {/* Password */}
           <div className="relative">
             <Lock
-              size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -244,58 +157,24 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-14
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-14 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
 
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="
-                absolute
-                right-5
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-                dark:text-slate-500
-                transition
-                hover:text-emerald-600
-                dark:hover:text-emerald-400
-              "
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#66BB6A] transition-colors"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
           </div>
 
           {/* Confirm Password */}
           <div className="relative">
             <Lock
-              size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -304,64 +183,24 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-14
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-14 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
 
             <button
               type="button"
-              onClick={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
-              className="
-                absolute
-                right-5
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-                dark:text-slate-500
-                transition
-                hover:text-emerald-600
-                dark:hover:text-emerald-400
-              "
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#66BB6A] transition-colors"
               tabIndex={-1}
             >
-              {showConfirmPassword ? (
-                <EyeOff size={20} />
-              ) : (
-                <Eye size={20} />
-              )}
+              {showConfirmPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
           </div>
 
           {/* Language */}
           <div className="relative">
             <Globe
-              size={20}
-              className="absolute left-5 top-1/2 -translate-y-1/2 text-emerald-600 dark:text-emerald-400"
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <select
@@ -372,33 +211,10 @@ export default function RegisterPage() {
                 setPreferredLanguage(nextLanguage);
                 setActiveLanguage(nextLanguage);
               }}
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-5
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                outline-none
-                transition-all
-                duration-200
-                appearance-none
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-5 text-base sm:text-lg text-white outline-none appearance-none cursor-pointer"
             >
               {APP_LANGUAGES.map((item) => (
-                <option key={item.code} value={item.code} className="dark:bg-slate-900 dark:text-slate-100">
+                <option key={item.code} value={item.code} className="bg-slate-900 text-white">
                   {item.nativeName}
                 </option>
               ))}
@@ -409,50 +225,20 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`
-              w-full
-              rounded-2xl
-              py-4
-              text-lg
-              font-semibold
-              text-white
-              transition-all
-              duration-300
-              ${
-                loading
-                  ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed"
-                  : `
-                    bg-gradient-to-r
-                    from-emerald-600
-                    to-green-500
-                    shadow-lg
-                    shadow-emerald-600/25
-                    hover:from-emerald-700
-                    hover:to-green-600
-                    hover:-translate-y-0.5
-                    hover:shadow-xl
-                  `
-              }
-            `}
+            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-3 ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
             {loading ? t("Creating account...") : t("Register")}
           </button>
         </form>
 
         {/* Login Link */}
-        <p className="text-center text-base text-slate-600 dark:text-slate-400 mt-7">
+        <p className="font-body text-center text-base text-slate-300 mt-8">
           {t("Already have an account?")}{" "}
           <a
             href="/login"
-            className="
-              font-bold
-              text-emerald-700
-              dark:text-emerald-400
-              transition
-              hover:text-emerald-900
-              dark:hover:text-emerald-300
-              hover:underline
-            "
+            className="font-bold text-[#66BB6A] hover:underline transition-colors ml-1"
           >
             {t("Login")}
           </a>

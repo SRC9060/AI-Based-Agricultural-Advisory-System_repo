@@ -122,32 +122,32 @@ export default function AIAssistantCard() {
   }
 
   return (
-    <div className="h-full rounded-2xl border border-white/90 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm shadow-sm p-6 flex flex-col">
+    <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col">
 
       {/* Header */}
 
       <div className="flex items-center gap-4">
 
-        <div className="w-14 h-14 rounded-2xl bg-green-100 dark:bg-green-950/60 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-green-950/60 border border-emerald-100/80 dark:border-transparent flex items-center justify-center">
 
-          <Bot className="text-green-700 dark:text-green-400" size={30} />
+          <Bot className="text-emerald-600 dark:text-green-400" size={30} />
 
         </div>
 
         <div>
 
 
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 font-heading">
             {t("AI Assistant")}
           </h2>
 
-          <p className="mt-1.5 text-base leading-6 text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-400 font-body">
             {t("Ask any question about crops, diseases, schemes, weather and more...")}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm">
+      <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-2xs focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
 
         <div className="flex items-center gap-2 px-3 py-3">
 
@@ -161,7 +161,7 @@ export default function AIAssistantCard() {
               }
             }}
             placeholder={t("Type your question here...")}
-            className="flex-1 bg-transparent text-base text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-400"
+            className="flex-1 bg-transparent text-base text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-400 font-body"
           />
 
           <button
@@ -181,7 +181,7 @@ export default function AIAssistantCard() {
             className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition ${
               isListening
                 ? "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400"
-                : "border-green-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-slate-700"
+                : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-emerald-600 dark:text-green-400 hover:bg-emerald-50 dark:hover:bg-slate-700"
             }`}
           >
             <Mic size={19} />
@@ -190,7 +190,7 @@ export default function AIAssistantCard() {
           <button
             type="button"
             onClick={() => goToChat()}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-green-700 dark:bg-green-800 text-white transition hover:bg-green-800 dark:hover:bg-green-700"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-800 text-white transition hover:from-emerald-700 hover:to-green-700 shadow-sm"
             aria-label="Send question to AI Assistant"
           >
             <Send size={18} />
@@ -217,7 +217,7 @@ export default function AIAssistantCard() {
 
       <div className="mt-6">
 
-        <p className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-3">
+        <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3">
           {t("Popular Topics")}
         </p>
 
@@ -232,15 +232,15 @@ export default function AIAssistantCard() {
               <button
                 key={item.title}
                 onClick={() => goToChat(item.title)}
-                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/80 p-4 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-slate-800 transition text-left"
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/80 p-4 hover:border-emerald-500 dark:hover:border-green-600 hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition text-left"
               >
 
                 <Icon
                   size={22}
-                  className="text-green-600 dark:text-green-400 mb-2"
+                  className="text-emerald-600 dark:text-green-400 mb-2"
                 />
 
-                <p className="text-base font-medium text-slate-800 dark:text-slate-100">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   {t(item.title)}
                 </p>
 

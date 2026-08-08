@@ -31,19 +31,19 @@ export default function DashboardLayout({
 
   const themeStyles = {
     fresh: {
-      surface: "bg-[#f7fbf8]",
-      overlay: "from-white/40 via-[#f7fbf8]/65 to-[#eaf7ed]/80",
-      accent: "bg-green-300/20",
+      surface: "bg-[#f5f7fa]",
+      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-50/20",
+      accent: "bg-emerald-200/15",
     },
     sky: {
-      surface: "bg-[#f5faff]",
-      overlay: "from-white/45 via-[#f4f9ff]/70 to-[#e7f4ff]/85",
-      accent: "bg-sky-300/25",
+      surface: "bg-[#f5f7fa]",
+      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-sky-50/20",
+      accent: "bg-sky-200/15",
     },
     earth: {
-      surface: "bg-[#fffaf2]",
-      overlay: "from-white/45 via-[#fffaf2]/70 to-[#fff0d8]/85",
-      accent: "bg-amber-300/25",
+      surface: "bg-[#f5f7fa]",
+      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-amber-50/20",
+      accent: "bg-amber-200/15",
     },
     dark: {
       surface: "bg-slate-950 text-slate-100",
@@ -51,9 +51,9 @@ export default function DashboardLayout({
       accent: "bg-emerald-500/10",
     },
   }[theme] || {
-    surface: "bg-[#f7fbf8]",
-    overlay: "from-white/40 via-[#f7fbf8]/65 to-[#eaf7ed]/80",
-    accent: "bg-green-300/20",
+    surface: "bg-[#f5f7fa]",
+    overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-50/20",
+    accent: "bg-emerald-200/15",
   };
 
   return (
@@ -66,7 +66,7 @@ export default function DashboardLayout({
         fill
         priority
         sizes="100vw"
-        className="-z-20 object-cover object-center opacity-45"
+        className="-z-20 object-cover object-center opacity-12 dark:opacity-20"
       />
       <div className={`absolute inset-0 -z-10 bg-gradient-to-b ${themeStyles.overlay}`} />
       <div aria-hidden="true" className="absolute -left-32 top-36 -z-10 h-96 w-96 rounded-full bg-sky-200/25 blur-3xl" />

@@ -97,64 +97,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="
-        relative
-        min-h-screen
-        flex
-        items-center
-        justify-center
-        auth-page
-        px-5
-        py-10
-      "
-    >
-      <div className="absolute top-5 right-5 z-50">
+    <div className="relative min-h-screen flex items-center justify-center auth-page px-5 py-12">
+      <div className="absolute top-6 right-6 z-50">
         <LanguageSelector variant="auth" />
       </div>
+
       {/* Login Card */}
-      <div
-        className="
-          w-full
-          max-w-lg
-          rounded-[32px]
-          border
-          border-emerald-200/70
-          auth-card
-          px-10
-          py-12
-          shadow-2xl
-          shadow-emerald-950/30
-        "
-      >
+      <div className="w-full max-w-[520px] auth-card p-10 sm:p-12 text-white shadow-2xl">
         {/* Header */}
         <div className="text-center mb-9">
           {/* Logo */}
-          <div
-            className="
-              w-20
-              h-20
-              mx-auto
-              rounded-3xl
-              bg-gradient-to-br
-              from-emerald-400
-              to-green-600
-              flex
-              items-center
-              justify-center
-              mb-5
-              shadow-xl
-              shadow-emerald-500/30
-            "
-          >
-            <Sprout className="text-white" size={36} />
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#66BB6A] to-[#2E7D32] flex items-center justify-center mb-6 shadow-xl shadow-emerald-950/60">
+            <Sprout className="text-white" size={40} />
           </div>
 
-          <h1 className="text-3xl font-bold text-emerald-950 dark:text-emerald-300">
+          <h1 className="font-heading text-3xl sm:text-4xl lg:text-[42px] font-bold text-white tracking-tight leading-tight">
             {t("Welcome Back")}
           </h1>
 
-          <p className="text-base text-slate-600 dark:text-slate-400 mt-2">
+          <p className="font-body text-base text-slate-300 mt-3">
             {t("Sign in to continue to your account")}
           </p>
         </div>
@@ -165,20 +126,13 @@ export default function LoginPage() {
             e.preventDefault();
             handleLogin();
           }}
-          className="space-y-5"
+          className="space-y-6"
         >
           {/* Email */}
           <div className="relative">
             <Mail
-              size={20}
-              className="
-                absolute
-                left-5
-                top-1/2
-                -translate-y-1/2
-                text-emerald-600
-                dark:text-emerald-400
-              "
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -187,46 +141,15 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-5
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-5 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
           </div>
 
           {/* Password */}
           <div className="relative">
             <Lock
-              size={20}
-              className="
-                absolute
-                left-5
-                top-1/2
-                -translate-y-1/2
-                text-emerald-600
-                dark:text-emerald-400
-              "
+              size={22}
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-[#66BB6A]"
             />
 
             <input
@@ -235,65 +158,31 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="
-                w-full
-                rounded-2xl
-                border
-                border-emerald-200
-                dark:border-slate-700
-                bg-white/80
-                dark:bg-slate-800/80
-                pl-14
-                pr-14
-                py-4
-                text-base
-                text-slate-800
-                dark:text-slate-100
-                placeholder:text-slate-400
-                dark:placeholder:text-slate-500
-                outline-none
-                transition-all
-                duration-200
-                focus:border-emerald-500
-                focus:bg-white
-                dark:focus:bg-slate-800
-                focus:ring-4
-                focus:ring-emerald-500/10
-              "
+              className="w-full auth-input pl-14 pr-14 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
 
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="
-                absolute
-                right-5
-                top-1/2
-                -translate-y-1/2
-                text-slate-400
-                dark:text-slate-500
-                transition
-                hover:text-emerald-600
-                dark:hover:text-emerald-400
-              "
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#66BB6A] transition-colors"
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pt-1">
             <input
               id="remember"
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 accent-emerald-600"
+              className="h-4.5 w-4.5 accent-[#66BB6A] rounded cursor-pointer"
             />
 
             <label
               htmlFor="remember"
-              className="text-sm text-slate-600 dark:text-slate-300 cursor-pointer"
+              className="text-base font-body text-slate-300 cursor-pointer select-none"
             >
               Remember Me
             </label>
@@ -303,50 +192,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`
-              w-full
-              rounded-2xl
-              py-4
-              text-lg
-              font-semibold
-              text-white
-              transition-all
-              duration-300
-              ${
-                loading
-                  ? "bg-slate-400 dark:bg-slate-700 cursor-not-allowed"
-                  : `
-                    bg-gradient-to-r
-                    from-emerald-600
-                    to-green-500
-                    shadow-lg
-                    shadow-emerald-600/25
-                    hover:from-emerald-700
-                    hover:to-green-600
-                    hover:-translate-y-0.5
-                    hover:shadow-xl
-                  `
-              }
-            `}
+            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-2 ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
             {loading ? t("Signing in...") : t("Login")}
           </button>
         </form>
 
         {/* Register */}
-        <p className="text-center text-base text-slate-600 dark:text-slate-400 mt-8">
+        <p className="font-body text-center text-base text-slate-300 mt-8">
           {t("Don't have an account?")}{" "}
           <a
             href="/register"
-            className="
-              font-bold
-              text-emerald-700
-              dark:text-emerald-400
-              transition
-              hover:text-emerald-900
-              dark:hover:text-emerald-300
-              hover:underline
-            "
+            className="font-bold text-[#66BB6A] hover:underline transition-colors ml-1"
           >
             {t("Register")}
           </a>

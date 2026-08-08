@@ -213,6 +213,13 @@ def whisper_speech_to_text(
         if whisper_language:
             transcribe_options["language"] = whisper_language
 
+        print("Temporary path:", temporary_path)
+        print("Exists:", os.path.exists(temporary_path))
+        print("Size:", os.path.getsize(temporary_path))
+
+        with open(temporary_path, "rb") as f:
+            print("First 32 bytes:", f.read(32))
+
         result = model.transcribe(
             temporary_path,
             **transcribe_options,
