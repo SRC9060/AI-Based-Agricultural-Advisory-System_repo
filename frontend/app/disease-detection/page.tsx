@@ -36,6 +36,8 @@ import {
   Sprout,
 } from "lucide-react";
 
+import WebcamModal from "@/components/ui/WebcamModal";
+
 const COMMON_CROPS = [
   "Tomato",
   "Wheat",
@@ -66,6 +68,8 @@ export default function DiseaseDetectionPage() {
   // Audio / Voice state
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [webcamModalOpen, setWebcamModalOpen] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -353,11 +357,10 @@ export default function DiseaseDetectionPage() {
             <div
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              className={`mt-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${
-                selectedFile
-                  ? "border-emerald-500/60 bg-emerald-50/30 dark:bg-emerald-950/20"
-                  : "border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:border-emerald-400 hover:bg-emerald-50/40"
-              }`}
+              className={`mt-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 ${selectedFile
+                ? "border-emerald-500/60 bg-emerald-50/30 dark:bg-emerald-950/20"
+                : "border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:border-emerald-400 hover:bg-emerald-50/40"
+                }`}
             >
               <div className="rounded-2xl bg-emerald-100 dark:bg-slate-700 p-4 text-emerald-700 dark:text-green-400 mb-3 shadow-xs">
                 <Upload size={32} />
@@ -398,11 +401,11 @@ export default function DiseaseDetectionPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => setWebcamModalOpen(true)}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition"
                 >
                   <Camera size={16} className="text-emerald-600 dark:text-green-400" />
-                  <span>📷 {t("Take Photo")}</span>
+                  <span>{t("Take Photo")}</span>
                 </button>
               </div>
             </div>
@@ -728,6 +731,12 @@ export default function DiseaseDetectionPage() {
           )}
         </div>
       </div>
+
+      <WebcamModal
+        isOpen={webcamModalOpen}
+        onClose={() => setWebcamModalOpen(false)}
+        onCapture={(file) => handleFileSelect(file)}
+      />
     </DashboardLayout>
   );
 }
