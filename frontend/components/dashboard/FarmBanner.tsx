@@ -67,60 +67,60 @@ export default function FarmBanner() {
   }
 
   return (
-    <aside className="flex h-full flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
-      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+    <aside className="flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3.5">
         <div className="rounded-xl bg-emerald-50 dark:bg-green-950/60 border border-emerald-100/80 dark:border-transparent p-2 text-emerald-600 dark:text-green-400"><MessageSquare size={20} /></div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 font-heading">{t("Help us grow better")}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-body">{t("Share a quick suggestion or report an issue.")}</p>
+          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 font-heading">{t("Help us grow better")}</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-body">{t("Share a quick suggestion or report an issue.")}</p>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 font-body">
-        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">{t("Feedback type")}
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm font-normal outline-none text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 font-body">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">{t("Feedback type")}
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-normal outline-none text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
             {categories.map((item) => <option key={item} value={item} className="dark:bg-slate-900 dark:text-slate-100">{t(item)}</option>)}
           </select>
         </label>
-        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3">
-          <div className="flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
             <span>{t("Rate AgriAdvisor")}</span><span className="text-emerald-600 dark:text-green-400">{rating}/5</span>
           </div>
           <div className="mt-1 flex gap-1">
             {[1, 2, 3, 4, 5].map((value) => (
               <button type="button" key={value} onClick={() => setRating(value)} aria-label={`${value} stars`}>
-                <Star size={20} className={value <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300 dark:text-slate-600"} />
+                <Star size={18} className={value <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300 dark:text-slate-600"} />
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      <label className="mt-4 block text-sm font-semibold text-slate-700 dark:text-slate-300 font-body">{t("Your feedback")}
-        <textarea value={message} maxLength={500} onChange={(event) => setMessage(event.target.value)} placeholder={t("Tell us what worked well or what we can improve...")} className="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
+      <label className="mt-3 block text-xs font-semibold text-slate-700 dark:text-slate-300 font-body">{t("Your feedback")}
+        <textarea value={message} maxLength={500} onChange={(event) => setMessage(event.target.value)} placeholder={t("Tell us what worked well or what we can improve...")} className="mt-1 h-20 w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-xs font-normal text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
       </label>
       <div className="mt-1 flex justify-between text-[11px] text-slate-500 dark:text-slate-400 font-body"><span>{t("Saved to your account.")}</span><span>{message.length}/500</span></div>
-      <button disabled={saving} onClick={submitFeedback} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-emerald-700 hover:to-green-700 dark:hover:bg-green-600 disabled:opacity-60 font-heading"><Send size={16} />{saving ? t("Saving...") : t("Submit feedback")}</button>
-      {status && <p className="mt-2 text-xs font-medium text-green-700 dark:text-green-400">{status}</p>}
+      <button disabled={saving} onClick={submitFeedback} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 dark:bg-green-700 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-emerald-700 hover:to-green-700 dark:hover:bg-green-600 disabled:opacity-60 font-heading"><Send size={14} />{saving ? t("Saving...") : t("Submit feedback")}</button>
+      {status && <p className="mt-1.5 text-xs font-medium text-green-700 dark:text-green-400">{status}</p>}
 
-      <div className="mt-5 border-t border-slate-100 dark:border-slate-800 pt-4">
+      <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Recent feedback")}</h3>
-          <button type="button" onClick={() => { window.location.href = "/feedback"; }} className="text-xs font-semibold text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300">
+          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">{t("Recent feedback")}</h3>
+          <button type="button" onClick={() => { window.location.href = "/feedback"; }} className="text-[11px] font-semibold text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300">
             {t("View all")}
           </button>
         </div>
         {history.length === 0 ? (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t("No feedback submitted yet.")}</p>
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{t("No feedback submitted yet.")}</p>
         ) : (
-          <div className="mt-3 space-y-2">
+          <div className="mt-2 space-y-1.5">
             {history.map((item) => (
-              <article key={item.id} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+              <article key={item.id} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-green-100 dark:bg-green-950/60 px-2 py-0.5 text-[11px] font-semibold text-green-700 dark:text-green-400">{t(item.category)}</span>
-                  <span className="text-xs tracking-tight text-amber-500">{"★".repeat(item.rating)}<span className="text-slate-300 dark:text-slate-600">{"★".repeat(5 - item.rating)}</span></span>
+                  <span className="rounded-full bg-green-100 dark:bg-green-950/60 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:text-green-400">{t(item.category)}</span>
+                  <span className="text-[11px] tracking-tight text-amber-500">{"★".repeat(item.rating)}<span className="text-slate-300 dark:text-slate-600">{"★".repeat(5 - item.rating)}</span></span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-300">{item.message}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-slate-600 dark:text-slate-300">{item.message}</p>
               </article>
             ))}
           </div>

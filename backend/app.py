@@ -1,6 +1,7 @@
 import os
 import re
 from pathlib import Path
+from typing import Optional
 # os.environ["HF_HUB_OFFLINE"] = "1"
 # os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
@@ -357,7 +358,6 @@ def weather_forecast(city: str):
     return result
 
 
-@app.post("/translate")
 def translate_batch(
     request: TranslationBatchRequest,
     _user_id: int = Depends(require_authenticated_user),
@@ -552,7 +552,16 @@ def get_profile(
         farmer_type=user.farmer_type or "",
         crop=user.crop or "",
         farm_size=user.farm_size or "",
-        soil_type=user.soil_type or ""
+        soil_type=user.soil_type or "",
+        farm_name=getattr(user, "farm_name", "") or "",
+        farm_size_unit=getattr(user, "farm_size_unit", "Acres") or "Acres",
+        irrigation_type=getattr(user, "irrigation_type", "") or "",
+        farming_type=getattr(user, "farming_type", "") or getattr(user, "farmer_type", "") or "",
+        crop_variety=getattr(user, "crop_variety", "") or "",
+        sowing_date=getattr(user, "sowing_date", "") or "",
+        expected_harvest_date=getattr(user, "expected_harvest_date", "") or "",
+        crop_area=getattr(user, "crop_area", "") or "",
+        growth_stage=getattr(user, "growth_stage", "") or ""
     )
     db.close()
     return response
@@ -601,6 +610,34 @@ def update_profile(
     if request.soil_type is not None and user.soil_type != request.soil_type:
         user.soil_type = request.soil_type
         profile_changed = True
+    if hasattr(user, "farm_name") and request.farm_name is not None and user.farm_name != request.farm_name:
+        user.farm_name = request.farm_name
+        profile_changed = True
+    if hasattr(user, "farm_size_unit") and request.farm_size_unit is not None and user.farm_size_unit != request.farm_size_unit:
+        user.farm_size_unit = request.farm_size_unit
+        profile_changed = True
+    if hasattr(user, "irrigation_type") and request.irrigation_type is not None and user.irrigation_type != request.irrigation_type:
+        user.irrigation_type = request.irrigation_type
+        profile_changed = True
+    if hasattr(user, "farming_type") and request.farming_type is not None and user.farming_type != request.farming_type:
+        user.farming_type = request.farming_type
+        user.farmer_type = request.farming_type
+        profile_changed = True
+    if hasattr(user, "crop_variety") and request.crop_variety is not None and user.crop_variety != request.crop_variety:
+        user.crop_variety = request.crop_variety
+        profile_changed = True
+    if hasattr(user, "sowing_date") and request.sowing_date is not None and user.sowing_date != request.sowing_date:
+        user.sowing_date = request.sowing_date
+        profile_changed = True
+    if hasattr(user, "expected_harvest_date") and request.expected_harvest_date is not None and user.expected_harvest_date != request.expected_harvest_date:
+        user.expected_harvest_date = request.expected_harvest_date
+        profile_changed = True
+    if hasattr(user, "crop_area") and request.crop_area is not None and user.crop_area != request.crop_area:
+        user.crop_area = request.crop_area
+        profile_changed = True
+    if hasattr(user, "growth_stage") and request.growth_stage is not None and user.growth_stage != request.growth_stage:
+        user.growth_stage = request.growth_stage
+        profile_changed = True
 
     if profile_changed:
         db.add(Notification(
@@ -613,6 +650,21 @@ def update_profile(
     return {
         "message": "Profile Updated Successfully"
     }
+
+@app.get("/farm/{user_id}", response_model=ProfileResponse)
+def get_farm_details(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    return get_profile(user_id=user_id, authenticated_user_id=authenticated_user_id)
+
+@app.put("/farm/{user_id}")
+def update_farm_details(
+    user_id: int,
+    request: ProfileUpdateRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    return update_profile(user_id=user_id, request=request, authenticated_user_id=authenticated_user_id)
 
 @app.get("/profile-status/{user_id}")
 def profile_status(
@@ -1668,6 +1720,65 @@ def market_options():
             ),
         }
 
+from services.disease_detection import analyze_crop_disease_image
+
+@app.post("/disease-detection", dependencies=[Depends(require_authenticated_user)])
+async def detect_crop_disease(
+    file: UploadFile = File(...),
+    crop: Optional[str] = Form(None),
+    user_id: Optional[int] = Form(None),
+):
+    try:
+        content_type = file.content_type or "image/jpeg"
+        image_bytes = await file.read()
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="Uploaded image file is empty.")
+        
+        result = analyze_crop_disease_image(
+            image_bytes=image_bytes,
+            content_type=content_type,
+            crop_name=crop or "",
+        )
+
+        if user_id:
+            db = SessionLocal()
+            try:
+                session = (
+                    db.query(ChatSession)
+                    .filter(ChatSession.user_id == user_id)
+                    .order_by(ChatSession.updated_at.desc())
+                    .first()
+                )
+                if not session:
+                    session = ChatSession(user_id=user_id, title="Disease Detection")
+                    db.add(session)
+                    db.commit()
+                    db.refresh(session)
+                
+                activity_msg = f"{result['crop']} - {result['disease']}"
+                user_msg = ChatMessage(
+                    session_id=session.id,
+                    role="user",
+                    intent="disease_query",
+                    message=f"Crop Disease Detection: {activity_msg}"
+                )
+                db.add(user_msg)
+                db.commit()
+            except Exception as err:
+                print("Failed to record disease detection activity:", err)
+            finally:
+                db.close()
+
+        return result
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err)) from val_err
+    except Exception as error:
+        print("Disease detection error:", error)
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to analyze this image. Please upload a clear image of the crop leaf."
+        ) from error
+
 @app.get("/recent-activity/{user_id}")
 def get_chat_activity(
     user_id: int,
@@ -1806,5 +1917,162 @@ async def admin_upload_knowledge(
 def admin_rebuild_knowledge():
     rebuild_vector_database(replace_existing=True)
     return {"message": "Knowledge-base index rebuilt"}
+
+# ==========================================
+# Privacy & Data Controls Routes
+# ==========================================
+
+@app.delete("/chat/sessions/{user_id}")
+def clear_all_chat_sessions(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
+    db = SessionLocal()
+    try:
+        session_ids = [
+            s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user_id).all()
+        ]
+        if session_ids:
+            db.query(ChatMessage).filter(ChatMessage.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ResponseFeedback).filter(ResponseFeedback.user_id == user_id).delete(synchronize_session=False)
+            db.query(UnansweredQuery).filter(UnansweredQuery.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ChatSession).filter(ChatSession.user_id == user_id).delete(synchronize_session=False)
+            db.commit()
+        return {"message": "Chat history cleared successfully."}
+    finally:
+        db.close()
+
+
+@app.delete("/recent-activity/{user_id}")
+def clear_recent_activity(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
+    db = SessionLocal()
+    try:
+        session_ids = [
+            s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user_id).all()
+        ]
+        if session_ids:
+            db.query(ChatMessage).filter(ChatMessage.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ResponseFeedback).filter(ResponseFeedback.user_id == user_id).delete(synchronize_session=False)
+            db.query(UnansweredQuery).filter(UnansweredQuery.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ChatSession).filter(ChatSession.user_id == user_id).delete(synchronize_session=False)
+            db.commit()
+        return {"message": "Activity history cleared successfully."}
+    finally:
+        db.close()
+
+
+@app.get("/user/export-data/{user_id}")
+def export_user_data(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Profile & Farm info (No password, token, or secret)
+        profile_data = {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone or "",
+            "language": user.language or "English",
+            "state": user.state or "",
+            "district": user.district or "",
+            "city": user.city or "",
+            "farmer_type": user.farmer_type or "",
+            "crop": user.crop or "",
+            "farm_size": user.farm_size or "",
+            "soil_type": user.soil_type or "",
+            "farm_name": user.farm_name or "",
+            "farm_size_unit": user.farm_size_unit or "Acres",
+            "irrigation_type": user.irrigation_type or "",
+            "farming_type": user.farming_type or "",
+            "crop_variety": user.crop_variety or "",
+            "sowing_date": user.sowing_date or "",
+            "expected_harvest_date": user.expected_harvest_date or "",
+            "crop_area": user.crop_area or "",
+            "growth_stage": user.growth_stage or "",
+        }
+
+        # Activity summary
+        chat_sessions_count = db.query(ChatSession).filter(ChatSession.user_id == user_id).count()
+        feedbacks = [
+            {
+                "category": f.category,
+                "rating": f.rating,
+                "created_at": f.created_at.isoformat() if f.created_at else "",
+            }
+            for f in db.query(Feedback).filter(Feedback.user_id == user_id).all()
+        ]
+
+        recent_activities = [
+            {
+                "id": m.id,
+                "message": m.message,
+                "intent": m.intent,
+                "created_at": m.created_at.isoformat() if m.created_at else "",
+            }
+            for m in db.query(ChatMessage)
+            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+            .filter(ChatSession.user_id == user_id, ChatMessage.role == "user")
+            .order_by(ChatMessage.created_at.desc())
+            .limit(50)
+            .all()
+        ]
+
+        return {
+            "app_name": "AgriAdvisor",
+            "export_date": datetime.utcnow().isoformat() + "Z",
+            "profile": profile_data,
+            "activity_summary": {
+                "total_chat_sessions": chat_sessions_count,
+                "feedbacks_submitted": len(feedbacks),
+                "recent_queries": recent_activities,
+            },
+            "feedback_history": feedbacks,
+        }
+    finally:
+        db.close()
+
+
+@app.delete("/user/account/{user_id}")
+def delete_user_account(
+    user_id: int,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, user_id)
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Delete all user related records
+        session_ids = [
+            s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user_id).all()
+        ]
+        if session_ids:
+            db.query(ChatMessage).filter(ChatMessage.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ResponseFeedback).filter(ResponseFeedback.user_id == user_id).delete(synchronize_session=False)
+            db.query(UnansweredQuery).filter(UnansweredQuery.session_id.in_(session_ids)).delete(synchronize_session=False)
+            db.query(ChatSession).filter(ChatSession.user_id == user_id).delete(synchronize_session=False)
+
+        db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+        db.query(Feedback).filter(Feedback.user_id == user_id).delete(synchronize_session=False)
+        db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+        db.commit()
+
+        return {"message": "Account deleted successfully."}
+    finally:
+        db.close()
 
 Base.metadata.create_all(bind=engine)

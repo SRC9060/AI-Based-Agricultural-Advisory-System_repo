@@ -329,11 +329,11 @@ export default function WeatherPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              <div className="flex overflow-x-auto pb-2 [scrollbar-width:none] shrink-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {forecast.map((day, index) => (
                   <div
                     key={`${day.date}-${index}`}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition"
+                    className="min-w-[180px] sm:min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 text-center shadow-sm hover:shadow-md hover:-translate-y-0.5 transition shrink-0"
                   >
                     <p className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm font-heading">
                       {formatDate(day.date, index)}

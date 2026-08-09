@@ -3,29 +3,100 @@
 @variant dark (&:where(.dark, .dark *));
 
 :root {
+  --background: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-secondary: #F8FAFC;
+  --surface-hover: #F1F5F9;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --border: #E5E7EB;
+  --primary: #16a34a;
+  --primary-hover: #15803d;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
   --surface-bg: #F5F7FA;
   --card-bg: #FFFFFF;
   --card-secondary-bg: #F8FAFC;
   --card-border: #E5E7EB;
-  --text-primary: #111827;
-  --text-secondary: #6B7280;
   --input-bg: #FFFFFF;
   --input-border: #D1D5DB;
   --input-focus: #22C55E;
   --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
+html[data-theme="sky"] {
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --surface-bg: #f0f9ff;
+  --card-bg: #ffffff;
+}
+
+html[data-theme="earth"] {
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --surface-bg: #fffbeb;
+  --card-bg: #ffffff;
+}
+
 html.dark, html[data-theme="dark"] {
+  --background: #090d16;
+  --surface: #0f172a;
+  --surface-secondary: #1e293b;
+  --surface-hover: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --border: #1e293b;
+  --primary: #22c55e;
+  --primary-hover: #16a34a;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
   --surface-bg: #090d16;
   --card-bg: #0f172a;
   --card-secondary-bg: #1e293b;
   --card-border: #1e293b;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
   --input-bg: #1e293b;
   --input-border: #334155;
   --input-focus: #22c55e;
   --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Global Accessibility Utility Classes */
+html[data-font-size="small"] {
+  font-size: 14px;
+}
+
+html[data-font-size="large"] {
+  font-size: 18px;
+}
+
+html.high-contrast {
+  filter: contrast(125%);
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.large-touch-targets button,
+html.large-touch-targets a,
+html.large-touch-targets input,
+html.large-touch-targets select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+html.reading-mode {
+  line-height: 1.8 !important;
+  letter-spacing: 0.02em !important;
 }
 
 html {

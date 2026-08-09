@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { useTranslation } from "@/components/LanguageProvider";
+import LanguageSelector from "@/components/LanguageSelector";
 
 export default function Navbar() {
+  const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -30,27 +33,29 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="#home" className="flex items-center gap-2">
           <h2 className="nav-logo font-heading text-base sm:text-lg font-bold tracking-tight text-[#1b4332] dark:text-emerald-400">
-            🌾 AI Agricultural Advisory System
+            🌾 {t("AI Agricultural Advisory System")}
           </h2>
         </Link>
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8 font-heading font-semibold text-sm">
           <Link className="nav-link text-[#1b4332] dark:text-slate-100" href="#home">
-            Home
+            {t("Home")}
           </Link>
 
           <Link className="nav-link text-[#1b4332] dark:text-slate-100" href="#features">
-            Features
+            {t("Features")}
           </Link>
 
           <Link className="nav-link text-[#1b4332] dark:text-slate-100" href="#how-it-works">
-            About
+            {t("About")}
           </Link>
 
           <Link className="nav-link text-[#1b4332] dark:text-slate-100" href="#contact">
-            Contact
+            {t("Contact")}
           </Link>
+
+          <LanguageSelector />
         </div>
 
         {/* Mobile Hamburger Toggle Button */}
@@ -58,7 +63,7 @@ export default function Navbar() {
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden p-2 rounded-full text-[#1b4332] dark:text-slate-100 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors"
-          aria-label="Toggle Navigation Menu"
+          aria-label={mobileMenuOpen ? t("Close Menu") : t("Open Menu")}
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -72,7 +77,7 @@ export default function Navbar() {
             className="text-[#1b4332] dark:text-slate-100 hover:text-[#7ED957] transition-colors"
             href="#home"
           >
-            Home
+            {t("Home")}
           </Link>
 
           <Link
@@ -80,7 +85,7 @@ export default function Navbar() {
             className="text-[#1b4332] dark:text-slate-100 hover:text-[#7ED957] transition-colors"
             href="#features"
           >
-            Features
+            {t("Features")}
           </Link>
 
           <Link
@@ -88,7 +93,7 @@ export default function Navbar() {
             className="text-[#1b4332] dark:text-slate-100 hover:text-[#7ED957] transition-colors"
             href="#how-it-works"
           >
-            About
+            {t("About")}
           </Link>
 
           <Link
@@ -96,12 +101,14 @@ export default function Navbar() {
             className="text-[#1b4332] dark:text-slate-100 hover:text-[#7ED957] transition-colors"
             href="#contact"
           >
-            Contact
+            {t("Contact")}
           </Link>
+
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <LanguageSelector />
+          </div>
         </div>
       )}
     </header>
   );
 }
-
-

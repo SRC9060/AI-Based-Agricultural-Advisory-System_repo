@@ -54,6 +54,15 @@ class ProfileResponse(BaseModel):
     crop: str | None = ""
     farm_size: str | None = ""
     soil_type: str | None = ""
+    farm_name: str | None = ""
+    farm_size_unit: str | None = "Acres"
+    irrigation_type: str | None = ""
+    farming_type: str | None = ""
+    crop_variety: str | None = ""
+    sowing_date: str | None = ""
+    expected_harvest_date: str | None = ""
+    crop_area: str | None = ""
+    growth_stage: str | None = ""
 
 class ProfileUpdateRequest(BaseModel):
     phone: str | None = None
@@ -65,6 +74,15 @@ class ProfileUpdateRequest(BaseModel):
     crop: str | None = None
     farm_size: str | None = None
     soil_type: str | None = None
+    farm_name: str | None = None
+    farm_size_unit: str | None = None
+    irrigation_type: str | None = None
+    farming_type: str | None = None
+    crop_variety: str | None = None
+    sowing_date: str | None = None
+    expected_harvest_date: str | None = None
+    crop_area: str | None = None
+    growth_stage: str | None = None
 
 class ChatRequest(BaseModel):
     session_id: str
@@ -182,6 +200,15 @@ class User(Base):
     crop = Column(String, default="")
     farm_size = Column(String, default="")
     soil_type = Column(String, default="")
+    farm_name = Column(String, default="")
+    farm_size_unit = Column(String, default="Acres")
+    irrigation_type = Column(String, default="")
+    farming_type = Column(String, default="")
+    crop_variety = Column(String, default="")
+    sowing_date = Column(String, default="")
+    expected_harvest_date = Column(String, default="")
+    crop_area = Column(String, default="")
+    growth_stage = Column(String, default="")
 
 class Notification(Base):
     __tablename__ = "notifications"

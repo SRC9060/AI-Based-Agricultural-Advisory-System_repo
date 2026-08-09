@@ -8,12 +8,14 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 
 import StatsSection from "@/components/dashboard/StatsSection";
 import FarmBanner from "@/components/dashboard/FarmBanner";
+import MyFarmSummaryCard from "@/components/dashboard/MyFarmSummaryCard";
 import AIAssistantCard from "@/components/dashboard/AIAssistantCard";
 import GovernmentSchemes from "@/components/dashboard/GovernmentSchemes";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import OfflineStatus from "@/components/dashboard/OfflineStatus";
 import { loadCache, saveCache } from "@/lib/offlineCache";
 import { useRequireSession } from "@/lib/session";
+import { useTranslation } from "@/components/LanguageProvider";
 
 const DASHBOARD_CACHE_KEY = "dashboard_home";
 
@@ -90,8 +92,8 @@ function isDashboardData(value: unknown): value is DashboardData {
 }
 
 export default function DashboardPage() {
-
   const { session, checkingSession } = useRequireSession();
+  const { t } = useTranslation();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -221,29 +223,26 @@ saveCache(DASHBOARD_CACHE_KEY, dashboardData);
 
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5 items-stretch">
-
-        <div className="lg:col-span-2">
+      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.1fr)_minmax(320px,0.9fr)] gap-5 mt-5 items-start">
+        <div>
           <AIAssistantCard />
         </div>
-        <div className="h-full">
+        <div>
+          <MyFarmSummaryCard profile={profile} loading={loading} />
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.1fr)_minmax(320px,0.9fr)] gap-5 mt-5 items-start">
+        <div>
+          <GovernmentSchemes schemes={schemes} />
+        </div>
+        <div>
           <FarmBanner />
         </div>
-
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5 items-stretch">
-
-        <GovernmentSchemes
-          schemes={schemes}
-        />
-
+      <section className="mt-5">
         <RecentActivity activities={activities} />
-
-
-      </section>
-
-      <section className="mt-8">
       </section>
 
     </DashboardLayout>

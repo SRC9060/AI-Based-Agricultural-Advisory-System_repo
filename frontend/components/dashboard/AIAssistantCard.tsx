@@ -29,7 +29,7 @@ const suggestions = [
     icon: TrendingUp,
   },
   {
-    title: "Govt Schemes",
+    title: "Government Schemes",
     icon: Landmark,
   },
 ];
@@ -122,7 +122,7 @@ export default function AIAssistantCard() {
   }
 
   return (
-    <div className="h-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-6 flex flex-col">
 
       {/* Header */}
 
@@ -138,7 +138,7 @@ export default function AIAssistantCard() {
 
 
           <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 font-heading">
-            {t("AI Assistant")}
+            {t("Ask AgriAdvisor")}
           </h2>
 
           <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-400 font-body">
@@ -160,7 +160,7 @@ export default function AIAssistantCard() {
                 goToChat();
               }
             }}
-            placeholder={t("Type your question here...")}
+            placeholder={t("Type your question...")}
             className="flex-1 bg-transparent text-base text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-400 font-body"
           />
 

@@ -24,6 +24,7 @@ import {
   Landmark,
   Bot,
   Sprout,
+  Camera,
   Sun,
   Moon,
 } from "lucide-react";
@@ -33,6 +34,16 @@ const navItems = [
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    name: "My Farm",
+    href: "/my-farm",
+    icon: Sprout,
+  },
+  {
+    name: "Disease Detection",
+    href: "/disease-detection",
+    icon: Camera,
   },
   {
     name: "Weather",
@@ -167,6 +178,8 @@ export default function TopNavbar({
   const selectedLanguageCode = language;
   const translateNotification = (text: string) => notificationLabels[selectedLanguageCode]?.[text] ?? t(text);
 
+  const [notificationTab, setNotificationTab] = useState<"all" | "unread">("all");
+
   useEffect(() => {
     const syncTheme = () => {
       const saved = localStorage.getItem("dashboard_theme") || "fresh";
@@ -178,7 +191,13 @@ export default function TopNavbar({
   }, []);
 
   const toggleTheme = () => {
-    const nextTheme = currentTheme === "dark" ? "fresh" : "dark";
+    const themeCycle: Record<string, string> = {
+      fresh: "sky",
+      sky: "earth",
+      earth: "dark",
+      dark: "fresh",
+    };
+    const nextTheme = themeCycle[currentTheme] || "fresh";
     setCurrentTheme(nextTheme);
     localStorage.setItem("dashboard_theme", nextTheme);
     document.documentElement.setAttribute("data-theme", nextTheme);
@@ -189,6 +208,10 @@ export default function TopNavbar({
     }
     window.dispatchEvent(new Event("themechange"));
   };
+
+  const filteredNotifications = notifications.filter((n) =>
+    notificationTab === "unread" ? !n.is_read : true
+  );
 
   const loadNotifications = async (id: number) => {
     try {

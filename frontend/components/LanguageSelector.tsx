@@ -86,7 +86,7 @@ export default function LanguageSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2.5 w-48 sm:w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-xl z-[100] border border-slate-200/90 dark:border-slate-800 p-1.5 backdrop-blur-lg animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 top-full mt-2.5 w-48 sm:w-56 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl z-[9999] border border-slate-200 dark:border-slate-800 p-1.5 backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-150 ring-1 ring-black/5 min-w-[180px]">
           <div className="px-3 py-1.5 text-[11px] font-bold tracking-wider text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800 mb-1">
             {t("Select Language")}
           </div>
@@ -101,16 +101,14 @@ export default function LanguageSelector({
                   type="button"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    console.log(`[LanguageSelector] MouseDown language option: ${lang} -> code: ${code}`);
                     setLanguage(code);
                     setIsOpen(false);
                   }}
                   onClick={() => {
-                    console.log(`[LanguageSelector] Clicked language option: ${lang} -> code: ${code}`);
                     setLanguage(code);
                     setIsOpen(false);
                   }}
-                  className={`flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-xl transition-all duration-150 text-left ${
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-xl transition-all duration-150 text-left cursor-pointer ${
                     isSelected
                       ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-semibold"
                       : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"

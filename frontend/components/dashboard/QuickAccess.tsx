@@ -1,12 +1,13 @@
 "use client";
 
 import { Link } from "next-view-transitions";
-import { CloudSun, Landmark, TrendingUp, Stethoscope, MessageSquare } from "lucide-react";
+import { CloudSun, Landmark, TrendingUp, Stethoscope, MessageSquare, Camera } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
 
 export default function QuickAccess() {
   const { t } = useTranslation();
   const items = [
+    { name: "Disease Detection", icon: <Camera size={22} className="text-emerald-600" />, iconBg: "bg-emerald-100", link: "/disease-detection" },
     { name: "Crop Doctor", icon: <Stethoscope size={22} className="text-blue-600" />, iconBg: "bg-blue-100", link: "/chat" },
     { name: "Market Prices", icon: <TrendingUp size={22} className="text-orange-500" />, iconBg: "bg-orange-100", link: "/market-prices" },
     { name: "Weather Update", icon: <CloudSun size={22} className="text-sky-500" />, iconBg: "bg-sky-100", link: "/weather" },

@@ -5,6 +5,7 @@ import {
   detectVoiceLanguage,
   getVoiceLanguageCode,
 } from "@/lib/voiceLanguages";
+import { getVoicePreferences, getSpeechSpeedRate } from "@/lib/voicePreferences";
 
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -327,7 +328,8 @@ useEffect(() => {
 
         setStatus("");
         if (session) void loadSessions(session.userId);
-        if (localStorage.getItem("voice_output") !== "off") {
+        const voicePrefs = getVoicePreferences();
+        if (voicePrefs.auto_read_responses) {
           void speakAnswer(answer, undefined, data.assistant_message_id);
         }
       } catch (error) {
@@ -551,8 +553,9 @@ async function recordAudio(forceBackendRecorder = false) {
   if (SpeechRecognitionConstructor && !forceBackendRecorder) {
     const recognition = new SpeechRecognitionConstructor();
     speechRecognitionRef.current = recognition;
+    const voicePrefs = getVoicePreferences();
     const recognitionLanguage =
-      getVoiceLanguageCode(language);
+      getVoiceLanguageCode(voicePrefs.voice_input_language || language);
 
     recognition.continuous = false;
     recognition.interimResults = false;
@@ -818,10 +821,13 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
     .replace(/#/g, "")
     .replace(/\n/g, " ");
 
-  const voiceLanguage = detectVoiceLanguage(
-    cleanText,
-    language,
-  );
+  const voicePrefs = getVoicePreferences();
+  const voiceLanguage =
+    voicePrefs.voice_output_language ||
+    detectVoiceLanguage(
+      cleanText,
+      language,
+    );
 
   async function playBrowserTTS() {
     if (activeTtsIdRef.current !== currentTtsId) {
@@ -849,7 +855,7 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = getVoiceLanguageCode(voiceLanguage);
-    utterance.rate = 0.9;
+    utterance.rate = getSpeechSpeedRate(voicePrefs.speech_speed);
     utterance.pitch = 1;
     utterance.volume = 1;
 
@@ -1301,7 +1307,7 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<main className="chat-loading">Loading AgriAdvisor�</main>}>
+    <Suspense fallback={<main className="chat-loading">Loading AgriAdvisor...</main>}>
       <ChatContent />
     </Suspense>
   );

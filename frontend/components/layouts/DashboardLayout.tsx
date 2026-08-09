@@ -3,6 +3,9 @@
 import { ReactNode, useEffect, useState } from "react";
 import Image from "next/image";
 import TopNavbar from "@/components/dashboard/TopNavbar";
+import { applyAccessibilityPreferences } from "@/lib/accessibilityPreferences";
+
+import FloatingAIAssistant from "@/components/ui/FloatingAIAssistant";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,25 +28,36 @@ export default function DashboardLayout({
       }
     };
     readTheme();
+    applyAccessibilityPreferences();
+
+    const handleAccessibilityChange = () => {
+      applyAccessibilityPreferences();
+    };
+
     window.addEventListener("themechange", readTheme);
-    return () => window.removeEventListener("themechange", readTheme);
+    window.addEventListener("accessibilitychange", handleAccessibilityChange);
+
+    return () => {
+      window.removeEventListener("themechange", readTheme);
+      window.removeEventListener("accessibilitychange", handleAccessibilityChange);
+    };
   }, []);
 
   const themeStyles = {
     fresh: {
       surface: "bg-[#f5f7fa]",
-      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-50/20",
-      accent: "bg-emerald-200/15",
+      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-100/40",
+      accent: "bg-emerald-300/25",
     },
     sky: {
-      surface: "bg-[#f5f7fa]",
-      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-sky-50/20",
-      accent: "bg-sky-200/15",
+      surface: "bg-[#f0f8ff]",
+      overlay: "from-[#f0f8ff]/95 via-[#f0f8ff]/90 to-sky-100/50",
+      accent: "bg-sky-300/30",
     },
     earth: {
-      surface: "bg-[#f5f7fa]",
-      overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-amber-50/20",
-      accent: "bg-amber-200/15",
+      surface: "bg-[#faf6f0]",
+      overlay: "from-[#faf6f0]/95 via-[#faf6f0]/90 to-amber-100/50",
+      accent: "bg-amber-300/30",
     },
     dark: {
       surface: "bg-slate-950 text-slate-100",
@@ -52,13 +66,12 @@ export default function DashboardLayout({
     },
   }[theme] || {
     surface: "bg-[#f5f7fa]",
-    overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-50/20",
-    accent: "bg-emerald-200/15",
+    overlay: "from-[#f5f7fa]/95 via-[#f5f7fa]/90 to-emerald-100/40",
+    accent: "bg-emerald-300/25",
   };
 
   return (
     <div className={`relative isolate min-h-screen overflow-x-clip ${themeStyles.surface}`}>
-
       <Image
         src="/images/dashboard-bg.jpg"
         alt=""
@@ -73,16 +86,15 @@ export default function DashboardLayout({
       <div aria-hidden="true" className={`absolute -right-24 bottom-24 -z-10 h-[28rem] w-[28rem] rounded-full ${themeStyles.accent} blur-3xl`} />
       <div aria-hidden="true" className="absolute left-[42%] top-[32rem] -z-10 h-72 w-72 rounded-full bg-amber-100/25 blur-3xl" />
 
-      <div className="relative min-h-screen">
-
+      <div className="relative min-h-screen flex flex-col">
         <TopNavbar />
 
-        <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-10 pb-10">
+        <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 pt-4 pb-20 lg:pb-10 flex-1">
           {children}
         </main>
 
+        <FloatingAIAssistant />
       </div>
-
     </div>
   );
 }

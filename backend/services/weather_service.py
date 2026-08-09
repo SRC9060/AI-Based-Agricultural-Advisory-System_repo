@@ -122,6 +122,7 @@ def get_forecast(city):
                 "humidity": item["main"]["humidity"],
                 "weather": item["weather"][0]["description"],
                 "wind_speed": item["wind"]["speed"],
+                "rain_probability": int(round(item.get("pop", 0) * 100)),
             }
             for item in data["list"]
             if "12:00:00" in item["dt_txt"]
