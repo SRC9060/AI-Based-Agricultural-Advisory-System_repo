@@ -31,7 +31,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [preferredLanguage, setPreferredLanguage] =
-    useState<LanguageCode>(activeLanguage);
+    useState(activeLanguage);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +41,12 @@ export default function RegisterPage() {
   }, [activeLanguage]);
 
   async function handleRegister() {
+    // Frontend password validation
+    if (password.length < 8) {
+      alert(t("Password must be at least 8 characters long."));
+      return;
+    }
+
     if (password !== confirmPassword) {
       alert(t("Passwords do not match!"));
       return;
@@ -69,7 +75,29 @@ export default function RegisterPage() {
         alert(t(data.message));
         router.push("/login");
       } else {
-        alert(t(data.detail || "Registration Failed"));
+        // Convert backend password validation errors
+        // into a simple message for the user.
+        const detail = data.detail;
+
+        if (
+          typeof detail === "string" &&
+          detail.toLowerCase().includes("password") &&
+          (
+            detail.toLowerCase().includes("8") ||
+            detail.toLowerCase().includes("characters") ||
+            detail.toLowerCase().includes("min_length")
+          )
+        ) {
+          alert(t("Password must be at least 8 characters long."));
+        } else {
+          alert(
+            t(
+              typeof detail === "string"
+                ? detail
+                : "Registration Failed"
+            )
+          );
+        }
       }
     } catch (error) {
       console.error(error);
@@ -80,11 +108,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center auth-page px-5 py-12">
-      <div className="absolute top-6 right-6 z-50">
-        <LanguageSelector variant="auth" />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
       {/* Register Card */}
       <div className="w-full max-w-[520px] auth-card p-10 sm:p-12 text-white shadow-2xl">
         {/* Header */}
@@ -157,6 +181,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={8}
               className="w-full auth-input pl-14 pr-14 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
 
@@ -183,12 +208,15 @@ export default function RegisterPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              minLength={8}
               className="w-full auth-input pl-14 pr-14 text-base sm:text-lg text-white placeholder:text-slate-400 outline-none"
             />
 
             <button
               type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
               className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#66BB6A] transition-colors"
               tabIndex={-1}
             >
@@ -214,7 +242,11 @@ export default function RegisterPage() {
               className="w-full auth-input pl-14 pr-5 text-base sm:text-lg text-white outline-none appearance-none cursor-pointer"
             >
               {APP_LANGUAGES.map((item) => (
-                <option key={item.code} value={item.code} className="bg-slate-900 text-white">
+                <option
+                  key={item.code}
+                  value={item.code}
+                  className="bg-slate-900 text-white"
+                >
                   {item.nativeName}
                 </option>
               ))}
@@ -229,7 +261,9 @@ export default function RegisterPage() {
               loading ? "opacity-60 cursor-not-allowed" : ""
             }`}
           >
-            {loading ? t("Creating account...") : t("Register")}
+            {loading
+              ? t("Creating account...")
+              : t("Register")}
           </button>
         </form>
 

@@ -1,4 +1,5 @@
 import { API_URL, apiFetch } from "./api";
+import { loadCache, saveCache } from "./offlineCache";
 
 export interface FarmProfile {
   id: number;
@@ -25,11 +26,32 @@ export interface FarmProfile {
 }
 
 export async function fetchFarmProfile(userId: number): Promise<FarmProfile> {
-  const res = await apiFetch(`${API_URL}/farm/${userId}`, { cache: "no-store" });
+  const res = await apiFetch(`${API_URL}/farm/${userId}`, {
+    cache: "no-store",
+  });
+
   if (!res.ok) {
     throw new Error("Unable to fetch farm details");
   }
-  return res.json();
+
+  const data: FarmProfile = await res.json();
+
+  // Save latest successful response
+  saveCache(`farm_${userId}`, data);
+
+  return data;
+}
+
+export function loadCachedFarmProfile(
+  userId: number
+): { data: FarmProfile; timestamp: string } | null {
+  const cached = loadCache<FarmProfile>(`farm_${userId}`);
+
+  if (!cached || !cached.data) {
+    return null;
+  }
+
+  return cached;
 }
 
 export async function updateFarmProfile(

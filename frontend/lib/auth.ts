@@ -10,33 +10,61 @@ export type AuthenticatedUser = {
   language?: string;
 };
 
-export function getAuthToken() {
+export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
-  return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+
+  return (
+    localStorage.getItem(TOKEN_KEY) ||
+    sessionStorage.getItem(TOKEN_KEY)
+  );
 }
 
 export function getAuthHeaders(): Record<string, string> {
   const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
 }
 
 export function saveAuthenticatedSession(
   token: string,
-  rememberMe = false,
+  rememberMe: boolean,
 ) {
-  sessionStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(TOKEN_KEY);
+  if (typeof window === "undefined") return;
 
-  const targetStorage = rememberMe ? localStorage : sessionStorage;
+  // Remove old token from both storages first.
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+
+  const targetStorage = rememberMe
+    ? localStorage
+    : sessionStorage;
+
   targetStorage.setItem(TOKEN_KEY, token);
 
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${SESSION_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
+  // Keep the cookie consistent with the selected login mode.
+  const secure =
+    window.location.protocol === "https:" ? "; Secure" : "";
+
+  if (rememberMe) {
+    document.cookie =
+      `${SESSION_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
+  } else {
+    // Session cookie: disappears when the browser session ends.
+    document.cookie =
+      `${SESSION_COOKIE}=1; Path=/; SameSite=Lax${secure}`;
+  }
 }
 
 export function clearAuthenticatedSession() {
-  sessionStorage.removeItem(TOKEN_KEY);
+  if (typeof window === "undefined") return;
+
   localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+
   clearSession();
-  document.cookie = `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+
+  document.cookie =
+    `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }

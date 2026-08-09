@@ -27,26 +27,42 @@ const SESSION_KEYS = [
   "profile_completed",
 ] as const;
 
-function readSession(storage: Storage, rememberMe: boolean): AppSession | null {
+const TOKEN_KEY = "auth_token";
+
+function readSession(
+  storage: Storage,
+  rememberMe: boolean,
+): AppSession | null {
   const userId = storage.getItem("user_id");
-  const token = storage.getItem("auth_token") || (typeof window !== "undefined" ? (sessionStorage.getItem("auth_token") || localStorage.getItem("auth_token")) : null);
-  if (!userId || !token) return null;
+
+  if (!userId) {
+    return null;
+  }
+
+  const token = storage.getItem(TOKEN_KEY);
+
+  if (!token) {
+    return null;
+  }
 
   return {
     userId,
     userName: storage.getItem("user_name") || "Farmer",
     userEmail: storage.getItem("user_email") || "",
-    profileCompleted: storage.getItem("profile_completed") === "true",
+    profileCompleted:
+      storage.getItem("profile_completed") === "true",
     rememberMe,
   };
 }
 
 export function getRememberedSession(): AppSession | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") {
+    return null;
+  }
+
   if (
     localStorage.getItem("remember_me") !== "true" ||
-    localStorage.getItem("logged_in") !== "true" ||
-    !localStorage.getItem("auth_token")
+    localStorage.getItem("logged_in") !== "true"
   ) {
     return null;
   }
@@ -55,33 +71,76 @@ export function getRememberedSession(): AppSession | null {
 }
 
 export function getCurrentSession(): AppSession | null {
-  if (typeof window === "undefined") return null;
-  return getRememberedSession() || readSession(sessionStorage, false);
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const remembered = getRememberedSession();
+
+  if (remembered) {
+    return remembered;
+  }
+
+  return readSession(sessionStorage, false);
 }
 
 export function getCurrentUserId(): string | null {
   return getCurrentSession()?.userId ?? null;
 }
 
-export function getLoginRedirectPath(session: AppSession): "/dashboard" | "/profile" {
-  return session.profileCompleted ? "/dashboard" : "/profile";
+export function getLoginRedirectPath(
+  session: AppSession,
+): "/dashboard" | "/profile" {
+  return session.profileCompleted
+    ? "/dashboard"
+    : "/profile";
 }
 
-export function getRememberedLoginRedirectPath(): "/dashboard" | "/profile" | null {
+export function getRememberedLoginRedirectPath():
+  | "/dashboard"
+  | "/profile"
+  | null {
   const session = getRememberedSession();
-  return session ? getLoginRedirectPath(session) : null;
+
+  return session
+    ? getLoginRedirectPath(session)
+    : null;
 }
 
-export function saveLoginSession(session: LoginSessionInput, rememberMe: boolean) {
-  if (typeof window === "undefined") return;
+export function saveLoginSession(
+  session: LoginSessionInput,
+  rememberMe: boolean,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
 
+  // Clear old profile/session metadata only.
   clearSession();
 
-  const targetStorage = rememberMe ? localStorage : sessionStorage;
-  targetStorage.setItem("user_id", String(session.userId));
-  targetStorage.setItem("user_name", session.userName || "Farmer");
-  targetStorage.setItem("user_email", session.userEmail || "");
-  targetStorage.setItem("profile_completed", String(session.profileCompleted));
+  const targetStorage = rememberMe
+    ? localStorage
+    : sessionStorage;
+
+  targetStorage.setItem(
+    "user_id",
+    String(session.userId),
+  );
+
+  targetStorage.setItem(
+    "user_name",
+    session.userName || "Farmer",
+  );
+
+  targetStorage.setItem(
+    "user_email",
+    session.userEmail || "",
+  );
+
+  targetStorage.setItem(
+    "profile_completed",
+    String(session.profileCompleted),
+  );
 
   if (rememberMe) {
     localStorage.setItem("remember_me", "true");
@@ -89,15 +148,29 @@ export function saveLoginSession(session: LoginSessionInput, rememberMe: boolean
   }
 }
 
-export function updateProfileCompleted(profileCompleted: boolean) {
-  if (typeof window === "undefined") return;
+export function updateProfileCompleted(
+  profileCompleted: boolean,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
 
-  const storage = getRememberedSession() ? localStorage : sessionStorage;
-  storage.setItem("profile_completed", String(profileCompleted));
+  const remembered = getRememberedSession();
+
+  const storage = remembered
+    ? localStorage
+    : sessionStorage;
+
+  storage.setItem(
+    "profile_completed",
+    String(profileCompleted),
+  );
 }
 
 export function clearSession() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
 
   for (const key of SESSION_KEYS) {
     localStorage.removeItem(key);
@@ -107,14 +180,18 @@ export function clearSession() {
 
 export function useRequireSession() {
   const router = useRouter();
-  const [session, setSession] = useState<AppSession | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
+
+  const [session, setSession] =
+    useState<AppSession | null>(null);
+
+  const [checkingSession, setCheckingSession] =
+    useState(true);
 
   useEffect(() => {
     const currentSession = getCurrentSession();
 
     if (!currentSession) {
-       setCheckingSession(false);
+      setCheckingSession(false);
       router.replace("/login");
       return;
     }
@@ -123,5 +200,8 @@ export function useRequireSession() {
     setCheckingSession(false);
   }, [router]);
 
-  return { session, checkingSession };
+  return {
+    session,
+    checkingSession,
+  };
 }

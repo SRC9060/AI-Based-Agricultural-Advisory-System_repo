@@ -7,6 +7,7 @@ import { useRequireSession } from "@/lib/session";
 import {
   FarmProfile,
   fetchFarmProfile,
+  loadCachedFarmProfile,
   updateFarmProfile,
   calculateDaysSinceSowing,
   getGrowthStageProgress,
@@ -55,6 +56,8 @@ export default function MyFarmPage() {
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [showCachedData, setShowCachedData] = useState(false);
+  const [cacheTimestamp, setCacheTimestamp] = useState<string | null>(null);
 
   const [profile, setProfile] = useState<FarmProfile>({
     id: 0,
@@ -83,19 +86,96 @@ export default function MyFarmPage() {
   const [formData, setFormData] = useState<FarmProfile>(profile);
 
   const loadData = useCallback(async () => {
-    if (!session) return;
-    try {
-      setLoading(true);
-      const data = await fetchFarmProfile(Number(session.userId));
-      setProfile(data);
-      setFormData(data);
-    } catch (err) {
-      console.error("Error loading farm profile:", err);
-      setErrorMessage(t("Unable to fetch farm details"));
-    } finally {
+  if (!session) return;
+
+  const userId = Number(session.userId);
+
+  try {
+    setLoading(true);
+    setErrorMessage("");
+
+    // 1. Load cached farm data FIRST.
+    // This makes the page work immediately when offline/backend is unavailable.
+    const cached = loadCachedFarmProfile(userId);
+
+    if (cached?.data) {
+      console.log(
+        "[MyFarm] Loading cached farm profile:",
+        cached.timestamp
+      );
+
+      setProfile(cached.data);
+      setFormData(cached.data);
+
+      // Show cached-data indicator
+      setShowCachedData(true);
+      setCacheTimestamp(cached.timestamp);
+
+      setErrorMessage("");
       setLoading(false);
     }
-  }, [session, t]);
+
+    // 2. If browser is offline, don't even try the backend.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      console.log("[MyFarm] Offline - using cached farm profile.");
+
+      if (!cached?.data) {
+        setErrorMessage(t("Unable to fetch farm details"));
+      }
+
+      setLoading(false);
+      return;
+    }
+
+    // 3. Try to refresh from backend when online.
+    try {
+      console.log("[MyFarm] Trying to refresh farm profile from backend...");
+
+      const data = await fetchFarmProfile(userId);
+
+      console.log("[MyFarm] Fresh farm profile received:", data);
+
+      setProfile(data);
+      setFormData(data);
+      setErrorMessage("");
+
+      // Fresh backend data is available again
+      setShowCachedData(false);
+      setCacheTimestamp(null);
+    } catch (backendError) {
+      console.warn(
+        "[MyFarm] Backend unavailable. Keeping cached farm profile.",
+        backendError
+      );
+
+      // If cache exists, KEEP showing it.
+      if (cached?.data) {
+        setProfile(cached.data);
+        setFormData(cached.data);
+        setShowCachedData(true);
+        setCacheTimestamp(cached.timestamp);
+        setErrorMessage("");
+      } else {
+        setErrorMessage(t("Unable to fetch farm details"));
+      }
+    }
+  } catch (err) {
+    console.error("[MyFarm] Error loading farm profile:", err);
+
+    // Final safety fallback
+    const cached = loadCachedFarmProfile(userId);
+
+    if (cached?.data) {
+      setProfile(cached.data);
+      setFormData(cached.data);
+      setErrorMessage("");
+    } else {
+      setErrorMessage(t("Unable to fetch farm details"));
+    }
+  } finally {
+    setLoading(false);
+  }
+}, [session, t]);
 
   useEffect(() => {
     if (!checkingSession) {
@@ -195,6 +275,23 @@ export default function MyFarmPage() {
           </button>
         )}
       </div>
+
+      {showCachedData && (
+  <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-2.5">
+    <div className="flex items-center gap-2 text-sm text-red-600">
+      <span>⚠️</span>
+      <span>📡</span>
+      <span>
+        Offline Mode — Showing cached farm details
+        {cacheTimestamp
+          ? ` • Last updated: ${new Date(
+              cacheTimestamp
+            ).toLocaleString()}`
+          : ""}
+      </span>
+    </div>
+  </div>
+)}
 
       {errorMessage && (
         <div className="mt-4 flex items-center gap-3 rounded-2xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800/80 px-5 py-3.5 text-red-700 dark:text-red-300 text-sm font-body">
