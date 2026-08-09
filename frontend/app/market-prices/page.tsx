@@ -25,17 +25,12 @@ interface MarketRecord {
   min_price: string;
   max_price: string;
   modal_price: string;
-localized?: Partial<
-  Record<
-    "state" |
-    "district" |
-    "market" |
-    "commodity" |
-    "variety" |
-    "grade",
-    string
-  >
->;
+  localized?: Partial<
+    Record<
+      "state" | "district" | "market" | "commodity" | "variety" | "grade",
+      string
+    >
+  >;
 }
 
 interface MarketData {
@@ -56,31 +51,89 @@ export default function MarketPricesPage() {
   const [marketData, setMarketData] = useState<MarketData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [marketOptions, setMarketOptions] = useState<
-  Record<string, Record<string, string[]>>
->({});
+  const [marketOptions, setMarketOptions] = useState<Record<string, Record<string, string[]>>>({});
   const [marketNotice, setMarketNotice] = useState("");
+  const [showCachedData, setShowCachedData] = useState(false);
+  const [marketCacheTimestamp, setMarketCacheTimestamp] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch(`${API_URL}/market-options`)
-      .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((payload: MarketOptionsResponse | Record<string, Record<string, string[]>>) => {
-        const structuredPayload = payload as MarketOptionsResponse;
-        if (
-          typeof structuredPayload.live === "boolean" &&
-          structuredPayload.options
-        ) {
-          setMarketOptions(structuredPayload.options);
-          setMarketNotice(structuredPayload.live === false ? t(
-            "Live AGMARKNET is temporarily unavailable. Showing common Karnataka selections; live prices will appear only after the service reconnects."
-          ) : "");
-          return;
-        }
-        setMarketOptions(payload as Record<string, Record<string, string[]>>);
-        setMarketNotice("");
-      })
-      .catch(() => setError(t("Unable to load market options.")));
-  }, [t]);
+useEffect(() => {
+  const cacheKey = "market_options";
+
+  const loadCachedMarketOptions = () => {
+    const cached = loadCache<Record<string, Record<string, string[]>>>(cacheKey);
+
+    if (!cached) {
+      setError(t("Unable to load market options."));
+      return false;
+    }
+
+    setMarketOptions(cached.data);
+    setMarketNotice("");
+    setShowCachedData(true);
+    setMarketCacheTimestamp(cached.timestamp);
+    setError("");
+
+    return true;
+  };
+
+  const loadMarketOptions = async () => {
+    try {
+      const response = await apiFetch(`${API_URL}/market-options`);
+
+      if (!response.ok) {
+        throw new Error("Market options request failed");
+      }
+
+      const payload: MarketOptionsResponse | Record<string, Record<string, string[]>> = await response.json();
+
+      const structuredPayload = payload as MarketOptionsResponse;
+
+      if (
+        typeof structuredPayload.live === "boolean" &&
+        structuredPayload.options
+      ) {
+        setMarketOptions(structuredPayload.options);
+
+        setMarketNotice(
+          structuredPayload.live === false
+            ? t(
+                "Live AGMARKNET is temporarily unavailable. Showing common Karnataka selections; live prices will appear only after the service reconnects."
+              )
+            : ""
+        );
+
+        saveCache(cacheKey, structuredPayload.options);
+
+        // Fresh data is available.
+        setShowCachedData(false);
+        setMarketCacheTimestamp(null);
+        setError("");
+
+        return;
+      }
+
+      const options =
+        payload as Record<string, Record<string, string[]>>;
+
+      setMarketOptions(options);
+      setMarketNotice("");
+
+      // Save fresh options for offline use.
+      saveCache(cacheKey, options);
+
+      setShowCachedData(false);
+      setMarketCacheTimestamp(null);
+      setError("");
+    } catch (error) {
+      console.error("Market options unavailable:", error);
+
+      // Backend unavailable → use cached options.
+      loadCachedMarketOptions();
+    }
+  };
+
+  loadMarketOptions();
+}, [t]);
 
   const searchMarket = async (
     commodity: string,
@@ -95,12 +148,16 @@ export default function MarketPricesPage() {
       const cached = loadCache<MarketData>(cacheKey);
 
       if (!cached) {
-        setError("No cached market prices available.");
+        setError(t("No cached market prices available."));
         return false;
       }
 
       setMarketData(cached.data);
+      setShowCachedData(true);
+      setMarketCacheTimestamp(cached.timestamp);
+      setMarketNotice("");
       setError("");
+
       return true;
     };
 
@@ -117,11 +174,8 @@ export default function MarketPricesPage() {
       });
 
       if (!response.ok) {
-        const data: { detail?: string } = await response.json();
-        const message = data.detail ?? t("No market data found for this selection.");
-        setError(message);
-        return;
-      }
+  throw new Error("Market price request failed");
+}
 
       const result: MarketRecord = await response.json();
 
@@ -156,6 +210,10 @@ export default function MarketPricesPage() {
 
       setMarketData(marketResult);
 
+      setShowCachedData(false);
+      setMarketCacheTimestamp(null);
+      setMarketNotice("");
+
       if (
         result.available === true &&
         result.market !== null &&
@@ -183,8 +241,31 @@ export default function MarketPricesPage() {
         </h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400 font-body">{t("Search today's mandi prices.")}</p>
       </div>
-      {marketNotice && (
-        <div className="mt-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-amber-800 dark:text-amber-300">
+      {showCachedData && (
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-600">
+          <div className="flex items-center gap-2 text-lg">
+            <span>⚠️</span>
+            <span>📡</span>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium">
+              Offline Mode
+            </p>
+
+            <p className="mt-1 text-xs text-red-600">
+              Showing cached market data
+              {marketCacheTimestamp
+                ? ` • Last updated: ${new Date(
+                    marketCacheTimestamp
+                  ).toLocaleString()}`
+                : ""}
+            </p>
+          </div>
+        </div>
+      )}
+      {marketNotice && !showCachedData && (
+        <div className="mt-5 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-3 text-sm text-orange-400">
           {marketNotice}
         </div>
       )}
