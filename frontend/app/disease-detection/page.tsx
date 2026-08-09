@@ -90,17 +90,7 @@ export default function DiseaseDetectionPage() {
     }
   }, [checkingSession, loadProfile]);
 
-  // Clean up object URLs and audio on unmount
-  useEffect(() => {
-    return () => {
-      if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-      }
-      stopAudioPlayback();
-    };
-  }, [imagePreviewUrl]);
-
-  const stopAudioPlayback = () => {
+  const stopAudioPlayback = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -110,7 +100,17 @@ export default function DiseaseDetectionPage() {
       window.speechSynthesis.cancel();
     }
     setIsPlayingAudio(false);
-  };
+  }, []);
+
+  // Clean up object URLs and audio on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      stopAudioPlayback();
+    };
+  }, [imagePreviewUrl, stopAudioPlayback]);
 
   const handleFileSelect = (file: File | null) => {
     setValidationError("");
