@@ -61,7 +61,7 @@ export default function LanguageSelector({
   const buttonClasses =
     variant === "auth"
       ? "flex items-center gap-2 px-3.5 py-2 rounded-2xl border border-white/15 bg-slate-900/80 backdrop-blur-xl shadow-lg hover:bg-slate-800/90 transition-all duration-200 text-white font-medium text-sm cursor-pointer"
-      : "flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-slate-700 transition-all duration-200 text-slate-700 dark:text-slate-200 shadow-xs cursor-pointer";
+      : "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:border-emerald-200 transition-all duration-200 text-slate-700 dark:text-slate-200 shadow-xs cursor-pointer";
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -73,12 +73,12 @@ export default function LanguageSelector({
         aria-label={t("Select Language")}
         title={t("Select Language")}
       >
-        <Globe size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-        <span className="text-sm font-semibold truncate max-w-[90px] sm:max-w-[120px]">
+        <Globe size={17} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <span className="text-xs sm:text-sm font-semibold truncate max-w-[60px] xs:max-w-[80px] sm:max-w-[120px]">
           {currentLabel}
         </span>
         <ChevronDown
-          size={16}
+          size={14}
           className={`text-slate-400 transition-transform duration-200 shrink-0 ${
             isOpen ? "rotate-180 text-emerald-600 dark:text-emerald-400" : ""
           }`}

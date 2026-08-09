@@ -3,7 +3,7 @@ import type { LanguageCode } from "@/lib/languages";
 type TranslationTable = Partial<Record<LanguageCode, Record<string, string>>>;
 
 export const coreTranslations: TranslationTable = {
-    hi: {
+  hi: {
     "Get Help": "सहायता प्राप्त करें",
     "Report Bug": "बग रिपोर्ट करें",
     "Suggest Feature": "सुविधा का सुझाव दें",
@@ -832,7 +832,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "अंगूर",
     "Guava": "अमरूद",
   },
-    te: {
+  te: {
     "Help & Support": "సహాయం & మద్దతు",
     "Find answers, learn how to use AgriAdvisor, report problems, and get support.": "సమాధానాలు కనుగొనండి, AgriAdvisor ని ఎలా ఉపయోగించాలో నేర్చుకోండి, సమస్యలను నివేదించండి మరియు మద్దతు పొందండి.",
     "View FAQs": "తరచుగా అడిగే ప్రశ్నలు చూడండి",
@@ -1656,7 +1656,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "ద్రాక్ష",
     "Guava": "జామపండు",
   },
-    kn: {
+  kn: {
     "Get Help": "ಸಹಾಯ ಪಡೆಯಿರಿ",
     "Report Bug": "ದೋಷವನ್ನು ವರದಿ ಮಾಡಿ",
     "Suggest Feature": "ವೈಶಿಷ್ಟ್ಯವನ್ನು ಸೂಚಿಸಿ",
@@ -2484,7 +2484,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "ದ್ರಾಕ್ಷಿ",
     "Guava": "ಸೀಬೆಹಣ್ಣು",
   },
-    ta: {
+  ta: {
     "Get Help": "உதவி பெறுக",
     "Report Bug": "பிழையைப் புகாரளிக்கவும்",
     "Suggest Feature": "அம்சத்தைப் பரிந்துரைக்கவும்",
@@ -3279,7 +3279,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "திராட்சை",
     "Guava": "கொய்யா",
   },
-    ml: {
+  ml: {
     "Get Help": "സഹായം നേടുക",
     "Report Bug": "തരാറുകൾ റിപ്പോർട്ട് ചെയ്യുക",
     "Suggest Feature": "സവിശേഷത നിർദ്ദേശിക്കുക",
@@ -4074,7 +4074,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "മുന്തിരി",
     "Guava": "പേരയ്ക്ക",
   },
-    mr: {
+  mr: {
     "Get Help": "मदत मिळवा",
     "Report Bug": "त्रुटीची नोंद करा",
     "Suggest Feature": "वैशिष्ट्य सुचवा",
@@ -4869,7 +4869,7 @@ export const coreTranslations: TranslationTable = {
     "Grapes": "द्राक्षे",
     "Guava": "पेरू",
   },
-    gu: {
+  gu: {
     "Get Help": "મદદ મેળવો",
     "Report Bug": "બગ રિપોર્ટ કરો",
     "Suggest Feature": "વિશેષતા સૂચવો",

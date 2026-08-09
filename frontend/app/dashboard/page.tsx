@@ -138,15 +138,15 @@ export default function DashboardPage() {
         activityResponse.json(),
       ]);
 
-if (
-  !isProfile(profileData) ||
-  !isRecord(schemeData) ||
-  !Array.isArray(schemeData.schemes || []) ||
-  !isRecord(activityData) ||
-  !Array.isArray(activityData.activities || [])
-) {
-  throw new Error("Invalid dashboard response.");
-}
+      if (
+        !isProfile(profileData) ||
+        !isRecord(schemeData) ||
+        !Array.isArray(schemeData.schemes || []) ||
+        !isRecord(activityData) ||
+        !Array.isArray(activityData.activities || [])
+      ) {
+        throw new Error("Invalid dashboard response.");
+      }
 
       const schemesList = Array.isArray(schemeData.schemes) ? schemeData.schemes.filter(isScheme) : [];
       const schemeCountVal = typeof schemeData.count === "number" ? schemeData.count : schemesList.length;
@@ -161,11 +161,11 @@ if (
         activities: activityList,
       };
 
-setDashboardData(dashboardData, {
-  cached: false,
-});
+      setDashboardData(dashboardData, {
+        cached: false,
+      });
 
-saveCache(DASHBOARD_CACHE_KEY, dashboardData);
+      saveCache(DASHBOARD_CACHE_KEY, dashboardData);
 
     } catch (err) {
 

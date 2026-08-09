@@ -89,7 +89,7 @@ export default function DashboardLayout({
       <div className="relative min-h-screen flex flex-col">
         <TopNavbar />
 
-        <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 pt-4 pb-20 lg:pb-10 flex-1">
+        <main className="w-full max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-2 sm:pt-4 pb-20 lg:pb-10 flex-1">
           {children}
         </main>
 
