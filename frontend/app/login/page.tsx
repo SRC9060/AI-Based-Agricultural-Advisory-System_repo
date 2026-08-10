@@ -42,9 +42,17 @@ export default function LoginPage() {
   }, [router]);
 
   async function handleLogin() {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+      alert(t("Enter a Valid Mail Address"));
+      return;
+    }
+    if (password.length < 8) {
+      alert(t("Invalid Credentials"));
+      return;
+    }
     try {
       setLoading(true);
-
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
@@ -55,19 +63,15 @@ export default function LoginPage() {
           password,
         }),
       });
-
       const data = await response.json();
       if (response.ok && data.access_token && data.user) {
         saveAuthenticatedSession(data.access_token, rememberMe);
         setLanguage(normalizeLanguage(data.user.language));
-
         const statusResponse = await apiFetch(
           `${API_URL}/profile-status/${data.user.id}`
         );
-
         const statusData = await statusResponse.json();
         const profileCompleted = Boolean(statusData.profile_completed);
-
         saveLoginSession(
           {
             userId: data.user.id,
@@ -77,16 +81,14 @@ export default function LoginPage() {
           },
           rememberMe
         );
-
         console.log("Profile Status:", statusData);
-
         router.push(profileCompleted ? "/dashboard" : "/profile");
       } else {
         alert(t(data.detail || data.message || "Invalid Credentials"));
       }
     } catch (error) {
       console.error(error);
-      alert(t("Cannot connect to backend"));
+      alert(t("Cannot Connect to Backend"));
     } finally {
       setLoading(false);
     }
@@ -192,9 +194,8 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-2 ${
-              loading ? "opacity-60 cursor-not-allowed" : ""
-            }`}
+            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-2 ${loading ? "opacity-60 cursor-not-allowed" : ""
+              }`}
           >
             {loading ? t("Signing in...") : t("Login")}
           </button>

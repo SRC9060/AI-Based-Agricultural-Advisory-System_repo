@@ -10,13 +10,12 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, Foreign
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=1, max_length=128)
-
     @field_validator("email")
     @classmethod
     def normalize_email(cls, value: str) -> str:
         email = value.strip().lower()
         if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-            raise ValueError("Enter a valid email address.")
+            raise ValueError("Enter a Valid Mail Address")
         return email
 
 class RegisterRequest(BaseModel):
@@ -24,21 +23,19 @@ class RegisterRequest(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=128)
     language: str = "English"
-
     @field_validator("name")
     @classmethod
     def sanitize_name(cls, value: str) -> str:
         cleaned = " ".join(value.strip().split())
         if any(ord(character) < 32 for character in cleaned):
-            raise ValueError("Name contains unsupported characters.")
+            raise ValueError("Name Contains Unsupported Characters")
         return cleaned
-
     @field_validator("email")
     @classmethod
     def normalize_email(cls, value: str) -> str:
         email = value.strip().lower()
         if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-            raise ValueError("Enter a valid email address.")
+            raise ValueError("Enter a Valid Mail Address")
         return email
 
 class ProfileResponse(BaseModel):

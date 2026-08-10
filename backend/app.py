@@ -459,7 +459,7 @@ def register(request: RegisterRequest):
     db.add(Notification(
         user_id=new_user.id,
         title="Welcome to AgriAdvisor",
-        message="Complete your profile to receive personalised weather, market and scheme updates."
+        message="Complete Your Profile to Receive Personalised Weather, Market and Scheme Updates"
     ))
     db.commit()
     db.refresh(new_user)
