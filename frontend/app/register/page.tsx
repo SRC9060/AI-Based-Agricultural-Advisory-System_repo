@@ -30,8 +30,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [preferredLanguage, setPreferredLanguage] =
-    useState(activeLanguage);
+  const [preferredLanguage, setPreferredLanguage] = useState(activeLanguage);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,16 +40,20 @@ export default function RegisterPage() {
   }, [activeLanguage]);
 
   async function handleRegister() {
+    // Frontend password validation
     if (password.length < 8) {
-      alert(t("Password Must be at least 8 Characters Long"));
+      alert(t("Password must be at least 8 characters long."));
       return;
     }
+
     if (password !== confirmPassword) {
-      alert(t("Passwords Do Not Match"));
+      alert(t("Passwords do not match!"));
       return;
     }
+
     try {
       setLoading(true);
+
       const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
@@ -63,49 +66,39 @@ export default function RegisterPage() {
           language: preferredLanguage,
         }),
       });
+
       const data = await response.json();
+
       if (response.ok) {
         setActiveLanguage(preferredLanguage);
         alert(t(data.message));
         router.push("/login");
       } else {
+        // Convert backend password validation errors
+        // into a simple message for the user.
         const detail = data.detail;
-        if (typeof detail === "string") {
-          alert(t(detail));
-          return;
+
+        if (
+          typeof detail === "string" &&
+          detail.toLowerCase().includes("password") &&
+          (detail.toLowerCase().includes("8") ||
+            detail.toLowerCase().includes("characters") ||
+            detail.toLowerCase().includes("min_length"))
+        ) {
+          alert(t("Password must be at least 8 characters long."));
+        } else {
+          alert(
+            t(
+              typeof detail === "string"
+                ? detail
+                : "Registration Failed"
+            )
+          );
         }
-        if (Array.isArray(detail)) {
-          const errors = detail.map((error) => {
-            const field = error.loc?.[error.loc.length - 1];
-            const message = error.msg || "Invalid Value";
-            if (
-              field === "password" &&
-              (
-                error.type === "string_too_short" ||
-                message.toLowerCase().includes("8")
-              )
-            ) {
-              return t("Password Must be at least 8 Characters Long");
-            }
-            if (
-              field === "name" &&
-              error.type === "string_too_short"
-            ) {
-              return t("Name Must be at least 2 Characters Long");
-            }
-            if (field === "email") {
-              return t("Enter a Valid Mail Address");
-            }
-            return message;
-          });
-          alert(errors.join("\n"));
-          return;
-        }
-        alert(t("Registration Failed"));
       }
     } catch (error) {
       console.error(error);
-      alert(t("Cannot Connect to Backend"));
+      alert(t("Cannot connect to backend"));
     } finally {
       setLoading(false);
     }
@@ -113,14 +106,16 @@ export default function RegisterPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center auth-page px-5 py-12">
-      <div className="absolute top-6 right-6 z-50">
+      {/* Language Selector - top right */}
+      <div className="absolute top-6 right-6 z-20">
         <LanguageSelector variant="auth" />
       </div>
+
       {/* Register Card */}
       <div className="w-full max-w-[520px] auth-card p-10 sm:p-12 text-white shadow-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-[#66BB6A] to-[#2E7D32] flex items-center justify-center mb-6 shadow-xl shadow-emerald-950/60">
+          <div className="w-20 h-20 mx-auto rounded-3xl bg-linear-to-br from-[#66BB6A] to-[#2E7D32] flex items-center justify-center mb-6 shadow-xl shadow-emerald-950/60">
             <Sprout className="text-white" size={40} />
           </div>
 
@@ -221,9 +216,7 @@ export default function RegisterPage() {
 
             <button
               type="button"
-              onClick={() =>
-                setShowConfirmPassword(!showConfirmPassword)
-              }
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#66BB6A] transition-colors"
               tabIndex={-1}
             >
@@ -264,12 +257,11 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-3 ${loading ? "opacity-60 cursor-not-allowed" : ""
-              }`}
+            className={`w-full font-heading font-bold text-lg text-white rounded-full auth-btn transition-all duration-300 mt-3 ${
+              loading ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            {loading
-              ? t("Creating account...")
-              : t("Register")}
+            {loading ? t("Creating account...") : t("Register")}
           </button>
         </form>
 
