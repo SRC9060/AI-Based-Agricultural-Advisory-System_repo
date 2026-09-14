@@ -47,10 +47,6 @@ export default function LoginPage() {
       alert(t("Enter a Valid Mail Address"));
       return;
     }
-    if (password.length < 8) {
-      alert(t("Invalid Credentials"));
-      return;
-    }
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/login`, {
@@ -59,7 +55,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
+          email: trimmedEmail,
           password,
         }),
       });
