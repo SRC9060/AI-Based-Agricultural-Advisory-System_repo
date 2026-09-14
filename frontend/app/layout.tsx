@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
+import { Analytics } from "@vercel/analytics/next";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import OfflineBanner from "@/components/OfflineBanner";
 import SessionGuard from "@/components/SessionGuard";
@@ -63,6 +64,7 @@ export default function RootLayout({
             <OfflineBanner />
             <SessionGuard>{children}</SessionGuard>
           </LanguageProvider>
+          <Analytics />
         </body>
       </html>
     </ViewTransitions>
