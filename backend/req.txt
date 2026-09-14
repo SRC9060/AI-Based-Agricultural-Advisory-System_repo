@@ -6,17 +6,12 @@ requests
 langchain
 chromadb
 langdetect
-transformers
-torch
-openai-whisper==20250625
 sarvamai
 edge-tts==7.2.8
 openai
 langchain_text_splitters
 langchain_community
-sentence-transformers
 langchain-chroma
-langchain-huggingface
 python-multipart
 pypdf
 typing-extensions
