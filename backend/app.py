@@ -5,16 +5,32 @@ from typing import Optional
 # os.environ["HF_HUB_OFFLINE"] = "1"
 # os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
+import threading
+
 from services.knowledge_base import (
     CHROMA_DB_PATH,
     KNOWLEDGE_BASE_PATH,
     rebuild_vector_database,
 )
-if os.path.exists(CHROMA_DB_PATH):
-    print("Using Existing Vector Database")
-else:
-    print("No Vector Database Found, Building...")
-    rebuild_vector_database()
+
+KNOWLEDGE_BASE_READY = threading.Event()
+_INIT_LOCK = threading.Lock()
+
+def initialize_knowledge_base():
+    with _INIT_LOCK:
+        if KNOWLEDGE_BASE_READY.is_set():
+            return
+        try:
+            if os.path.exists(CHROMA_DB_PATH):
+                print("[RAG] Using existing vector database.")
+            else:
+                print("[RAG] Vector database initialization started.")
+                print("No Vector Database Found, Building...")
+                rebuild_vector_database()
+                print("[RAG] Vector database initialization completed.")
+            KNOWLEDGE_BASE_READY.set()
+        except Exception as e:
+            print(f"[RAG] Vector database initialization failed: {e}")
 
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, Header
 from fastapi.responses import FileResponse
@@ -62,6 +78,11 @@ from database import SessionLocal, engine
 from models import *
 
 app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    threading.Thread(target=initialize_knowledge_base, daemon=True).start()
+
 app.middleware("http")(enforce_rate_limit)
 app.add_middleware(
     CORSMiddleware,
@@ -388,6 +409,8 @@ def search_schemes(
     request: SchemeSearchRequest,
     _user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     print(f"[SchemesSearch] Request received: query='{request.query}', lang='{request.language}', source_lang='{request.source_language}'")
     target_language = get_voice_language_code(request.language)
     source_language = get_voice_language_code(
@@ -777,6 +800,8 @@ def get_schemes(
     user_id: int,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     print(f"[GetSchemes] Request received for user_id={user_id}")
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
@@ -1028,6 +1053,8 @@ def chat(
     request: ChatRequest,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     ensure_user_access(authenticated_user_id, request.user_id)
     db = SessionLocal()
     session = (
