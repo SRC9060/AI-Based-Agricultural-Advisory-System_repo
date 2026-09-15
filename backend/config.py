@@ -13,6 +13,7 @@ class Config:
     OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
     HF_TOKEN = os.getenv("HF_TOKEN")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     AGMARKNET_API_KEY = os.getenv("AGMARKNET_API_KEY")
     AGMARKNET_BASE_URL = os.getenv("AGMARKNET_BASE_URL")

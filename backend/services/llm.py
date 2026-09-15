@@ -24,7 +24,21 @@ def generate_gemini_response(question, context):
     gemini_key = getattr(Config, "GEMINI_API_KEY", None) or os.getenv("GEMINI_API_KEY")
     if not gemini_key:
         raise ValueError("GEMINI_API_KEY is not configured")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+    
+    preferred_model = getattr(Config, "GEMINI_MODEL", None) or os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    candidate_models = [
+        preferred_model,
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-flash-latest",
+    ]
+    # Deduplicate while preserving priority order
+    models_to_try = list(dict.fromkeys(candidate_models))
+
+    headers = {
+        "x-goog-api-key": gemini_key,
+        "Content-Type": "application/json",
+    }
     prompt = f"""
 You are an experienced, expert agricultural advisor helping Indian farmers.
 STRICT DOMAIN RULE: You MUST answer questions related to agriculture, farming, crops (tomato, potato, onion, wheat, rice, cotton, sugarcane, etc.), crop diseases (leaf curl, bacterial blight, powdery mildew, wilt, mosaic virus, blast, rust, rot, etc.), pest control, soil health, fertilizers, weather, market prices, or government schemes. If the question is about non-agricultural topics (such as celebrities, sports, movies, coding, games, or politics), respond ONLY with: 'I am an AI-powered Agricultural Advisory Assistant. I can only answer questions related to farming, crops, soil health, pest management, weather, government schemes, and market prices. Please ask an agriculture-related question.' Do NOT answer non-agricultural questions under any circumstances.
@@ -41,22 +55,29 @@ Context:
 Question:
 {question}
 """
-    response = requests.post(
-        url,
-        json={"contents": [{"parts": [{"text": prompt}]}]},
-        timeout=15,
-    )
-    if response.status_code != 200:
-        url_v2 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}"
-        response = requests.post(
-            url_v2,
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            timeout=15,
-        )
-    if response.status_code != 200:
-        raise ValueError(f"Gemini API error {response.status_code}: {response.text}")
-    data = response.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    last_error = None
+
+    for model_name in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=15,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            
+            error_msg = response.text.replace(gemini_key, "[REDACTED]")
+            last_error = f"Gemini API ({model_name}) error {response.status_code}: {error_msg}"
+        except Exception as e:
+            err_str = str(e).replace(gemini_key, "[REDACTED]")
+            last_error = f"Gemini API ({model_name}) request failed: {err_str}"
+
+    raise ValueError(last_error or "Gemini API request failed across all candidate models")
 
 
 def generate_groq_response(question, context):
@@ -91,33 +112,36 @@ def generate_groq_response(question, context):
     }
     response = requests.post(url, headers=headers, json=payload, timeout=15)
     if response.status_code != 200:
-        raise ValueError(f"Groq API error {response.status_code}: {response.text}")
+        error_msg = response.text.replace(groq_key, "[REDACTED]")
+        raise ValueError(f"Groq API error {response.status_code}: {error_msg}")
     data = response.json()
     return data["choices"][0]["message"]["content"].strip()
 
 
 def generate_llm_response(question, context, fallback=None):
     """
-    Generate a short, farmer-friendly response using Groq, Gemini, Sarvam, or OpenAI.
+    Generate a short, farmer-friendly response using Gemini, Groq, Sarvam, or OpenAI.
     """
     from dotenv import load_dotenv
     load_dotenv(override=True)
 
-    # 1. Try Groq
-    groq_key = os.getenv("GROQ_API_KEY") or getattr(Config, "GROQ_API_KEY", None)
-    if groq_key:
-        try:
-            return generate_groq_response(question, context)
-        except Exception as groq_error:
-            print(f"Groq chat unavailable: {groq_error}")
-
-    # 2. Try Gemini
+    # 1. Try Gemini first (active provider with valid API key)
     gemini_key = os.getenv("GEMINI_API_KEY") or getattr(Config, "GEMINI_API_KEY", None)
     if gemini_key:
         try:
             return generate_gemini_response(question, context)
         except Exception as gemini_error:
-            print(f"Gemini chat unavailable: {gemini_error}")
+            safe_err = str(gemini_error).replace(gemini_key, "[REDACTED]")
+            print(f"Gemini chat unavailable: {safe_err}")
+
+    # 2. Try Groq as fallback
+    groq_key = os.getenv("GROQ_API_KEY") or getattr(Config, "GROQ_API_KEY", None)
+    if groq_key:
+        try:
+            return generate_groq_response(question, context)
+        except Exception as groq_error:
+            safe_err = str(groq_error).replace(groq_key, "[REDACTED]")
+            print(f"Groq chat unavailable: {safe_err}")
 
     # 3. Try Sarvam
     sarvam_client = _get_sarvam_client()
