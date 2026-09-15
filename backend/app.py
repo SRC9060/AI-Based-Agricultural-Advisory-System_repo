@@ -1056,11 +1056,16 @@ def chat(
     if not KNOWLEDGE_BASE_READY.is_set():
         raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     ensure_user_access(authenticated_user_id, request.user_id)
+    try:
+        session_id_int = int(request.session_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid session ID")
+
     db = SessionLocal()
     session = (
         db.query(ChatSession)
         .filter(
-            ChatSession.id == request.session_id,
+            ChatSession.id == session_id_int,
             ChatSession.user_id == authenticated_user_id,
         )
         .first()
