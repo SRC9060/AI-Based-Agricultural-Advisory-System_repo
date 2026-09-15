@@ -13,13 +13,11 @@ lighthouse-*.report.html
 lighthouse-mobile-report.html
 fallback-*.js
 output_audio/
-chroma_db/
 chroma_db_corrupt_*/
 chroma_db_partial_*/
 test_audio/
 output_audio/
 *.db
-*.sqlite3
 *.sqlite
 sw.js
 workbox-*.js
