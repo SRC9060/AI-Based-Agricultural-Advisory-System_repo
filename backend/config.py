@@ -15,6 +15,7 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
     AGMARKNET_API_KEY = os.getenv("AGMARKNET_API_KEY")
     AGMARKNET_BASE_URL = os.getenv("AGMARKNET_BASE_URL")
     # In production, set AUTH_SECRET_KEY to a long random value shared by every

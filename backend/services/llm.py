@@ -89,52 +89,62 @@ def generate_groq_response(question, context):
         "Authorization": f"Bearer {groq_key}",
         "Content-Type": "application/json",
     }
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are an experienced, expert agricultural advisor helping Indian farmers. "
-                    "STRICT DOMAIN RULE: You MUST answer questions related to agriculture, farming, crops (tomato, potato, onion, wheat, rice, cotton, sugarcane, etc.), crop diseases (leaf curl, bacterial blight, powdery mildew, wilt, mosaic virus, blast, rust, rot, etc.), pest control, soil health, fertilizers, weather, market prices, or government schemes. If the question is about non-agricultural topics (such as celebrities, sports, movies, coding, games, or politics), respond ONLY with: 'I am an AI-powered Agricultural Advisory Assistant. I can only answer questions related to farming, crops, soil health, pest management, weather, government schemes, and market prices. Please ask an agriculture-related question.' Do NOT answer non-agricultural questions under any circumstances. "
-                    "Explain in simple, friendly, encouraging language with full details, clear step-by-step guidance, crop requirements, proper dosage recommendations, timing, and preventive actions. "
-                    "Write a complete, detailed response (around 100 to 180 words across 2 to 3 paragraphs). "
-                    "Do NOT use Markdown formatting, headings, bullet points, asterisks, or special characters. Return only plain text."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion:\n{question}",
-            },
-        ],
-        "temperature": 0.4,
-        "max_tokens": 450,
-    }
-    response = requests.post(url, headers=headers, json=payload, timeout=15)
-    if response.status_code != 200:
-        error_msg = response.text.replace(groq_key, "[REDACTED]")
-        raise ValueError(f"Groq API error {response.status_code}: {error_msg}")
-    data = response.json()
-    return data["choices"][0]["message"]["content"].strip()
+    preferred_model = getattr(Config, "GROQ_MODEL", None) or os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+    candidate_models = [
+        preferred_model,
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+    ]
+    models_to_try = list(dict.fromkeys(candidate_models))
+
+    last_error = None
+    for model_name in models_to_try:
+        payload = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an experienced, expert agricultural advisor helping Indian farmers. "
+                        "STRICT DOMAIN RULE: You MUST answer questions related to agriculture, farming, crops (tomato, potato, onion, wheat, rice, cotton, sugarcane, etc.), crop diseases (leaf curl, bacterial blight, powdery mildew, wilt, mosaic virus, blast, rust, rot, etc.), pest control, soil health, fertilizers, weather, market prices, or government schemes. If the question is about non-agricultural topics (such as celebrities, sports, movies, coding, games, or politics), respond ONLY with: 'I am an AI-powered Agricultural Advisory Assistant. I can only answer questions related to farming, crops, soil health, pest management, weather, government schemes, and market prices. Please ask an agriculture-related question.' Do NOT answer non-agricultural questions under any circumstances. "
+                        "Explain in simple, friendly, encouraging language with full details, clear step-by-step guidance, crop requirements, proper dosage recommendations, timing, and preventive actions. "
+                        "Write a complete, detailed response (around 100 to 180 words across 2 to 3 paragraphs). "
+                        "Do NOT use Markdown formatting, headings, bullet points, asterisks, or special characters. Return only plain text."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Context:\n{context}\n\nQuestion:\n{question}",
+                },
+            ],
+            "temperature": 0.4,
+            "max_tokens": 450,
+        }
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                if content and content.strip():
+                    return content.strip()
+            error_msg = response.text.replace(groq_key, "[REDACTED]")
+            last_error = f"Groq API ({model_name}) error {response.status_code}: {error_msg}"
+        except Exception as e:
+            err_str = str(e).replace(groq_key, "[REDACTED]")
+            last_error = f"Groq API ({model_name}) request failed: {err_str}"
+
+    raise ValueError(last_error or "Groq API request failed across all candidate models")
 
 
 def generate_llm_response(question, context, fallback=None):
     """
-    Generate a short, farmer-friendly response using Gemini, Groq, Sarvam, or OpenAI.
+    Generate a fast, farmer-friendly response using Groq (ultra-fast), Gemini, Sarvam, or OpenAI.
     """
     from dotenv import load_dotenv
     load_dotenv(override=True)
 
-    # 1. Try Gemini first (active provider with valid API key)
-    gemini_key = os.getenv("GEMINI_API_KEY") or getattr(Config, "GEMINI_API_KEY", None)
-    if gemini_key:
-        try:
-            return generate_gemini_response(question, context)
-        except Exception as gemini_error:
-            safe_err = str(gemini_error).replace(gemini_key, "[REDACTED]")
-            print(f"Gemini chat unavailable: {safe_err}")
-
-    # 2. Try Groq as fallback
+    # 1. Try Groq first (lightning fast inference)
     groq_key = os.getenv("GROQ_API_KEY") or getattr(Config, "GROQ_API_KEY", None)
     if groq_key:
         try:
@@ -142,6 +152,15 @@ def generate_llm_response(question, context, fallback=None):
         except Exception as groq_error:
             safe_err = str(groq_error).replace(groq_key, "[REDACTED]")
             print(f"Groq chat unavailable: {safe_err}")
+
+    # 2. Try Gemini (reliable fallback)
+    gemini_key = os.getenv("GEMINI_API_KEY") or getattr(Config, "GEMINI_API_KEY", None)
+    if gemini_key:
+        try:
+            return generate_gemini_response(question, context)
+        except Exception as gemini_error:
+            safe_err = str(gemini_error).replace(gemini_key, "[REDACTED]")
+            print(f"Gemini chat unavailable: {safe_err}")
 
     # 3. Try Sarvam
     sarvam_client = _get_sarvam_client()
