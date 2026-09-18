@@ -83,6 +83,13 @@ app = FastAPI()
 def startup_event():
     threading.Thread(target=initialize_knowledge_base, daemon=True).start()
 
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "ok",
+        "service": "AI Agricultural Advisory System"
+    }
+
 app.middleware("http")(enforce_rate_limit)
 app.add_middleware(
     CORSMiddleware,
