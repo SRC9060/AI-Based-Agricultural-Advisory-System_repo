@@ -31,6 +31,7 @@ class ReleaseGuardIntegrationTests(unittest.TestCase):
                 "RELEASEGUARD_ENVIRONMENT",
                 "RELEASEGUARD_RELEASE",
                 "RELEASEGUARD_PROJECT_ID",
+                "RELEASEGUARD_LIVE_TEST",
                 "ENVIRONMENT",
                 "RENDER",
             ]
@@ -179,6 +180,47 @@ class ReleaseGuardIntegrationTests(unittest.TestCase):
             self.assertEqual(response.status_code, 500)
             self.assertEqual(response.json(), {"detail": "Internal Server Error"})
             mock_capture.assert_called_once()
+
+    def test_live_error_endpoint_disabled_by_default_returns_404(self):
+        """When RELEASEGUARD_LIVE_TEST is unset or false, the live test endpoint returns 404."""
+        os.environ.pop("RELEASEGUARD_LIVE_TEST", None)
+        from app import app
+
+        client = TestClient(app)
+        response = client.get("/api/test/releaseguard-live-error")
+        self.assertEqual(response.status_code, 404)
+
+        # Explicitly false
+        os.environ["RELEASEGUARD_LIVE_TEST"] = "false"
+        response = client.get("/api/test/releaseguard-live-error")
+        self.assertEqual(response.status_code, 404)
+
+    def test_live_error_endpoint_enabled_returns_500_and_captures(self):
+        """When RELEASEGUARD_LIVE_TEST == 'true', raises exception captured by ReleaseGuard and returns 500."""
+        os.environ["RELEASEGUARD_LIVE_TEST"] = "true"
+        from app import app
+
+        client = TestClient(app, raise_server_exceptions=False)
+        with patch("app.capture_releaseguard_exception") as mock_capture:
+            response = client.get("/api/test/releaseguard-live-error")
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.json(), {"detail": "Internal Server Error"})
+            mock_capture.assert_called_once()
+            captured_exc = mock_capture.call_args[0][0]
+            self.assertIsInstance(captured_exc, RuntimeError)
+            self.assertEqual(str(captured_exc), "ReleaseGuard live integration test event")
+
+    def test_live_error_no_secret_leakage(self):
+        """Ensure no secrets or API keys leak into response or error strings."""
+        secret_key = "super_confidential_live_key_999888"
+        os.environ["RELEASEGUARD_API_KEY"] = secret_key
+        os.environ["RELEASEGUARD_LIVE_TEST"] = "true"
+        from app import app
+
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.get("/api/test/releaseguard-live-error")
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn(secret_key, response.text)
 
 
 if __name__ == "__main__":

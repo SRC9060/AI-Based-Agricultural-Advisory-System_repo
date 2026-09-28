@@ -133,6 +133,19 @@ async def test_releaseguard_error(raw: bool = False):
             "detail": str(exc),
         }
 
+@app.get("/api/test/releaseguard-live-error")
+async def test_releaseguard_live_error():
+    """
+    Temporary live test hook to verify ReleaseGuard integration in deployed environments.
+    Guarded by RELEASEGUARD_LIVE_TEST environment variable (defaults to false).
+    Returns 404 when disabled; raises a controlled RuntimeError captured by the global
+    exception handler returning HTTP 500 when enabled.
+    """
+    if os.getenv("RELEASEGUARD_LIVE_TEST", "false").strip().lower() != "true":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    raise RuntimeError("ReleaseGuard live integration test event")
+
 @app.get("/health")
 async def health_check():
     return {
