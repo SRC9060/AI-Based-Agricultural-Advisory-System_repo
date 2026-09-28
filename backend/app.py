@@ -32,11 +32,17 @@ def initialize_knowledge_base():
         except Exception as e:
             print(f"[RAG] Vector database initialization failed: {e}")
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, Header
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from starlette.background import BackgroundTask
+
+from releaseguard_integration import (
+    init_releaseguard,
+    capture_releaseguard_exception,
+    shutdown_releaseguard,
+)
 
 from services.language_detection import detect_language
 from services.translation import translate_text
@@ -81,7 +87,51 @@ app = FastAPI()
 
 @app.on_event("startup")
 def startup_event():
+    init_releaseguard()
     threading.Thread(target=initialize_knowledge_base, daemon=True).start()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    shutdown_releaseguard()
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    capture_releaseguard_exception(exc)
+    print(f"[ERROR] Unhandled exception occurred: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
+@app.get("/api/test/releaseguard-error")
+async def test_releaseguard_error(raw: bool = False):
+    """
+    Test endpoint for verifying ReleaseGuard error capture.
+    Only available in development/testing mode; returns 404 in production.
+    """
+    env = (
+        os.getenv("RELEASEGUARD_ENVIRONMENT")
+        or os.getenv("ENVIRONMENT")
+        or ("production" if os.getenv("RENDER") else "development")
+    ).lower()
+    if env in ("production", "prod"):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    test_exc = RuntimeError("ReleaseGuard test exception: verification of error capture")
+    if raw:
+        # Deliberately raise so it flows through the global exception handler
+        raise test_exc
+
+    try:
+        raise test_exc
+    except RuntimeError as exc:
+        capture_releaseguard_exception(exc)
+        return {
+            "status": "ok",
+            "message": "Controlled test exception raised and captured through ReleaseGuard",
+            "exception_type": type(exc).__name__,
+            "detail": str(exc),
+        }
 
 @app.get("/health")
 async def health_check():
