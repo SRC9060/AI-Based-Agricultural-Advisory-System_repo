@@ -1,101 +1,170 @@
-# AgriAdvisor — AI-Based Agricultural Advisory System
+# 🌾 AgriAdvisor
 
-> A multilingual, voice-enabled agricultural advisory platform that helps farmers get practical guidance on crops, diseases, pests, soil, fertilizers, irrigation, government schemes, weather, and market prices.
+### AI-Powered Agricultural Advisory for Farmers
 
-## Overview
+> **Ask. Understand. Act.**
+>
+> AgriAdvisor is a multilingual, voice-enabled agricultural assistant that helps farmers get practical guidance on crops, diseases, pests, soil, fertilizers, irrigation, weather, government schemes, and market prices.
 
-AgriAdvisor is a full-stack agricultural advisory application built for farmers. The system accepts text and voice queries, detects the user's language and agricultural intent, extracts relevant entities such as crops or diseases, retrieves relevant knowledge from a curated agricultural knowledge base, and generates a farmer-friendly response.
+<p align="center">
+  <strong>🌱 Agriculture • 🤖 AI • 🎙️ Voice • 🌍 Multilingual • 📈 Live Data</strong>
+</p>
 
-The platform also connects to live services for weather and market information and provides authentication, farmer profiles, chat history, feedback, notifications, government-scheme search, and crop-disease image analysis.
+---
 
-The architecture is split into:
+## 🚀 Try AgriAdvisor
 
-- **Frontend:** Next.js / React / TypeScript progressive web app
-- **Backend:** FastAPI / Python
-- **Structured data:** SQLAlchemy with SQLite locally and PostgreSQL in the Render deployment
-- **Knowledge retrieval:** LangChain + ChromaDB + Hugging Face embeddings
-- **AI providers:** Groq, Gemini, Sarvam, and OpenAI with fallback handling
-- **Voice:** Sarvam Speech-to-Text / Text-to-Speech with local Whisper and Edge TTS fallbacks
-- **Live data:** OpenWeather and AGMARKNET
-- **Deployment:** Render with separate backend and frontend services, PostgreSQL, Redis, and persistent disk
+### 🌐 Live App
 
-## Core Features
+**[👉 Open AgriAdvisor](https://ai-based-agricultural-advisory-syst-liard.vercel.app/)**
 
-### Farmer Chat Assistant
+Open the app in a browser, create an account, and start asking agriculture-related questions.
 
-- Natural-language agricultural questions
-- Agriculture-domain validation
-- Language detection
-- English normalization/translation for processing
-- Intent classification
-- Agricultural entity extraction
-- RAG-based knowledge retrieval
-- LLM-generated responses
-- Translation back to the user's language
-- Conversation/session history
-- Response-quality and feedback tracking
+### 💻 Run It Locally
 
-### Agricultural Topics
+~~~bash
+git clone https://github.com/SRC9060/AI-Based-Agricultural-Advisory-System_repo.git
+cd AI-Based-Agricultural-Advisory-System_repo
+~~~
 
-The advisory pipeline supports intents including:
+Then start the backend and frontend in two terminals.
 
-- Crop management
-- Planting and harvesting
-- Crop varieties
-- Diseases
-- Pest control
-- Fertilizers
-- Soil health
-- Irrigation
-- Organic farming
-- Weed management
-- Government schemes
-- Weather
-- Market prices
-- General agriculture
+**Backend**
 
-### Multilingual and Voice Support
+~~~bash
+cd backend
+python -m venv venv
+~~~
 
-The application is designed for English and Indian-language interaction, including Hindi, Kannada, Telugu, Tamil, Malayalam, Marathi, and Gujarati support across language-processing and voice components.
+Windows PowerShell:
 
-Voice flow:
+~~~powershell
+.\\venv\\Scripts\\Activate.ps1
+pip install -r req.txt
+python -m uvicorn app:app --reload
+~~~
 
-```text
-Farmer speaks
-    ↓
-Speech-to-Text
-    ↓
-Language / intent / entity processing
-    ↓
-RAG or live-data routing
-    ↓
-LLM response
-    ↓
-Translation when required
-    ↓
-Text-to-Speech
-    ↓
-Audio response
-```
+Linux/macOS:
 
-Sarvam AI is used for cloud speech processing and translation-related functionality. Local Whisper is available as an STT fallback, while Edge TTS provides a multilingual speech fallback when Sarvam TTS is unavailable.
+~~~bash
+source venv/bin/activate
+pip install -r req.txt
+python -m uvicorn app:app --reload
+~~~
 
-### Weather
+Backend runs at:
 
-The backend provides:
+~~~text
+http://localhost:8000
+~~~
 
-- Current weather
-- Forecast data
-- Localized weather formatting
-- City normalization for multilingual input
+**Frontend**
 
-Weather requests are handled through the OpenWeather integration.
+~~~bash
+cd frontend
+npm install
+npm run dev
+~~~
 
-### Market Prices
+Frontend runs at:
 
-The application integrates with AGMARKNET for market-price data.
+~~~text
+http://localhost:3000
+~~~
 
-The market flow supports:
+> Create **backend/.env** from **backend/.env.example** and add the API keys/services you want to use locally.
+
+---
+
+## 🌱 What Is AgriAdvisor?
+
+Farmers often need answers to simple but important questions:
+
+- What disease is affecting my crop?
+- Which fertilizer should I use?
+- Will it rain today?
+- What is today's market price?
+- How can I control this pest?
+- Which government scheme can I apply for?
+- What should I do if my crop leaves are turning yellow?
+
+AgriAdvisor brings these use cases together in one farmer-focused application.
+
+Instead of giving a generic chatbot experience, the system combines **agricultural knowledge retrieval, intent detection, multilingual processing, live data services, and voice interaction** to make the experience more practical.
+
+---
+
+## ✨ Why It Stands Out
+
+### 🤖 AI Agricultural Assistant
+
+Ask natural questions such as:
+
+> “My rice leaves are turning yellow. What should I do?”
+
+The system detects the agricultural intent, identifies relevant entities, searches the agricultural knowledge base, and generates a practical response.
+
+### 🗣️ Talk to the Assistant
+
+AgriAdvisor supports a voice-first experience.
+
+~~~text
+🎙️ Farmer speaks
+      ↓
+📝 Speech-to-Text
+      ↓
+🧠 Query understanding
+      ↓
+📚 Knowledge retrieval / live service
+      ↓
+🤖 AI response
+      ↓
+🔊 Text-to-Speech
+~~~
+
+Sarvam AI is used for cloud speech processing, with Whisper and Edge TTS available as fallback components.
+
+### 🌍 Built for Indian Languages
+
+The application supports multilingual interaction across English and Indian languages including:
+
+**Hindi • Kannada • Telugu • Tamil • Malayalam • Marathi • Gujarati**
+
+A farmer can ask questions in their preferred language and receive the response in that language.
+
+### 📚 Answers Grounded in Agricultural Knowledge
+
+AgriAdvisor uses **RAG (Retrieval-Augmented Generation)** instead of relying only on an LLM.
+
+~~~text
+Agricultural PDFs / documents
+            ↓
+       Split into chunks
+            ↓
+         Embeddings
+            ↓
+         ChromaDB
+            ↓
+    Relevant knowledge
+            ↓
+           LLM
+            ↓
+     Farmer-friendly answer
+~~~
+
+This gives the AI access to the application's curated agricultural knowledge base while generating the final answer.
+
+### 🌦️ Live Weather Information
+
+Farmers can check current weather and forecasts for a location.
+
+The backend connects to an external weather service and returns localized weather information rather than asking the LLM to invent live weather data.
+
+### 📈 Market Price Information
+
+AgriAdvisor integrates with **AGMARKNET** for agricultural market-price data.
+
+The system can work with:
 
 - Commodity
 - State
@@ -106,121 +175,183 @@ The market flow supports:
 - Modal price
 - Arrival date
 
-The backend first attempts an exact commodity/state/district lookup and uses broader state-level fallbacks when necessary.
+### 🏛️ Government Scheme Assistance
 
-### Government Schemes
+Farmers can ask questions about government agricultural schemes, subsidies, insurance, machinery support, and related programs.
 
-Government-scheme queries are routed through the scheme-agent / knowledge-base path and can retrieve scheme-specific information from the indexed agricultural documents.
+The application includes scheme-specific retrieval through its agricultural knowledge and scheme-agent flow.
 
-### Crop-Disease Image Analysis
+### 📷 Crop-Disease Image Analysis
 
-The backend exposes a crop-disease detection endpoint that:
+The application also supports crop image analysis.
 
-1. Validates the uploaded image.
-2. Checks for local trained vision-model weights.
-3. Uses the modular local-model path when weights are available.
-4. Uses a demo prediction mapping when no local model weights are loaded.
-5. Queries the agricultural RAG pipeline for symptoms, causes, treatment, prevention, and precautions.
+A farmer can upload a crop/leaf image and receive:
 
-**Important:** the current repository does not guarantee that trained vision-model weights are present. Without local model weights, the disease detector uses its built-in demo mappings rather than a learned production classifier.
+- Predicted disease
+- Confidence information
+- Alternative predictions
+- Symptoms
+- Causes
+- Treatment guidance
+- Prevention
+- Precautions
+- Recommended actions
 
-## RAG Architecture
+> **Current implementation note:** when trained vision-model weights are not present in the repository, the disease detector uses its built-in demo prediction mappings and then uses the agricultural RAG pipeline to generate disease guidance.
 
-RAG means **Retrieval-Augmented Generation**.
+### 👨‍🌾 Personal Farmer Profile
 
-Instead of sending a farmer's question directly to an LLM, the system first searches its agricultural knowledge base and supplies the most relevant passages as context.
-
-### Knowledge-base pipeline
-
-```text
-PDF / TXT / MD documents
-        ↓
-Document loading
-        ↓
-Recursive text splitting
-        ↓
-Chunks (500 characters, 100-character overlap)
-        ↓
-Embeddings
-        ↓
-ChromaDB
-```
-
-The project uses:
-
-- LangChain document loaders
-- `RecursiveCharacterTextSplitter`
-- `sentence-transformers/all-MiniLM-L6-v2`
-- ChromaDB through `langchain_chroma`
-- Metadata such as source file and knowledge-base folder
-
-### Query pipeline
-
-```text
-Farmer query
-     ↓
-Embedding / similarity search
-     ↓
-Relevant knowledge chunks
-     ↓
-Context construction
-     ↓
-LLM
-     ↓
-Agricultural answer
-```
-
-Crop-aware retrieval is also implemented for several crops, and government-scheme searches can be restricted to the `Government_Schemes` knowledge-base folder.
-
-## AI / NLP Pipeline
-
-A typical chat request follows this flow:
-
-```text
-User Query
-   ↓
-Language Detection
-   ↓
-Translation to English when required
-   ↓
-Intent Classification
-   ↓
-Agricultural Entity Extraction
-   ↓
-Agriculture-Domain Check
-   ↓
-Request Routing
-   ├── Weather → Weather service
-   ├── Market → AGMARKNET
-   └── Agriculture / schemes / pests / diseases / soil
-           ↓
-          RAG
-           ↓
-          LLM
-   ↓
-Translate response back to user language
-   ↓
-Save chat + quality information
-   ↓
-Return response
-```
-
-Intent classification uses deterministic keyword/phrase rules first and a Hugging Face zero-shot classifier using `facebook/bart-large-mnli` as a fallback.
-
-The agricultural entity extractor identifies entities such as:
+The app can store farmer information such as:
 
 - Crop
-- Disease
-- Pest
-- Fertilizer
-- Government scheme
-- Equipment
+- Farm size
+- Soil type
+- Irrigation type
+- Farming type
+- Crop variety
+- Sowing date
+- Expected harvest date
+- Growth stage
+- Location
 
-## LLM Provider Fallback
+This creates a foundation for more personalized agricultural assistance.
 
-The current LLM layer attempts providers in this order:
+### 💬 Chat History
 
-```text
+Conversations are organized into sessions so farmers can return to previous questions instead of starting from zero every time.
+
+### 🔔 Notifications & Feedback
+
+The platform includes notifications, feedback collection, response feedback, recent activity, and data-management features.
+
+---
+
+## 🧠 How a Farmer's Question Is Processed
+
+A typical text query follows this path:
+
+~~~text
+Farmer Question
+      ↓
+Language Detection
+      ↓
+Translate to English when required
+      ↓
+Intent Classification
+      ↓
+Agricultural Entity Extraction
+      ↓
+Agriculture-Domain Validation
+      ↓
+Request Routing
+      ├── Weather ───────→ Weather Service
+      ├── Market Price ──→ AGMARKNET
+      └── Other Agri ────→ RAG Pipeline
+                              ↓
+                         Knowledge Base
+                              ↓
+                             LLM
+      ↓
+Translate response when required
+      ↓
+Save conversation / quality data
+      ↓
+Return answer to farmer
+~~~
+
+---
+
+## 🔎 Intelligent Query Understanding
+
+The backend does more than simply send the question to an LLM.
+
+### Intent Classification
+
+The application recognizes intents such as:
+
+~~~text
+disease_query
+fertilizer_query
+government_scheme_query
+weather_query
+soil_query
+pest_control_query
+crop_management_query
+market_price_query
+irrigation_query
+seed_query
+harvesting_query
+crop_variety_query
+organic_farming_query
+planting_query
+weed_management_query
+general_agriculture_query
+~~~
+
+Keyword and phrase rules are applied first, with a Hugging Face zero-shot classifier using **facebook/bart-large-mnli** as a fallback path.
+
+### Agricultural Entity Extraction
+
+The system can identify entities such as:
+
+~~~text
+Crop
+Disease
+Pest
+Fertilizer
+Government Scheme
+Equipment
+~~~
+
+For example:
+
+> “What fertilizer should I use for tomato affected by leaf curl?”
+
+can be understood as:
+
+~~~text
+Crop      → tomato
+Disease   → leaf curl
+Intent    → disease_query / fertilizer-related context
+~~~
+
+---
+
+## 📚 RAG + Vector Search
+
+AgriAdvisor's agricultural knowledge base supports:
+
+- PDF documents
+- TXT files
+- Markdown files
+
+The system loads documents, splits them into smaller chunks, creates embeddings, and stores them in ChromaDB.
+
+### Embedding Model
+
+~~~text
+sentence-transformers/all-MiniLM-L6-v2
+~~~
+
+### Retrieval
+
+The backend uses semantic similarity search so the system can find information that is **similar in meaning**, not only information containing the exact same words.
+
+It also includes crop-aware retrieval and separate government-scheme filtering.
+
+### In One Line
+
+> **Knowledge Base = information → ChromaDB = retrieval → LLM = generation**
+
+---
+
+## 🤖 LLM Fallback Strategy
+
+The application supports multiple LLM providers.
+
+Current fallback order:
+
+~~~text
 Groq
   ↓
 Gemini
@@ -228,43 +359,82 @@ Gemini
 Sarvam
   ↓
 OpenAI
-```
+~~~
 
-If an earlier provider is unavailable or fails, the application attempts the next configured provider. A local extractive / crop-specific fallback response is also available through the RAG pipeline.
+If a configured provider is unavailable, the backend can try the next provider.
 
-## Authentication and Security
+The RAG layer also includes a local extractive/crop-specific fallback response path.
 
-The backend implements application-level authentication using signed access tokens.
+---
 
-Key security-related components include:
+## 🏗️ Tech Stack
 
-- Password hashing with PBKDF2-SHA256
-- Signed access tokens with an expiry time
-- Bearer-token authentication for protected API routes
-- User-access checks so one farmer cannot access another farmer's protected records
-- Rate limiting
-- CORS configuration
-- Environment-based secret/API-key configuration
+| Area | Technology |
+|---|---|
+| Frontend | Next.js 16 |
+| UI | React 19 + TypeScript |
+| Styling | Tailwind CSS |
+| Icons | Lucide React |
+| Animations | Framer Motion |
+| PWA | next-pwa |
+| Backend | FastAPI + Python |
+| API Server | Uvicorn |
+| ORM | SQLAlchemy |
+| Local DB | SQLite |
+| Production DB | PostgreSQL |
+| Vector DB | ChromaDB |
+| RAG | LangChain |
+| Embeddings | Hugging Face / Sentence Transformers |
+| Intent Classification | Hugging Face Zero-Shot + rule-based routing |
+| Speech-to-Text | Sarvam AI + Whisper fallback |
+| Text-to-Speech | Sarvam AI + Edge TTS fallback |
+| Weather | OpenWeather integration |
+| Market Data | AGMARKNET |
+| Deployment | Render + Docker |
+| Infrastructure | Redis + persistent disk |
 
-The frontend also protects authenticated pages by checking the `agriadvisor_session` cookie before allowing access to protected routes.
+---
 
-## Data Storage
+## 🖥️ Application Areas
 
-The application uses two different storage systems for different purposes.
+The application includes dedicated pages and flows for:
 
-### Structured application database
+~~~text
+🏠 Landing / Home
+🔐 Login & Registration
+📊 Farmer Dashboard
+💬 AI Chat
+🌦️ Weather
+📈 Market Prices
+🏛️ Government Schemes
+👨‍🌾 Farmer Profile
+🔔 Notifications
+📝 Feedback
+📷 Disease Detection
+⚙️ Settings
+~~~
 
-SQLAlchemy is used as the ORM.
+The frontend is implemented as a responsive Next.js application and is configured as a PWA with an offline fallback page.
 
-Local default:
+---
 
-```text
-DATABASE_URL=sqlite:///users.db
-```
+## 🗄️ Data & Storage
 
-Main structured records include:
+AgriAdvisor uses different storage systems for different jobs.
+
+### Structured application data
+
+Stored through SQLAlchemy in:
+
+~~~text
+SQLite → local development
+PostgreSQL → deployed environment
+~~~
+
+Used for:
 
 - Users
+- Farmer profiles
 - Chat sessions
 - Chat messages
 - Notifications
@@ -272,24 +442,51 @@ Main structured records include:
 - Response feedback
 - Unanswered queries
 
-### Vector database
+### Agricultural knowledge
 
-ChromaDB stores the searchable vector representation of the agricultural knowledge base.
+Stored separately as:
 
-```text
-knowledge_base/
-    ↓
-document chunks + embeddings
-    ↓
-backend/chroma_db/
-```
+~~~text
+Knowledge documents
+      ↓
+Chunks + embeddings
+      ↓
+ChromaDB
+~~~
 
-The frontend never talks directly to SQLite/PostgreSQL or ChromaDB. It communicates with the FastAPI backend, which performs database and retrieval operations.
+The browser does **not** connect directly to the database or vector database.
 
-## Project Structure
+~~~text
+Next.js
+   ↓
+FastAPI
+   ↓
+Database / RAG / External APIs
+~~~
 
-```text
+---
+
+## 🔐 Security
+
+The application includes:
+
+- Password hashing using PBKDF2-SHA256
+- Signed access tokens with expiration
+- Bearer-token authentication
+- User-access checks
+- Rate limiting
+- CORS configuration
+- Environment-based secrets and API keys
+
+Never place real API keys or secrets inside the repository.
+
+---
+
+## 📁 Project Structure
+
+~~~text
 AI-Based-Agricultural-Advisory-System_repo/
+│
 ├── backend/
 │   ├── app.py
 │   ├── config.py
@@ -299,273 +496,171 @@ AI-Based-Agricultural-Advisory-System_repo/
 │   ├── Dockerfile
 │   ├── .env.example
 │   ├── knowledge_base/
-│   ├── services/
-│   │   ├── knowledge_base.py
-│   │   ├── rag_pipeline.py
-│   │   ├── llm.py
-│   │   ├── router.py
-│   │   ├── intent_classifier.py
-│   │   ├── agri_entities.py
-│   │   ├── language_detection.py
-│   │   ├── translation.py
-│   │   ├── speech_to_text.py
-│   │   ├── text_to_speech.py
-│   │   ├── weather_service.py
-│   │   ├── agmarknet.py
-│   │   ├── disease_detection.py
-│   │   └── agents/
-│   └── ...
+│   └── services/
+│       ├── knowledge_base.py
+│       ├── rag_pipeline.py
+│       ├── llm.py
+│       ├── router.py
+│       ├── intent_classifier.py
+│       ├── agri_entities.py
+│       ├── language_detection.py
+│       ├── translation.py
+│       ├── speech_to_text.py
+│       ├── text_to_speech.py
+│       ├── weather_service.py
+│       ├── agmarknet.py
+│       ├── disease_detection.py
+│       └── agents/
+│
 ├── frontend/
 │   ├── app/
 │   ├── components/
 │   ├── lib/
-│   ├── scripts/
 │   ├── public/
+│   ├── scripts/
 │   ├── package.json
 │   ├── next.config.mjs
 │   ├── proxy.ts
-│   ├── Dockerfile
-│   └── ...
+│   └── Dockerfile
+│
 ├── render.yaml
 └── README.md
-```
+~~~
 
-## Frontend
+---
 
-The frontend is a **Next.js 16** application using **React 19** and **TypeScript**.
+## 🔌 Important API Areas
 
-Key frontend technologies include:
+The FastAPI backend exposes routes for:
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Lucide React
-- Framer Motion
-- `next-view-transitions`
-- `@ducanh2912/next-pwa`
-- Vercel Analytics
+~~~text
+Authentication
+├── POST /register
+├── POST /login
+└── GET  /auth/verify
 
-The root layout provides:
+Profile / Farm
+├── GET /profile/{user_id}
+├── PUT /profile/{user_id}
+├── GET /farm/{user_id}
+└── PUT /farm/{user_id}
 
-- Language provider
-- Session guard
-- Offline banner
-- View transitions
-- PWA metadata
-- Global fonts/styles
-- Analytics
+AI Chat
+├── POST /chat/session
+├── GET  /chat/sessions/{user_id}
+├── GET  /chat/session/{session_id}/messages
+└── POST /chat
 
-Authenticated pages include dashboard, weather, market prices, schemes, chat, profile, feedback, queries, and settings.
+Voice
+├── POST /speech-to-text
+└── POST /speak
 
-## Backend
+Live Data
+├── GET  /weather
+├── GET  /weather/forecast
+├── POST /market-price
+└── GET  /market-options
 
-The backend is built with **FastAPI** and **Python**.
+Agriculture
+├── POST /schemes/search
+└── POST /disease-detection
 
-The API includes endpoints for:
+Feedback
+├── POST /feedback
+└── POST /chat/feedback
+~~~
 
-- Authentication: register, login, token verification
-- Profile and farm information
-- Notifications
-- Chat sessions and messages
-- Chat responses
-- Speech-to-text
-- Text-to-speech
-- Weather and forecast
-- Market prices and market options
-- Government schemes
-- Feedback
-- Crop-disease detection
-- Recent activity
-- Admin analytics
-- Knowledge-base administration
-- User data export and account deletion
+Administrative routes provide analytics and protected knowledge-base management.
 
-The backend starts with Uvicorn and automatically builds the vector database when it does not already exist.
+---
 
-## Representative API Endpoints
+## ☁️ Deployment
 
-```text
-GET    /
-POST   /register
-POST   /login
-GET    /auth/verify
+The repository includes a Render configuration with separate services for the application.
 
-GET    /profile/{user_id}
-PUT    /profile/{user_id}
+~~~text
+                    Internet
+                       │
+             ┌─────────┴─────────┐
+             ↓                   ↓
+     Next.js PWA            FastAPI API
+        Service                 Service
+             │                   │
+             │          ┌────────┼─────────┐
+             │          ↓        ↓         ↓
+             │      PostgreSQL  Redis    Chroma
+             │
+             └──────────────────────────────
+~~~
 
-POST   /chat/session
-GET    /chat/sessions/{user_id}
-GET    /chat/session/{session_id}/messages
-DELETE /chat/session/{session_id}
+The deployed backend uses a persistent disk for the agricultural knowledge base and Chroma database.
 
-POST   /chat
-POST   /speech-to-text
-POST   /speak
+---
 
-GET    /weather
-GET    /weather/forecast
+## 🌾 Example Questions to Try
 
-POST   /market-price
-GET    /market-options
+Once the app is open, try questions like:
 
-POST   /schemes/search
-POST   /disease-detection
+> **“What fertilizer is best for tomato?”**
 
-POST   /feedback
-POST   /chat/feedback
+> **“मेरे धान में बीमारी है, क्या करूं?”**
 
-GET    /recent-activity/{user_id}
-```
+> **“Will it rain in my area today?”**
 
-Administrative endpoints for analytics and knowledge-base management are protected by the admin API key.
+> **“What is the market price of rice?”**
 
-## Local Development
+> **“How can I control whiteflies in cotton?”**
 
-### 1. Clone
+> **“Which government scheme can help with farm machinery?”**
 
-```bash
-git clone https://github.com/SRC9060/AI-Based-Agricultural-Advisory-System_repo.git
-cd AI-Based-Agricultural-Advisory-System_repo
-```
+Or use the **voice feature** and simply ask your question.
 
-### 2. Backend
+---
 
-Windows PowerShell:
+## 🎯 The Goal
 
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r req.txt
-```
+AgriAdvisor is designed around a simple idea:
 
-Linux/macOS:
+> **Make reliable agricultural guidance easier to access for farmers, especially through local languages and voice interaction.**
 
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r req.txt
-```
+It brings together:
 
-Create a local `backend/.env` from `backend/.env.example` and add the API keys/services you want to enable.
+**AI + RAG + Multilingual NLP + Voice + Live Weather + Market Data + Agricultural Knowledge**
 
-Start the backend:
+into one farmer-focused application.
 
-```bash
-python -m uvicorn app:app --reload
-```
+---
 
-Backend:
+## 📌 Current Status
 
-```text
-http://localhost:8000
-```
+The project is a working full-stack application with the major features and integrations described above.
 
-### 3. Frontend
+The repository also contains modular fallback implementations so the application can continue operating when some external AI services are unavailable.
 
-Open another terminal:
+For the crop-disease image feature, trained vision weights are not guaranteed to be included in the repository; without them, the current implementation uses its demo prediction mappings and then generates agricultural guidance through the RAG pipeline.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+---
 
-Frontend:
+## 🛠️ Future Improvements
 
-```text
-http://localhost:3000
-```
+- Add and deploy a dedicated trained crop-disease vision model.
+- Improve personalization using farmer history, location, crop stage, and farm profile.
+- Expand agricultural knowledge coverage.
+- Add more regional-language support.
+- Continue improving live-data integrations and production observability.
 
-The frontend reads the backend URL from `NEXT_PUBLIC_API_URL` when configured.
+---
 
-## Environment Configuration
+## 👨‍💻 Repository
 
-The repository provides `backend/.env.example`.
+**GitHub:**  
+https://github.com/SRC9060/AI-Based-Agricultural-Advisory-System_repo
 
-Important variables include:
+**Live App:**  
+https://ai-based-agricultural-advisory-syst-liard.vercel.app/
 
-```text
-OPENAI_API_KEY=
-SARVAM_API_KEY=
-OPENWEATHER_API_KEY=
-HF_TOKEN=
-AGMARKNET_API_KEY=
-AGMARKNET_BASE_URL=
-ADMIN_API_KEY=
-AUTH_SECRET_KEY=
-AUTH_TOKEN_TTL_SECONDS=86400
+---
 
-ALLOWED_ORIGINS=
-
-RATE_LIMIT_REQUESTS=30
-RATE_LIMIT_WINDOW_SECONDS=60
-RATE_LIMIT_TRUST_PROXY=false
-
-REDIS_URL=
-
-DATABASE_URL=sqlite:///users.db
-
-KNOWLEDGE_BASE_PATH=knowledge_base
-CHROMA_DB_PATH=chroma_db
-
-GEMINI_API_KEY=
-GROQ_API_KEY=
-```
-
-Never commit a real `.env` file or API credentials.
-
-## Production Deployment
-
-The repository includes a root `render.yaml` defining the deployment architecture.
-
-### Services
-
-- **agriadvisor-backend** — Docker-based FastAPI service
-- **agriadvisor-pwa** — Docker-based Next.js frontend
-- **agriadvisor-redis** — Redis key-value service
-- **agriadvisor-database** — PostgreSQL database
-
-The backend uses a persistent disk mounted at `/var/data` so the knowledge base and Chroma database can remain durable across restarts.
-
-Production paths configured by Render:
-
-```text
-KNOWLEDGE_BASE_PATH=/var/data/knowledge_base
-CHROMA_DB_PATH=/var/data/chroma_db
-```
-
-The frontend receives the backend URL through:
-
-```text
-NEXT_PUBLIC_API_URL
-```
-
-The backend is started with Uvicorn inside its Docker image, while the frontend uses the Next.js standalone production build.
-
-## Knowledge-Base Administration
-
-The backend exposes protected administrative operations for the knowledge base:
-
-```text
-GET  /admin/knowledge-base
-POST /admin/knowledge-base/upload
-POST /admin/knowledge-base/rebuild
-```
-
-This allows administrators to upload agricultural PDFs and rebuild the vector index when the knowledge base changes.
-
-## Important Implementation Notes
-
-- The normal SQL database and ChromaDB serve different purposes.
-- The agricultural knowledge base can contain PDF, TXT, and Markdown documents.
-- Chroma retrieval uses similarity scores and crop-aware metadata filtering.
-- Weather and market data are fetched from external services rather than being generated by the LLM.
-- The image disease detector is modular: local model weights can be used when available, while the current repository includes a demo fallback mapping.
-- The application is designed to keep secrets in environment variables rather than source code.
-
-## License
-
-No explicit open-source license is currently declared in the repository. Add a license file if you intend to publish the project under a specific open-source license.
+<p align="center">
+  <strong>🌱 Built to make agricultural advice more accessible, practical, and farmer-friendly.</strong>
+</p>
