@@ -5,22 +5,44 @@ from typing import Optional
 # os.environ["HF_HUB_OFFLINE"] = "1"
 # os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
+import threading
+
 from services.knowledge_base import (
     CHROMA_DB_PATH,
     KNOWLEDGE_BASE_PATH,
     rebuild_vector_database,
 )
-if os.path.exists(CHROMA_DB_PATH):
-    print("Using Existing Vector Database")
-else:
-    print("No Vector Database Found, Building...")
-    rebuild_vector_database()
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Form, Header
-from fastapi.responses import FileResponse
+KNOWLEDGE_BASE_READY = threading.Event()
+_INIT_LOCK = threading.Lock()
+
+def initialize_knowledge_base():
+    with _INIT_LOCK:
+        if KNOWLEDGE_BASE_READY.is_set():
+            return
+        try:
+            if os.path.exists(CHROMA_DB_PATH):
+                print("[RAG] Using existing vector database.")
+            else:
+                print("[RAG] Vector database initialization started.")
+                print("No Vector Database Found, Building...")
+                rebuild_vector_database()
+                print("[RAG] Vector database initialization completed.")
+            KNOWLEDGE_BASE_READY.set()
+        except Exception as e:
+            print(f"[RAG] Vector database initialization failed: {e}")
+
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from starlette.background import BackgroundTask
+
+from releaseguard_integration import (
+    init_releaseguard,
+    capture_releaseguard_exception,
+    shutdown_releaseguard,
+)
 
 from services.language_detection import detect_language
 from services.translation import translate_text
@@ -62,6 +84,75 @@ from database import SessionLocal, engine
 from models import *
 
 app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+    init_releaseguard()
+    threading.Thread(target=initialize_knowledge_base, daemon=True).start()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    shutdown_releaseguard()
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    capture_releaseguard_exception(exc)
+    print(f"[ERROR] Unhandled exception occurred: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
+@app.get("/api/test/releaseguard-error")
+async def test_releaseguard_error(raw: bool = False):
+    """
+    Test endpoint for verifying ReleaseGuard error capture.
+    Only available in development/testing mode; returns 404 in production.
+    """
+    env = (
+        os.getenv("RELEASEGUARD_ENVIRONMENT")
+        or os.getenv("ENVIRONMENT")
+        or ("production" if os.getenv("RENDER") else "development")
+    ).lower()
+    if env in ("production", "prod"):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    test_exc = RuntimeError("ReleaseGuard test exception: verification of error capture")
+    if raw:
+        # Deliberately raise so it flows through the global exception handler
+        raise test_exc
+
+    try:
+        raise test_exc
+    except RuntimeError as exc:
+        capture_releaseguard_exception(exc)
+        return {
+            "status": "ok",
+            "message": "Controlled test exception raised and captured through ReleaseGuard",
+            "exception_type": type(exc).__name__,
+            "detail": str(exc),
+        }
+
+@app.get("/api/test/releaseguard-live-error")
+async def test_releaseguard_live_error():
+    """
+    Temporary live test hook to verify ReleaseGuard integration in deployed environments.
+    Guarded by RELEASEGUARD_LIVE_TEST environment variable (defaults to false).
+    Returns 404 when disabled; raises a controlled RuntimeError captured by the global
+    exception handler returning HTTP 500 when enabled.
+    """
+    if os.getenv("RELEASEGUARD_LIVE_TEST", "false").strip().lower() != "true":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    raise RuntimeError("ReleaseGuard live integration test event")
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "ok",
+        "service": "AI Agricultural Advisory System"
+    }
+
 app.middleware("http")(enforce_rate_limit)
 app.add_middleware(
     CORSMiddleware,
@@ -388,6 +479,8 @@ def search_schemes(
     request: SchemeSearchRequest,
     _user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     print(f"[SchemesSearch] Request received: query='{request.query}', lang='{request.language}', source_lang='{request.source_language}'")
     target_language = get_voice_language_code(request.language)
     source_language = get_voice_language_code(
@@ -777,6 +870,8 @@ def get_schemes(
     user_id: int,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     print(f"[GetSchemes] Request received for user_id={user_id}")
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
@@ -1028,12 +1123,19 @@ def chat(
     request: ChatRequest,
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        raise HTTPException(status_code=503, detail="Knowledge base is still initializing. Please try again shortly.")
     ensure_user_access(authenticated_user_id, request.user_id)
+    try:
+        session_id_int = int(request.session_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid session ID")
+
     db = SessionLocal()
     session = (
         db.query(ChatSession)
         .filter(
-            ChatSession.id == request.session_id,
+            ChatSession.id == session_id_int,
             ChatSession.user_id == authenticated_user_id,
         )
         .first()

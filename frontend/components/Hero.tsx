@@ -1,44 +1,43 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import Navbar from "./Navbar";
-import Features from "./Features";
-import HowItWorks from "./HowItWorks";
-import WhyChooseUs from "./WhyChooseUs";
-import Footer from "./Footer";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.1,
+      staggerChildren: 0.12,
+      delayChildren: 0.05,
     },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.7,
+      duration: 0.5,
+      ease: "easeOut",
     },
   },
 };
 
 const statCardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  hidden: { opacity: 0, y: 15, scale: 0.96 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
     transition: {
-      duration: 0.5,
+      duration: 0.4,
+      ease: "easeOut",
     },
   },
 };
@@ -49,16 +48,21 @@ export default function Hero() {
       <Navbar />
 
       <section id="home" className="relative min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center overflow-hidden">
-        {/* Full-screen farm background with subtle scale motion */}
-        <motion.div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-          style={{ backgroundImage: 'url("/images/hero.jpg")' }}
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Full-screen farm background with Next.js Image optimization & preload */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
+          <Image
+            src="/images/hero.jpg"
+            alt="AI Agricultural Advisory Farm"
+            fill
+            priority
+            quality={80}
+            sizes="100vw"
+            className="object-cover object-center animate-hero-scale"
+          />
+        </div>
 
         {/* 30-35% Subtle Cinematic Dark Green Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#081e12]/40 via-[#0a2314]/30 to-[#06180e]/42 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#081e12]/40 via-[#0a2314]/30 to-[#06180e]/42 pointer-events-none -z-10" />
 
         {/* Main Content Area */}
         <div className="relative z-10 w-full max-w-5xl mx-auto my-auto pt-8 pb-12 flex flex-col items-center justify-center text-center">
@@ -85,11 +89,10 @@ export default function Hero() {
               variants={itemVariants}
               className="font-heading text-4xl sm:text-6xl lg:text-[72px] font-black text-white leading-[1.08] tracking-tight mb-6 max-w-4xl drop-shadow-[0_6px_24px_rgba(0,0,0,0.7)]"
             >
-              Empowering Farmers with{" "}
+              AI-Powered Agricultural Advisory System for{" "}
               <span className="text-[#66BB6A] drop-shadow-[0_0_35px_rgba(102,187,106,0.6)]">
-                AI
-              </span>{" "}
-              Agricultural Intelligence
+                Farmers
+              </span>
             </motion.h1>
 
             {/* Concise Subtitle (Inter, max-w-[650px]) */}
@@ -179,7 +182,7 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.8 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
           className="relative z-10 pb-4 flex flex-col items-center justify-center"
         >
           <a
@@ -196,11 +199,6 @@ export default function Hero() {
           </a>
         </motion.div>
       </section>
-
-      <Features />
-      <HowItWorks />
-      <WhyChooseUs />
-      <Footer />
     </>
   );
 }

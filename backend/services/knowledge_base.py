@@ -3,6 +3,18 @@ import shutil
 import sys
 from pathlib import Path
 
+class ChromaONNXAdapter:
+    def __init__(self):
+        from chromadb.utils import embedding_functions
+        self.ef = embedding_functions.DefaultEmbeddingFunction()
+
+    def embed_documents(self, texts):
+        return self.ef(texts)
+
+    def embed_query(self, text):
+        return self.ef([text])[0]
+
+
 _EMBEDDING_MODEL = None
 
 
@@ -10,11 +22,7 @@ def _get_embedding_model():
     global _EMBEDDING_MODEL
     if _EMBEDDING_MODEL is None:
         try:
-            from langchain_huggingface import HuggingFaceEmbeddings
-            _EMBEDDING_MODEL = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"token": False},
-            )
+            _EMBEDDING_MODEL = ChromaONNXAdapter()
         except Exception as e:
             print("Embedding model initialization warning:", e)
             _EMBEDDING_MODEL = False

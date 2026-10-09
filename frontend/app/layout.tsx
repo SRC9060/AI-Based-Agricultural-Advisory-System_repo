@@ -21,14 +21,47 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "AgriAdvisor",
-  description: "AI-Based Agricultural Advisory System",
+  metadataBase: new URL("https://ai-based-agricultural-advisory-syst-liard.vercel.app"),
+  title: "AgriAdvisor | AI-Powered Agricultural Advisory System for Farmers",
+  description:
+    "Multilingual AI-powered agricultural advisory platform helping farmers with real-time crop disease detection, localized weather forecasts, market prices, and government schemes.",
   applicationName: "AgriAdvisor",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icons/agriadvisor-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "AgriAdvisor",
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "AgriAdvisor | AI-Powered Agricultural Advisory System for Farmers",
+    description:
+      "Multilingual AI-powered agricultural advisory platform helping farmers with real-time crop disease detection, localized weather forecasts, market prices, and government schemes.",
+    url: "https://ai-based-agricultural-advisory-syst-liard.vercel.app",
+    siteName: "AgriAdvisor",
+    images: [
+      {
+        url: "/icons/agriadvisor-512.png",
+        width: 512,
+        height: 512,
+        alt: "AgriAdvisor Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "AgriAdvisor | AI-Powered Agricultural Advisory System for Farmers",
+    description:
+      "Multilingual AI-powered agricultural advisory platform helping farmers with real-time crop disease detection, localized weather forecasts, market prices, and government schemes.",
+    images: ["/icons/agriadvisor-512.png"],
   },
 };
 

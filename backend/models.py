@@ -82,8 +82,8 @@ class ProfileUpdateRequest(BaseModel):
     growth_stage: str | None = None
 
 class ChatRequest(BaseModel):
-    session_id: str
-    user_id: str
+    session_id: int | str
+    user_id: int | str
     message: str = Field(min_length=1, max_length=2000)
     language: str = "en"
 
