@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Inter, Poppins } from "next/font/google";
 import { ViewTransitions } from "next-view-transitions";
 import { Analytics } from "@vercel/analytics/next";
@@ -71,11 +72,13 @@ export const viewport: Viewport = {
   themeColor: "#1f7a35",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <ViewTransitions>
       <html
@@ -87,6 +90,7 @@ export default function RootLayout({
       >
         <head>
           <script
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: `(function(){try{var t=localStorage.getItem("dashboard_theme")||"fresh";document.documentElement.setAttribute("data-theme",t);if(t==="dark"){document.documentElement.classList.add("dark");}else{document.documentElement.classList.remove("dark");}}catch(e){}})()`,
             }}
