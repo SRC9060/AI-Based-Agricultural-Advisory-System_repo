@@ -712,7 +712,8 @@ nav.nav-transparent .nav-logo,
    Summary
 ========================================== */
 
-.footer-summary h2 {
+.footer-summary h2,
+.footer-summary .footer-title {
   color: #b7e46c;
 
   font-size: 25px;
@@ -902,4 +903,24 @@ nav.nav-transparent .nav-logo,
     font-size: 21px;
   }
 
+}
+
+@keyframes heroScale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.animate-hero-scale {
+  animation: heroScale 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-scale {
+    animation: none;
+  }
 }

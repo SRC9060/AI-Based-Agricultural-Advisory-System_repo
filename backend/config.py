@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-load_dotenv(override=True)
+load_dotenv()
 import os
 import secrets
 
@@ -27,7 +27,7 @@ class Config:
         origin.strip()
         for origin in os.getenv(
             "ALLOWED_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,https://ai-based-agricultural-advisory-syst-liard.vercel.app",
         ).split(",")
         if origin.strip()
     ]

@@ -32,9 +32,9 @@ export default function Navbar() {
       >
         {/* Logo */}
         <Link href="#home" className="flex items-center gap-2">
-          <h2 className="nav-logo font-heading text-base sm:text-lg font-bold tracking-tight text-[#1b4332] dark:text-emerald-400">
+          <span className="nav-logo font-heading text-base sm:text-lg font-bold tracking-tight text-[#1b4332] dark:text-emerald-400">
             🌾 {t("AI Agricultural Advisory System")}
-          </h2>
+          </span>
         </Link>
 
         {/* Desktop Links */}

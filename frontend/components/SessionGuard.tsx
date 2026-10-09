@@ -31,13 +31,14 @@ export default function SessionGuard({
   const router = useRouter();
   const { setLanguage, t } = useTranslation();
 
-  const [allowed, setAllowed] = useState(false);
+  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
+  const [allowed, setAllowed] = useState(isPublicRoute);
 
- useEffect(() => {
-  if (PUBLIC_ROUTES.has(pathname)) {
-    setAllowed(true);
-    return;
-  }
+  useEffect(() => {
+    if (PUBLIC_ROUTES.has(pathname)) {
+      setAllowed(true);
+      return;
+    }
 
   const token = getAuthToken();
   const currentSession = getCurrentSession();

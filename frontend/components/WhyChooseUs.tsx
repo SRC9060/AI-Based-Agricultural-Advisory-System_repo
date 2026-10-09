@@ -1,6 +1,7 @@
 export default function WhyChooseUs() {
   return (
     <section
+      id="why-choose-us"
       style={{
         padding: "100px 40px",
         background: "linear-gradient(to bottom,#ffffff,#eef7ff)",
@@ -14,7 +15,7 @@ export default function WhyChooseUs() {
           marginBottom: "15px",
         }}
       >
-        ⭐ Why Choose Us
+        ⭐ Why Choose AgriAdvisor
       </h2>
 
       <p
