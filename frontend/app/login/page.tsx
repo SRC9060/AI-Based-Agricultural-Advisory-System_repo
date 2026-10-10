@@ -1,6 +1,6 @@
 "use client";
 
-import { API_URL, apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,7 @@ import "@/app/auth.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { language, setLanguage, t } = useTranslation();
+  const { setLanguage, t } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,22 +49,24 @@ export default function LoginPage() {
     }
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           email: trimmedEmail,
           password,
+          rememberMe,
         }),
       });
       const data = await response.json();
-      if (response.ok && data.access_token && data.user) {
-        saveAuthenticatedSession(data.access_token, rememberMe);
+      if (response.ok && data.user) {
+        saveAuthenticatedSession(undefined, rememberMe);
         setLanguage(normalizeLanguage(data.user.language));
         const statusResponse = await apiFetch(
-          `${API_URL}/profile-status/${data.user.id}`
+          `/profile-status/${data.user.id}`
         );
         const statusData = await statusResponse.json();
         const profileCompleted = Boolean(statusData.profile_completed);
@@ -77,7 +79,6 @@ export default function LoginPage() {
           },
           rememberMe
         );
-        console.log("Profile Status:", statusData);
         router.push(profileCompleted ? "/dashboard" : "/profile");
       } else {
         alert(t(data.detail || data.message || "Invalid Credentials"));

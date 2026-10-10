@@ -1,7 +1,5 @@
 "use client";
 
-import { API_URL } from "@/lib/api";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/components/LanguageProvider";
@@ -54,11 +52,12 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/register`, {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           name,
           email: email.trim().toLowerCase(),

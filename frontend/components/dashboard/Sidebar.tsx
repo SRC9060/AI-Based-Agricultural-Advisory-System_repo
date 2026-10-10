@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useTranslation } from "@/components/LanguageProvider";
+import { clearAuthenticatedSession } from "@/lib/auth";
 
 const menuItems = [
   { name: "Dashboard", icon: "🏠", href: "/dashboard" },
@@ -36,6 +37,7 @@ const languages = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { language, setLanguage, t } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
 
@@ -127,14 +129,18 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="px-5 py-5 border-t border-green-800/70">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl mb-4 text-white hover:bg-green-50 hover:text-[#166534] transition-all duration-200"
+      <div className="px-3 pb-4">
+        <button
+          type="button"
+          onClick={() => {
+            clearAuthenticatedSession();
+            router.replace("/login");
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-4 text-white hover:bg-green-50 hover:text-[#166534] transition-all duration-200 text-left"
         >
           <span className="text-lg leading-none">🚪</span>
           <span className="text-sm font-medium">{t("Logout")}</span>
-        </Link>
+        </button>
 
         <div className="bg-[#14532d] rounded-2xl p-4 text-center shadow-sm">
           <p className="text-3xl mb-2">🧑‍🌾</p>

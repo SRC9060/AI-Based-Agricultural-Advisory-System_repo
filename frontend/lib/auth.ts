@@ -1,8 +1,5 @@
 import { clearSession } from "@/lib/session";
 
-const TOKEN_KEY = "auth_token";
-const SESSION_COOKIE = "agriadvisor_session";
-
 export type AuthenticatedUser = {
   id: number;
   name: string;
@@ -10,61 +7,56 @@ export type AuthenticatedUser = {
   language?: string;
 };
 
+/**
+ * Tokens are stored exclusively in HttpOnly cookies managed server-side.
+ * Browser JavaScript cannot and must not directly access authentication tokens.
+ */
 export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-
-  return (
-    localStorage.getItem(TOKEN_KEY) ||
-    sessionStorage.getItem(TOKEN_KEY)
-  );
+  return null;
 }
 
+/**
+ * Authorization headers are injected server-side by the Next.js API proxy boundary.
+ */
 export function getAuthHeaders(): Record<string, string> {
-  const token = getAuthToken();
-
-  return token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
+  return {};
 }
 
+/**
+ * Preserved for signature compatibility. Cookie is set server-side by /api/auth/login.
+ */
 export function saveAuthenticatedSession(
-  token: string,
-  rememberMe: boolean,
+  _token?: string,
+  _rememberMe: boolean = false,
 ) {
+  void _token;
+  void _rememberMe;
   if (typeof window === "undefined") return;
 
-  // Remove old token from both storages first.
-  localStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(TOKEN_KEY);
-
-  const targetStorage = rememberMe
-    ? localStorage
-    : sessionStorage;
-
-  targetStorage.setItem(TOKEN_KEY, token);
-
-  // Keep the cookie consistent with the selected login mode.
-  const secure =
-    window.location.protocol === "https:" ? "; Secure" : "";
-
-  if (rememberMe) {
-    document.cookie =
-      `${SESSION_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax${secure}`;
-  } else {
-    // Session cookie: disappears when the browser session ends.
-    document.cookie =
-      `${SESSION_COOKIE}=1; Path=/; SameSite=Lax${secure}`;
-  }
+  // Ensure no legacy tokens remain in client storage
+  localStorage.removeItem("auth_token");
+  sessionStorage.removeItem("auth_token");
 }
 
+/**
+ * Clears the server-side HttpOnly authentication cookie and local session metadata.
+ */
 export function clearAuthenticatedSession() {
   if (typeof window === "undefined") return;
 
-  localStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(TOKEN_KEY);
+  // Clean up any legacy storage keys
+  localStorage.removeItem("auth_token");
+  sessionStorage.removeItem("auth_token");
 
   clearSession();
 
-  document.cookie =
-    `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  // Call server logout route to delete HttpOnly authentication cookie
+  try {
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
+  } catch (error) {
+    console.warn("[Auth] Failed to call logout endpoint:", error);
+  }
 }

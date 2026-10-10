@@ -2,16 +2,9 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { API_URL, apiFetch } from "@/lib/api";
-import {
-  clearAuthenticatedSession,
-  getAuthToken,
-} from "@/lib/auth";
+import { clearAuthenticatedSession } from "@/lib/auth";
 import { normalizeLanguage } from "@/lib/languages";
-import {
-  getCurrentSession,
-  saveLoginSession,
-} from "@/lib/session";
+import { getCurrentSession, saveLoginSession } from "@/lib/session";
 import { useTranslation } from "@/components/LanguageProvider";
 
 const PUBLIC_ROUTES = new Set([
@@ -40,103 +33,102 @@ export default function SessionGuard({
       return;
     }
 
-  const token = getAuthToken();
-  const currentSession = getCurrentSession();
+    const currentSession = getCurrentSession();
 
-  if (!token || !currentSession) {
-    clearAuthenticatedSession();
-    setAllowed(false);
-    router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-    return;
-  }
+    if (!currentSession) {
+      clearAuthenticatedSession();
+      setAllowed(false);
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
 
-  // If browser itself is offline, immediately trust cached session.
-  if (!navigator.onLine) {
-    setAllowed(true);
-    return;
-  }
-
-  const controller = new AbortController();
-
-  // Don't wait forever if the backend is stopped/unavailable.
-  const timeoutId = window.setTimeout(() => {
-    console.warn(
-      "[SessionGuard] Backend verification timed out. Using cached session."
-    );
-    controller.abort();
-  }, 4000);
-
-  apiFetch(`${API_URL}/auth/verify`, {
-    cache: "no-store",
-    signal: controller.signal,
-  })
-    .then(async (response) => {
-      window.clearTimeout(timeoutId);
-
-      // 401 = token/session is genuinely invalid.
-      if (response.status === 401) {
-        clearAuthenticatedSession();
-        setAllowed(false);
-        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-        return;
-      }
-
-      // Any other backend error = keep existing cached session.
-      if (!response.ok) {
-        console.warn(
-          "[SessionGuard] Auth verification unavailable. Using cached session."
-        );
-        setAllowed(true);
-        return;
-      }
-
-      const data = await response.json();
-
-      saveLoginSession(
-        {
-          userId: data.user.id,
-          userName: data.user.name,
-          userEmail: data.user.email,
-          profileCompleted: currentSession.profileCompleted,
-        },
-        currentSession.rememberMe
-      );
-
-      const currentLocalLang =
-        typeof window !== "undefined"
-          ? localStorage.getItem("language")
-          : null;
-
-      if (!currentLocalLang && data.user?.language) {
-        setLanguage(normalizeLanguage(data.user.language));
-      }
-
+    // If browser itself is offline, immediately trust cached session
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
       setAllowed(true);
-    })
-    .catch((error) => {
-      window.clearTimeout(timeoutId);
+      return;
+    }
 
-      if (error.name === "AbortError") {
-        console.warn(
-          "[SessionGuard] Backend unavailable/timed out. Using cached session."
-        );
-        setAllowed(true);
-        return;
-      }
+    const controller = new AbortController();
 
+    const timeoutId = window.setTimeout(() => {
       console.warn(
-        "[SessionGuard] Backend unavailable. Continuing with cached session.",
-        error
+        "[SessionGuard] Backend verification timed out. Using cached session.",
       );
+      controller.abort();
+    }, 4000);
 
-      setAllowed(true);
-    });
+    fetch("/api/auth/verify", {
+      cache: "no-store",
+      signal: controller.signal,
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        window.clearTimeout(timeoutId);
 
-  return () => {
-    window.clearTimeout(timeoutId);
-    controller.abort();
-  };
-}, [pathname, router, setLanguage]);
+        // 401 = cookie/session is genuinely invalid or expired
+        if (response.status === 401) {
+          clearAuthenticatedSession();
+          setAllowed(false);
+          router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+          return;
+        }
+
+        // Any other backend error = keep existing cached UI session
+        if (!response.ok) {
+          console.warn(
+            "[SessionGuard] Auth verification unavailable. Using cached session.",
+          );
+          setAllowed(true);
+          return;
+        }
+
+        const data = await response.json();
+
+        saveLoginSession(
+          {
+            userId: data.user.id,
+            userName: data.user.name,
+            userEmail: data.user.email,
+            profileCompleted: currentSession.profileCompleted,
+          },
+          currentSession.rememberMe,
+        );
+
+        const currentLocalLang =
+          typeof window !== "undefined"
+            ? localStorage.getItem("language")
+            : null;
+
+        if (!currentLocalLang && data.user?.language) {
+          setLanguage(normalizeLanguage(data.user.language));
+        }
+
+        setAllowed(true);
+      })
+      .catch((error) => {
+        window.clearTimeout(timeoutId);
+
+        if (error.name === "AbortError") {
+          console.warn(
+            "[SessionGuard] Backend unavailable/timed out. Using cached session.",
+          );
+          setAllowed(true);
+          return;
+        }
+
+        console.warn(
+          "[SessionGuard] Backend unavailable. Continuing with cached session.",
+          error,
+        );
+
+        setAllowed(true);
+      });
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [pathname, router, setLanguage]);
 
   if (!allowed) {
     return (

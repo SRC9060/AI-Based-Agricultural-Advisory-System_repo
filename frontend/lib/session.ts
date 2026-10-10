@@ -27,8 +27,6 @@ const SESSION_KEYS = [
   "profile_completed",
 ] as const;
 
-const TOKEN_KEY = "auth_token";
-
 function readSession(
   storage: Storage,
   rememberMe: boolean,
@@ -36,12 +34,6 @@ function readSession(
   const userId = storage.getItem("user_id");
 
   if (!userId) {
-    return null;
-  }
-
-  const token = storage.getItem(TOKEN_KEY);
-
-  if (!token) {
     return null;
   }
 
@@ -171,6 +163,9 @@ export function clearSession() {
   if (typeof window === "undefined") {
     return;
   }
+
+  localStorage.removeItem("auth_token");
+  sessionStorage.removeItem("auth_token");
 
   for (const key of SESSION_KEYS) {
     localStorage.removeItem(key);

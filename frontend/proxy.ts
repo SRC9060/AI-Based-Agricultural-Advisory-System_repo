@@ -17,6 +17,7 @@ function buildContentSecurityPolicy(nonce: string) {
   const connectSrc = isDevelopment
     ? "'self' https: wss: http://localhost:* http://127.0.0.1:*"
     : "'self' https: wss:";
+
   const scriptSrc = [
     "'self'",
     "'nonce-" + nonce + "'",
@@ -46,11 +47,16 @@ function buildContentSecurityPolicy(nonce: string) {
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
   const isProtected = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + "/"),
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
-  if (isProtected && !request.cookies.get("agriadvisor_session")) {
+  const hasAuthCookie =
+    Boolean(request.cookies.get("agriadvisor_auth")?.value) ||
+    Boolean(request.cookies.get("agriadvisor_session")?.value);
+
+  if (isProtected && !hasAuthCookie) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
@@ -70,6 +76,7 @@ export function proxy(request: NextRequest) {
   });
 
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+
   return response;
 }
 
