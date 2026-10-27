@@ -26,6 +26,21 @@ import { useTranslation } from "@/components/LanguageProvider";
 import { useRequireSession } from "@/lib/session";
 import "./chat.css";
 
+interface ToolCallRecord {
+  tool: string;
+  arguments?: Record<string, unknown>;
+  success: boolean;
+  result_summary?: string;
+}
+
+interface WorkflowItem {
+  name: string;
+  description: string;
+  allowed_tools?: string[];
+  max_rounds?: number;
+  enabled?: boolean;
+}
+
 interface Message {
   type: "user" | "ai";
   text: string;
@@ -34,6 +49,10 @@ interface Message {
   confidenceScore?: number;
   confidenceLevel?: string;
   needsHumanReview?: boolean;
+  workflow?: string;
+  toolCalls?: ToolCallRecord[];
+  toolCallsCount?: number;
+  jobId?: string;
 }
 
 interface ChatSessionItem {
@@ -41,6 +60,21 @@ interface ChatSessionItem {
   title: string;
   created_at: string;
   updated_at: string;
+}
+
+function formatWorkflowTitle(name: string): string {
+  if (!name) return "";
+  return name
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function generateIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `agri_${crypto.randomUUID()}`;
+  }
+  return `agri_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 function ChatContent() {
@@ -72,6 +106,51 @@ function ChatContent() {
   const [sessionsList, setSessionsList] = useState<ChatSessionItem[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(false);
+
+  // AI Agent & Workflow states
+  const [chatMode, setChatMode] = useState<"standard" | "agent">("standard");
+  const [workflows, setWorkflows] = useState<WorkflowItem[]>([]);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<string>("general_advisory");
+  const [loadingWorkflows, setLoadingWorkflows] = useState<boolean>(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
+  const fetchWorkflows = useCallback(async () => {
+    try {
+      setLoadingWorkflows(true);
+      setWorkflowError(null);
+      const res = await apiFetch(`${API_URL}/agent/workflows`);
+      if (res.status === 401) {
+        setWorkflowError("Session expired. Please log in again.");
+        return;
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Failed to fetch workflows (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      const list: WorkflowItem[] = Array.isArray(data.workflows) ? data.workflows : [];
+      setWorkflows(list);
+      if (list.length > 0) {
+        setSelectedWorkflow((prev) => {
+          if (list.some((w) => w.name === prev)) return prev;
+          const hasGeneral = list.some((w) => w.name === "general_advisory");
+          return hasGeneral ? "general_advisory" : list[0].name;
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load agent workflows";
+      setWorkflowError(msg);
+    } finally {
+      setLoadingWorkflows(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatMode === "agent" && workflows.length === 0 && !loadingWorkflows && !workflowError) {
+      void fetchWorkflows();
+    }
+  }, [chatMode, workflows.length, loadingWorkflows, workflowError, fetchWorkflows]);
 
   const loadSessions = useCallback(async (userId: string | number) => {
     try {
@@ -269,6 +348,16 @@ useEffect(() => {
         setStatus("Creating Chat Session...");
         return;
       }
+      if (chatMode === "agent") {
+        if (loadingWorkflows) {
+          setStatus("Loading agent workflows, please wait...");
+          return;
+        }
+        if (workflowError || workflows.length === 0) {
+          setStatus("Agent workflows could not be loaded. Please click Retry.");
+          return;
+        }
+      }
       const currentQuestion = customQuestion ?? question;
       if (!currentQuestion.trim()) {
         return;
@@ -284,73 +373,271 @@ useEffect(() => {
         setQuestion("");
       }
       window.history.replaceState({}, "", "/chat");
+
       try {
         setLoading(true);
-        setStatus("🧠 AI is analysing your question...");
-        console.log("Sending Language:", language);
-        const response = await apiFetch(`${API_URL}/chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            session_id: String(sessionId),
-            user_id: session.userId,
-            message: currentQuestion,
-            language,
-          }),
-        });
-        if (!response.ok) {
-          const error = await response.json();
-          console.error("Backend Error:", error);
-          throw new Error("Backend error");
-        }
-        const data = await response.json();
 
-        window.dispatchEvent(new Event("activityUpdated"));
+        if (chatMode === "agent") {
+          setStatus(`🤖 Queuing AI Agent (${formatWorkflowTitle(selectedWorkflow)})...`);
+          const idempotencyKey = generateIdempotencyKey();
 
-        const answer =
-          data.response_in_user_language ||
-          data.english_response ||
-          "Sorry, I could not generate a recommendation.";
+          const jobResponse = await apiFetch(`${API_URL}/agent/jobs`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Idempotency-Key": idempotencyKey,
+            },
+            body: JSON.stringify({
+              message: currentQuestion,
+              session_id: sessionId !== null ? String(sessionId) : null,
+              language,
+              workflow: selectedWorkflow,
+            }),
+          });
 
-        setMessages((previous) => [
-        ...previous,
-        {
-          type: "ai",
-          text: answer,
-          id: data.assistant_message_id,
-          confidenceScore: data.confidence_score,
-          confidenceLevel: data.response_quality?.confidence_level,
-          needsHumanReview: data.response_quality?.needs_human_review,
-        },
-        ]);
+          if (jobResponse.status === 401) {
+            setStatus("❌ Session expired. Please log in again.");
+            setMessages((previous) => [
+              ...previous,
+              {
+                type: "ai",
+                text: "Your session has expired. Please refresh or log in again to continue.",
+              },
+            ]);
+            return;
+          }
 
-        setStatus("");
-        if (session) void loadSessions(session.userId);
-        const voicePrefs = getVoicePreferences();
-        if (voicePrefs.auto_read_responses) {
-          void speakAnswer(answer, undefined, data.assistant_message_id);
+          if (!jobResponse.ok) {
+            const errorData = await jobResponse.json().catch(() => ({}));
+            const errDetail = errorData.detail || `Agent job submission failed (HTTP ${jobResponse.status})`;
+            throw new Error(errDetail);
+          }
+
+          const jobData = await jobResponse.json();
+          const jobId: string = jobData.job_id;
+          setActiveJobId(jobId);
+
+          // If deduplicated request returned 200 with completed result
+          if (jobData.status === "COMPLETED" && jobData.result) {
+            const resPayload = jobData.result;
+            const answer = resPayload.answer || "Agent completed the task successfully.";
+            const toolCalls = Array.isArray(resPayload.tool_calls) ? resPayload.tool_calls : [];
+            const toolCallsCount =
+              typeof resPayload.tool_calls_count === "number"
+                ? resPayload.tool_calls_count
+                : toolCalls.length;
+
+            setMessages((previous) => [
+              ...previous,
+              {
+                type: "ai",
+                text: answer,
+                workflow: selectedWorkflow,
+                toolCalls,
+                toolCallsCount,
+                jobId,
+              },
+            ]);
+            setStatus("");
+            if (session) void loadSessions(session.userId);
+            const voicePrefs = getVoicePreferences();
+            if (voicePrefs.auto_read_responses) {
+              void speakAnswer(answer);
+            }
+            return;
+          }
+
+          // Poll GET /agent/jobs/{job_id}
+          let pollAttempts = 0;
+          const maxAttempts = 30; // 30 * 1.5s = ~45s
+          let isDone = false;
+
+          while (pollAttempts < maxAttempts && !isDone) {
+            await new Promise((r) => setTimeout(r, 1500));
+            pollAttempts++;
+
+            const pollRes = await apiFetch(`${API_URL}/agent/jobs/${jobId}`);
+            if (pollRes.status === 401) {
+              setStatus("❌ Session expired while checking agent job.");
+              setMessages((previous) => [
+                ...previous,
+                {
+                  type: "ai",
+                  text: "Your session expired while waiting for the AI agent job to complete. Please log in again.",
+                  workflow: selectedWorkflow,
+                  jobId,
+                },
+              ]);
+              isDone = true;
+              break;
+            }
+
+            if (!pollRes.ok) {
+              setStatus("⚠️ Could not verify agent job status.");
+              setMessages((previous) => [
+                ...previous,
+                {
+                  type: "ai",
+                  text: `Unable to verify the status of your agent request (Job ID: ${jobId}) due to a network or server communication error. The background job may still complete.`,
+                  workflow: selectedWorkflow,
+                  jobId,
+                },
+              ]);
+              isDone = true;
+              break;
+            }
+
+            const currentJob = await pollRes.json();
+            if (currentJob.status === "COMPLETED") {
+              isDone = true;
+              const resPayload = currentJob.result || {};
+              const answer = resPayload.answer || "Agent completed the task successfully.";
+              const toolCalls = Array.isArray(resPayload.tool_calls) ? resPayload.tool_calls : [];
+              const toolCallsCount =
+                typeof resPayload.tool_calls_count === "number"
+                  ? resPayload.tool_calls_count
+                  : toolCalls.length;
+
+              setMessages((previous) => [
+                ...previous,
+                {
+                  type: "ai",
+                  text: answer,
+                  workflow: selectedWorkflow,
+                  toolCalls,
+                  toolCallsCount,
+                  jobId,
+                },
+              ]);
+              setStatus("");
+              if (session) void loadSessions(session.userId);
+              const voicePrefs = getVoicePreferences();
+              if (voicePrefs.auto_read_responses) {
+                void speakAnswer(answer);
+              }
+              break;
+            } else if (currentJob.status === "FAILED") {
+              isDone = true;
+              const errorMsg =
+                currentJob.error_summary && currentJob.error_summary.trim()
+                  ? currentJob.error_summary.trim()
+                  : "An unexpected error occurred during agent execution.";
+              setStatus("❌ Agent job failed.");
+              setMessages((previous) => [
+                ...previous,
+                {
+                  type: "ai",
+                  text: `Agent job could not be completed: ${errorMsg}`,
+                  workflow: selectedWorkflow,
+                  jobId,
+                },
+              ]);
+              break;
+            } else {
+              const stateLabel =
+                currentJob.status === "RETRY_WAIT"
+                  ? "retrying"
+                  : (currentJob.status || "processing").toLowerCase();
+              setStatus(
+                `⚙️ AI Agent is working (${stateLabel}... ${Math.round(pollAttempts * 1.5)}s)`,
+              );
+            }
+          }
+
+          if (!isDone) {
+            setStatus("⏳ Agent job is still running in background.");
+            setMessages((previous) => [
+              ...previous,
+              {
+                type: "ai",
+                text: `Your request is still being processed by the background agent worker (Job ID: ${jobId}). You can check back shortly or review your session history.`,
+                workflow: selectedWorkflow,
+                jobId,
+              },
+            ]);
+          }
+        } else {
+          // Standard Chat flow
+          setStatus("🧠 AI is analysing your question...");
+          console.log("Sending Language:", language);
+          const response = await apiFetch(`${API_URL}/chat`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              session_id: String(sessionId),
+              user_id: session.userId,
+              message: currentQuestion,
+              language,
+            }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            console.error("Backend Error:", error);
+            throw new Error("Backend error");
+          }
+          const data = await response.json();
+
+          window.dispatchEvent(new Event("activityUpdated"));
+
+          const answer =
+            data.response_in_user_language ||
+            data.english_response ||
+            "Sorry, I could not generate a recommendation.";
+
+          setMessages((previous) => [
+            ...previous,
+            {
+              type: "ai",
+              text: answer,
+              id: data.assistant_message_id,
+              confidenceScore: data.confidence_score,
+              confidenceLevel: data.response_quality?.confidence_level,
+              needsHumanReview: data.response_quality?.needs_human_review,
+            },
+          ]);
+
+          setStatus("");
+          if (session) void loadSessions(session.userId);
+          const voicePrefs = getVoicePreferences();
+          if (voicePrefs.auto_read_responses) {
+            void speakAnswer(answer, undefined, data.assistant_message_id);
+          }
         }
       } catch (error) {
         console.error(error);
+        const errMsg =
+          chatMode === "agent"
+            ? "Unable to complete AI agent request. Please try again."
+            : "Unable to connect to the agricultural AI server. Please try again.";
         setStatus("❌ Unable to connect to AI server.");
         setMessages((previous) => [
           ...previous,
           {
             type: "ai",
-            text: "Unable to connect to the agricultural AI server. Please try again.",
+            text: errMsg,
           },
         ]);
       } finally {
         setLoading(false);
+        setActiveJobId(null);
       }
     },
-    // speakAnswer is a function declaration that reads `language` from the
-    // surrounding scope, so keeping its per-render identity out of this
-    // dependency list avoids unnecessarily recreating the callback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOnline, language, question, session, sessionId, loadSessions],
+    [
+      isOnline,
+      language,
+      question,
+      session,
+      sessionId,
+      loadSessions,
+      chatMode,
+      selectedWorkflow,
+      workflows.length,
+      loadingWorkflows,
+      workflowError,
+    ],
   );
 
   useEffect(() => {
@@ -377,7 +664,13 @@ useEffect(() => {
       setStatus("Creating Chat Session...");
       return;
     }
-    if (!loading) {
+    if (!loading && activeJobId === null) {
+      if (
+        chatMode === "agent" &&
+        (loadingWorkflows || workflowError || workflows.length === 0)
+      ) {
+        return;
+      }
       askAI();
     }
   }
@@ -1143,6 +1436,90 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
             </div>
           </div>
 
+          {/* Mode Selector and Workflow Bar */}
+          <div className="chat-mode-bar flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Mode:
+              </span>
+              <div className="chat-mode-toggle" role="radiogroup" aria-label="Chat Mode">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={chatMode === "standard"}
+                  disabled={loading}
+                  className={`chat-mode-btn ${chatMode === "standard" ? "active" : ""}`}
+                  onClick={() => setChatMode("standard")}
+                >
+                  Standard Chat
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={chatMode === "agent"}
+                  disabled={loading}
+                  className={`chat-mode-btn ${chatMode === "agent" ? "active" : ""}`}
+                  onClick={() => {
+                    setChatMode("agent");
+                    if (workflows.length === 0 && !loadingWorkflows) {
+                      void fetchWorkflows();
+                    }
+                  }}
+                >
+                  ⚡ AI Agent
+                </button>
+              </div>
+            </div>
+
+            {chatMode === "agent" && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs">
+                {loadingWorkflows ? (
+                  <span className="text-slate-500 dark:text-slate-400 animate-pulse">Loading workflows...</span>
+                ) : workflowError ? (
+                  <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                    <span>{workflowError}</span>
+                    <button
+                      type="button"
+                      onClick={() => void fetchWorkflows()}
+                      className="underline hover:no-underline font-semibold text-xs cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="workflow-select" className="font-semibold text-slate-600 dark:text-slate-300">
+                      Workflow:
+                    </label>
+                    <select
+                      id="workflow-select"
+                      className="workflow-select-dropdown"
+                      value={selectedWorkflow}
+                      onChange={(e) => setSelectedWorkflow(e.target.value)}
+                      disabled={loading}
+                    >
+                      {workflows.map((wf) => (
+                        <option key={wf.name} value={wf.name}>
+                          {formatWorkflowTitle(wf.name)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {chatMode === "agent" && !loadingWorkflows && !workflowError && workflows.length > 0 && (
+            <div className="text-[11px] text-slate-600 dark:text-slate-300 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 rounded-xl mb-3 flex items-start gap-1.5">
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">Capability:</span>
+              <span>
+                {workflows.find((w) => w.name === selectedWorkflow)?.description ||
+                  "Autonomous agricultural advisor with tool execution."}
+              </span>
+            </div>
+          )}
+
         <div className="chat-messages">
           {messages.map((message, index) => (
             <div
@@ -1164,6 +1541,55 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
                 }
               >
                 <p>{message.text}</p>
+                {/* Agent metadata badge and expandable tool details */}
+                {message.workflow && (
+                  <div className="agent-meta-container">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                        ⚡ {formatWorkflowTitle(message.workflow)}
+                      </span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {(message.toolCallsCount ?? (message.toolCalls?.length || 0)) === 0
+                          ? "Direct LLM response (no tools needed)"
+                          : `${message.toolCallsCount ?? message.toolCalls?.length} tool${(message.toolCallsCount ?? message.toolCalls?.length) === 1 ? "" : "s"} called`}
+                      </span>
+                    </div>
+
+                    {message.toolCalls && message.toolCalls.length > 0 && (
+                      <details className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 group">
+                        <summary className="cursor-pointer select-none font-medium hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors list-none flex items-center gap-1">
+                          <span className="text-[10px] transform group-open:rotate-90 transition-transform">▶</span>
+                          <span>View tool execution details</span>
+                        </summary>
+                        <div className="mt-2 pl-3 space-y-1.5 border-l-2 border-slate-200 dark:border-slate-700">
+                          {message.toolCalls.map((tc, tcIdx) => (
+                            <div key={tcIdx} className="flex items-start gap-2">
+                              <span
+                                className={
+                                  tc.success
+                                    ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                                    : "text-amber-600 dark:text-amber-400 font-bold"
+                                }
+                              >
+                                {tc.success ? "✓" : "✗"}
+                              </span>
+                              <div>
+                                <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                                  {tc.tool}
+                                </span>
+                                {tc.result_summary && (
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {tc.result_summary}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
                 {message.type === "ai" && index !== 0 && (
                   <button
                     className={`speak-message-btn ${playingMessageIndex === index && isSpeaking ? "playing font-bold text-red-600 dark:text-red-400" : ""}`}
@@ -1242,8 +1668,11 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
             disabled={
               !isOnline ||
               loading ||
+              activeJobId !== null ||
               isSpeaking ||
-              sessionId === null
+              sessionId === null ||
+              (chatMode === "agent" &&
+                (loadingWorkflows || !!workflowError || workflows.length === 0))
             }
             aria-label={
               isRecording
@@ -1290,8 +1719,11 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
               disabled={
                 !isOnline ||
                 loading ||
+                activeJobId !== null ||
                 !question.trim() ||
-                sessionId === null
+                sessionId === null ||
+                (chatMode === "agent" &&
+                  (loadingWorkflows || !!workflowError || workflows.length === 0))
               }
               aria-label="Send question"
             >

@@ -178,7 +178,45 @@ Content-Type: application/json
 
 ---
 
-## 5. Adding a New Workflow Safely
+---
+
+## 5. Frontend Chat Integration & UI Usage
+
+AgriAdvisor features full frontend integration for AI Agent workflows and database-backed background jobs directly in [`frontend/app/chat/page.tsx`](../frontend/app/chat/page.tsx).
+
+### 1. Standard Chat vs. AI Agent Mode
+- **Standard Chat (Default):** Retains the original synchronous `/chat` endpoint. Uses existing intent detection and response generation. Existing users are never silently moved to a different backend architecture.
+- **AI Agent Mode:** Enables multi-turn tool-calling and the database-backed background job queue. The user can switch modes anytime via the mode toggle bar at the top of the chat area.
+
+### 2. Dynamic Workflow Selection
+When AI Agent mode is activated:
+- The UI queries `GET /agent/workflows` via the authenticated same-origin proxy (`/api/proxy/agent/workflows`), which automatically forwards the HttpOnly session token.
+- Available workflows (`general_advisory`, `crop_care`, `market_and_weather`) populate the workflow dropdown selector.
+- The UI displays a live capability description for the selected workflow.
+- If workflow loading fails (e.g. network interruption), the UI presents a clear error state with a "Retry" button and disables submission rather than silently falling back to Standard Chat.
+
+### 3. Background Job Queue & Polling
+- When a question is submitted in AI Agent mode, the client posts to `POST /agent/jobs` with:
+  - `message`: Farmer's question text.
+  - `session_id`: Current chat session ID (or null).
+  - `language`: Selected UI language.
+  - `workflow`: Selected workflow profile name.
+  - `Idempotency-Key`: Unique UUID header (`agri_<uuid>`) preventing duplicate queue operations.
+- The UI handles HTTP 202 (job newly accepted) and HTTP 200 (deduplicated result).
+- The client polls `GET /agent/jobs/{job_id}` at ~1.5-second intervals (up to 30 attempts, ~45 seconds maximum wait).
+- The send and voice buttons are disabled during submission and polling to prevent accidental duplicate jobs.
+- If polling times out, the client notifies the user that the job is still executing in the background and displays the Job ID, rather than falsely marking the job as failed.
+
+### 4. Actual Tool Execution Metadata & TTS
+- When the job reaches `COMPLETED`, the answer is displayed in the chat stream.
+- A workflow badge (e.g. `⚡ Crop Care`) and total tool invocation count are displayed directly beneath the answer.
+- An expandable `<details>` section lists the executed tool names along with explicit success (`✓`) or failure (`✗`) indicators and result summaries. Live weather or market claims are never fabricated.
+- Text-to-speech (`Listen` / `Stop`) remains fully supported for agent answers.
+- For `FAILED` jobs, the backend's sanitized `error_summary` is shown to the user.
+
+---
+
+## 6. Adding a New Workflow Safely
 
 To add a new workflow:
 1. Ensure the required tools are already implemented and registered in [`backend/services/tool_registry.py`](../backend/services/tool_registry.py).
@@ -198,17 +236,12 @@ To add a new workflow:
 
 ---
 
-## 6. Testing & Current Limitations
+## 7. Testing & Current Limitations
 
-### Offline Tests
-All workflow functionality is covered by automated unit and integration tests in [`backend/tests/test_workflows.py`](../backend/tests/test_workflows.py):
-- Configuration loading, schema validation, and error handling.
-- Tool allowlist enforcement and execution rejection of unauthorized tools.
-- Bounded reasoning rounds enforcement.
-- Authenticated `GET /agent/workflows` endpoint.
-- Synchronous `/agent/chat` and asynchronous `/agent/jobs` integration.
-- Idempotency key fingerprinting across differing workflows.
+### Automated Tests
+- Backend workflow tests: [`backend/tests/test_workflows.py`](../backend/tests/test_workflows.py) (configuration loading, tool allowlist enforcement, bounded rounds, authenticated endpoints, and background worker execution).
+- Frontend type checking and production build: `tsc --noEmit` and `npm run build`.
 
 ### Current Limitations
 - **Read-Only Agricultural Tools:** All current workflows operate over read-only data sources (RAG, OpenWeather, AGMARKNET). Mutating operations (e.g. farm data modification) are not supported via workflows.
-- **Frontend Integration:** Workflows are currently an API-first capability; default client interfaces continue using `general_advisory` unless explicitly configured.
+- **Worker Execution:** Background jobs require the `agent_worker` service to be running to pick up and process queued tasks.

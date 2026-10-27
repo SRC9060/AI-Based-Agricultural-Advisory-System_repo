@@ -49,6 +49,12 @@ To prevent tool overload and reduce reasoning latency, queries can be routed thr
 
 > For workflow definitions, schema constraints, and API requests, see the [Configurable Workflows Documentation](docs/agent-workflows.md).
 
+### 💬 Chat Interface: Standard Chat & AI Agent Mode
+
+The web application (`/chat`) allows farmers and agricultural officers to interact in two distinct modes:
+- **Standard Chat (Default):** Retains the familiar, fast synchronous response pipeline.
+- **AI Agent Mode:** Submits queries to the database-backed background job queue with client-side idempotency, polls for status updates, dynamically loads available workflows (`general_advisory`, `crop_care`, `market_and_weather`), and renders verified tool execution metadata with expandable diagnostics and text-to-speech audio playback.
+
 ### 📚 RAG-Powered Agricultural Knowledge
 
 The system uses **Retrieval-Augmented Generation (RAG)** to ground AI responses in a curated agricultural knowledge base.

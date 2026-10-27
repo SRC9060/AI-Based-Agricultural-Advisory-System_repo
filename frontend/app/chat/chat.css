@@ -623,3 +623,120 @@ html.dark .session-delete-btn:hover {
   }
 }
 
+/* ==========================================
+   CHAT MODE & WORKFLOW SELECTION
+========================================== */
+
+.chat-mode-bar {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+html.dark .chat-mode-bar {
+  background: #0b1329;
+  border-color: #1e293b;
+}
+
+.chat-mode-toggle {
+  display: inline-flex;
+  background: #e2e8f0;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+html.dark .chat-mode-toggle {
+  background: #1e293b;
+}
+
+.chat-mode-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+html.dark .chat-mode-btn {
+  color: #94a3b8;
+}
+
+.chat-mode-btn:hover:not(:disabled) {
+  color: #0f172a;
+}
+
+html.dark .chat-mode-btn:hover:not(:disabled) {
+  color: #f8fafc;
+}
+
+.chat-mode-btn.active {
+  background: #ffffff;
+  color: #059669;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .chat-mode-btn.active {
+  background: #064e3b;
+  color: #6ee7b7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.chat-mode-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.workflow-select-dropdown {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+html.dark .workflow-select-dropdown {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.workflow-select-dropdown:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.workflow-info-banner {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+html.dark .workflow-info-banner {
+  border-top-color: #1e293b;
+}
+
+.agent-meta-container {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+}
+
+html.dark .agent-meta-container {
+  border-top-color: #1e293b;
+}
+
+
