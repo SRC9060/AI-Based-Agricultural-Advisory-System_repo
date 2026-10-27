@@ -172,7 +172,7 @@ def handle_get_market_prices(params: GetMarketPricesInput) -> Dict[str, Any]:
             "status": "unavailable",
             "message": (
                 f"No market records available for {params.commodity} in "
-                f"{params.district}, {params.state}: {str(err)}"
+                f"{params.district}, {params.state}: {type(err).__name__}"
             ),
         }
 

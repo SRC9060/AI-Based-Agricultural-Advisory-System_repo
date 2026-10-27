@@ -135,6 +135,37 @@ class ToolRegistryTests(unittest.TestCase):
         self.assertFalse(res["success"])
         self.assertIn("Invalid JSON", res["error"])
 
+    def test_market_prices_exception_does_not_leak_credentials_or_paths(self):
+        """Tool handler suppresses dummy credentials, database URLs, and file paths on failure."""
+        dummy_api_key = "dummy_secret_key_" + "test_12345"
+        dummy_db_url = "postgresql://mock_user:sensitive_mock_pass@db.internal:5432/agri"
+        dummy_path = "/var/app/internal/secrets/config.json"
+        toxic_error = RuntimeError(
+            f"Failed to query upstream AGMARKNET with key={dummy_api_key} "
+            f"and db={dummy_db_url} using config from {dummy_path}"
+        )
+
+        with patch("services.agmarknet.get_market_price", side_effect=toxic_error):
+            res = self.registry.execute("get_market_prices", {
+                "commodity": "Tomato",
+                "state": "Karnataka",
+                "district": "Kolar",
+            })
+
+        self.assertTrue(res["success"])
+        tool_result = res["result"]
+        self.assertEqual(tool_result["status"], "unavailable")
+
+        # Confirm safe generic message with exception class name
+        self.assertIn("RuntimeError", tool_result["message"])
+
+        # Confirm none of the sensitive tokens or paths leak into tool result
+        serialized_result = json.dumps(res)
+        self.assertNotIn(dummy_api_key, serialized_result)
+        self.assertNotIn(dummy_db_url, serialized_result)
+        self.assertNotIn("sensitive_mock_pass", serialized_result)
+        self.assertNotIn(dummy_path, serialized_result)
+
 
 class AgentRunnerTests(unittest.TestCase):
     def setUp(self):
@@ -361,6 +392,70 @@ class AgentRunnerTests(unittest.TestCase):
             self.assertEqual(result.status, "max_rounds_reached")
             self.assertEqual(result.rounds, 3)
             self.assertEqual(result.tool_calls_count, 3)
+
+    def test_agent_runner_does_not_leak_tool_exception_secrets_to_downstream_model(self):
+        """Downstream model-visible messages never receive raw credentials from tool exceptions."""
+        dummy_api_key = "dummy_secret_key_" + "test_98765"
+        dummy_db_url = "postgresql://worker:secret_db_pass@agri-host:5432/farms"
+        dummy_path = "D:\\internal\\secrets\\credentials.env"
+        toxic_error = RuntimeError(
+            f"Provider failure: key={dummy_api_key} db={dummy_db_url} path={dummy_path}"
+        )
+
+        mock_client = MockToolCallingClient([
+            # Round 1: Model requests market prices
+            AgentLLMResponse(
+                content=None,
+                tool_calls=[
+                    ToolCall(
+                        id="call_market_leak_test",
+                        name="get_market_prices",
+                        arguments=json.dumps({
+                            "commodity": "Tomato",
+                            "state": "Karnataka",
+                            "district": "Kolar",
+                        }),
+                    )
+                ],
+                finish_reason="tool_calls",
+            ),
+            # Round 2: Model completes after receiving tool result
+            AgentLLMResponse(
+                content="Market prices for Tomato in Kolar are currently unavailable.",
+                tool_calls=[],
+                finish_reason="stop",
+            ),
+        ])
+
+        with patch("services.agmarknet.get_market_price", side_effect=toxic_error):
+            runner = AgentRunner(
+                tool_registry=self.registry,
+                llm_client=mock_client,
+                max_rounds=3,
+            )
+            result = runner.run("What is the market price of Tomato in Kolar?")
+
+        self.assertEqual(result.status, "completed")
+        self.assertEqual(result.tool_calls_count, 1)
+
+        # Inspect all downstream model-visible content passed to the LLM in round 2
+        downstream_calls = mock_client.call_history
+        self.assertGreaterEqual(len(downstream_calls), 2)
+        downstream_messages = downstream_calls[1]["messages"]
+        downstream_str = json.dumps(downstream_messages)
+
+        # Assert none appear in downstream model-visible messages
+        self.assertNotIn(dummy_api_key, downstream_str)
+        self.assertNotIn(dummy_db_url, downstream_str)
+        self.assertNotIn("secret_db_pass", downstream_str)
+        self.assertNotIn(dummy_path, downstream_str)
+
+        # Assert none appear in the result summary or runner output
+        tool_exec_str = json.dumps(result.tool_calls_executed)
+        self.assertNotIn(dummy_api_key, tool_exec_str)
+        self.assertNotIn(dummy_db_url, tool_exec_str)
+        self.assertNotIn("secret_db_pass", tool_exec_str)
+        self.assertNotIn(dummy_path, tool_exec_str)
 
 
 class AgentChatEndpointTests(unittest.TestCase):
