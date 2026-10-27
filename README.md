@@ -26,6 +26,17 @@ Ask questions naturally, just like you would ask an agricultural advisor:
 
 AgriAdvisor does more than send the question directly to an LLM. It combines **language detection, intent classification, agricultural entity extraction, knowledge retrieval, and AI generation** before returning the answer.
 
+### 🛠️ Autonomous Tool-Calling Agent (`/agent/chat`)
+
+For complex, multi-faceted queries requiring dynamic information retrieval, the backend provides a schema-driven AI agent. Powered by standard function-calling protocols (compatible with Groq and OpenAI), the agent autonomously selects, validates, and executes domain tools in a bounded reasoning loop:
+
+- **Agricultural Knowledge Search:** Semantic RAG retrieval over curated agronomic guidance.
+- **Government Scheme Assistance:** Subsidy, eligibility, and program search across central and state schemes.
+- **Live Weather Forecasts:** Real-time conditions and agricultural weather advisories via OpenWeather.
+- **Commodity Market Prices:** Mandi rates and modal price tracking via AGMARKNET.
+
+> For complete architectural details, sequence diagrams, and API specifications, see the [Agent Tool-Calling Documentation](docs/agent-tool-calling.md).
+
 ### 📚 RAG-Powered Agricultural Knowledge
 
 The system uses **Retrieval-Augmented Generation (RAG)** to ground AI responses in a curated agricultural knowledge base.
@@ -262,6 +273,7 @@ You can also ask through the **voice interface**.
 ## 📌 Project Highlights
 
 - **Full-stack AI application** built with Next.js and FastAPI
+- **Autonomous tool-calling agent** with Pydantic parameter validation and bounded reasoning ([details](docs/agent-tool-calling.md))
 - **RAG-based agricultural advisory** using LangChain and ChromaDB
 - **Semantic similarity search** over a curated agricultural knowledge base
 - **Multilingual NLP** for Indian-language farmer queries

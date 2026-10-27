@@ -27,6 +27,7 @@ _redis = Redis.from_url(REDIS_URL, decode_responses=True) if (REDIS_URL and Redi
 
 _RATE_LIMITED_PREFIXES = (
     "/chat",
+    "/agent",
     "/speech-to-text",
     "/speak",
     "/translate",

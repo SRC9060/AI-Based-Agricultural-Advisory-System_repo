@@ -82,6 +82,7 @@ from config import Config
 
 from database import SessionLocal, engine
 from models import *
+from services.agent_runner import get_default_agent_runner
 
 app = FastAPI()
 
@@ -2182,5 +2183,101 @@ def delete_user_account(
         return {"message": "Account deleted successfully."}
     finally:
         db.close()
+
+
+@app.post(
+    "/agent/chat",
+    response_model=AgentChatResponse,
+    dependencies=[Depends(require_authenticated_user)],
+)
+def agent_chat(
+    request: AgentChatRequest,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    ensure_user_access(authenticated_user_id, request.user_id)
+
+    db = SessionLocal()
+    session = None
+    conversation_context = ""
+    try:
+        if request.session_id:
+            try:
+                session_id_int = int(request.session_id)
+                session = (
+                    db.query(ChatSession)
+                    .filter(
+                        ChatSession.id == session_id_int,
+                        ChatSession.user_id == authenticated_user_id,
+                    )
+                    .first()
+                )
+            except (ValueError, TypeError):
+                session = None
+
+        if session:
+            recent_messages = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.session_id == session.id)
+                .order_by(ChatMessage.created_at.desc())
+                .limit(4)
+                .all()
+            )
+            if recent_messages:
+                conversation_context = "\n".join(
+                    f"{msg.role.title()}: {msg.message}"
+                    for msg in reversed(recent_messages)
+                )
+    finally:
+        db.close()
+
+    runner = get_default_agent_runner()
+    result = runner.run(
+        user_query=request.message,
+        conversation_context=conversation_context or None,
+    )
+
+    if session:
+        db = SessionLocal()
+        try:
+            db.add(
+                ChatMessage(
+                    session_id=session.id,
+                    role="user",
+                    intent="agent_tool_calling",
+                    message=request.message,
+                )
+            )
+            db.add(
+                ChatMessage(
+                    session_id=session.id,
+                    role="assistant",
+                    intent="agent_tool_calling",
+                    message=result.answer,
+                )
+            )
+            session.updated_at = datetime.utcnow()
+            db.commit()
+        except Exception as persist_err:
+            db.rollback()
+            print(f"[AgentChat] Warning: failed to persist chat turn: {persist_err}")
+        finally:
+            db.close()
+
+    return AgentChatResponse(
+        answer=result.answer,
+        tool_calls=[
+            AgentToolCallRecord(
+                tool=tc.get("tool", ""),
+                arguments=tc.get("arguments", {}),
+                success=tc.get("success", False),
+                result_summary=tc.get("result_summary", ""),
+            )
+            for tc in result.tool_calls_executed
+        ],
+        tool_calls_count=result.tool_calls_count,
+        rounds=result.rounds,
+        status=result.status,
+    )
+
 
 Base.metadata.create_all(bind=engine)

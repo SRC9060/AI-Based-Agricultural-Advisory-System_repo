@@ -176,6 +176,36 @@ class ResponseFeedbackRequest(BaseModel):
     message_id: int
     helpful: bool
 
+class AgentChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    session_id: int | str | None = None
+    user_id: int | str
+    language: str = "en"
+
+    @field_validator("message")
+    @classmethod
+    def sanitize_message(cls, value: str) -> str:
+        cleaned = "".join(
+            character for character in value.strip()
+            if character in "\n\t" or ord(character) >= 32
+        )
+        if not cleaned:
+            raise ValueError("Message cannot be empty.")
+        return cleaned
+
+class AgentToolCallRecord(BaseModel):
+    tool: str
+    arguments: dict = Field(default_factory=dict)
+    success: bool = True
+    result_summary: str = ""
+
+class AgentChatResponse(BaseModel):
+    answer: str
+    tool_calls: list[AgentToolCallRecord] = Field(default_factory=list)
+    tool_calls_count: int = 0
+    rounds: int = 0
+    status: str = "completed"
+
 # ==========================================
 # Database Models
 # ==========================================
