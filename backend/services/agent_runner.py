@@ -210,17 +210,45 @@ class AgentRunner:
 _default_agent_runner: Optional[AgentRunner] = None
 
 
+def get_workflow_agent_runner(
+    workflow_name: str = "general_advisory",
+    workflow_registry: Optional[Any] = None,
+    llm_client: Optional[BaseLLMClient] = None,
+) -> AgentRunner:
+    """
+    Retrieve an AgentRunner configured for the specified workflow profile.
+    Supports test overrides transparently when _default_agent_runner is set.
+    """
+    global _default_agent_runner
+    if _default_agent_runner is not None and workflow_name == "general_advisory":
+        return _default_agent_runner
+
+    from services.workflow_registry import get_default_workflow_registry
+
+    reg = workflow_registry or get_default_workflow_registry()
+    wf = reg.get_workflow(workflow_name)
+
+    client = llm_client
+    if client is None:
+        if _default_agent_runner is not None and getattr(_default_agent_runner, "client", None) is not None:
+            client = _default_agent_runner.client
+        else:
+            client = OpenAIToolCallingClient()
+
+    return AgentRunner(
+        tool_registry=wf.scoped_registry,
+        llm_client=client,
+        max_rounds=wf.max_rounds,
+        system_prompt=wf.system_prompt,
+    )
+
+
 def get_default_agent_runner() -> AgentRunner:
     """Retrieve or lazily initialize the singleton agent runner."""
     global _default_agent_runner
-    if _default_agent_runner is None:
-        registry = create_default_agricultural_tool_registry()
-        client = OpenAIToolCallingClient()
-        _default_agent_runner = AgentRunner(
-            tool_registry=registry,
-            llm_client=client,
-        )
-    return _default_agent_runner
+    if _default_agent_runner is not None:
+        return _default_agent_runner
+    return get_workflow_agent_runner("general_advisory")
 
 
 def set_default_agent_runner(runner: Optional[AgentRunner]) -> None:

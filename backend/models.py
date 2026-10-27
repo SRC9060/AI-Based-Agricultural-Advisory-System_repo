@@ -181,6 +181,7 @@ class AgentChatRequest(BaseModel):
     session_id: int | str | None = None
     user_id: int | str
     language: str = "en"
+    workflow: str = "general_advisory"
 
     @field_validator("message")
     @classmethod
@@ -192,6 +193,12 @@ class AgentChatRequest(BaseModel):
         if not cleaned:
             raise ValueError("Message cannot be empty.")
         return cleaned
+
+    @field_validator("workflow")
+    @classmethod
+    def sanitize_workflow(cls, value: str) -> str:
+        clean = (value or "").strip().lower()
+        return clean or "general_advisory"
 
 class AgentToolCallRecord(BaseModel):
     tool: str
@@ -206,10 +213,21 @@ class AgentChatResponse(BaseModel):
     rounds: int = 0
     status: str = "completed"
 
+class WorkflowMetadataResponse(BaseModel):
+    name: str
+    description: str
+    allowed_tools: list[str]
+    max_rounds: int
+    enabled: bool
+
+class WorkflowListResponse(BaseModel):
+    workflows: list[WorkflowMetadataResponse]
+
 class AgentJobCreateRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     session_id: int | str | None = None
     language: str = "en"
+    workflow: str = "general_advisory"
 
     @field_validator("message")
     @classmethod
@@ -221,6 +239,12 @@ class AgentJobCreateRequest(BaseModel):
         if not cleaned:
             raise ValueError("Message cannot be empty.")
         return cleaned
+
+    @field_validator("workflow")
+    @classmethod
+    def sanitize_workflow(cls, value: str) -> str:
+        clean = (value or "").strip().lower()
+        return clean or "general_advisory"
 
 class AgentJobStatusResponse(BaseModel):
     job_id: str

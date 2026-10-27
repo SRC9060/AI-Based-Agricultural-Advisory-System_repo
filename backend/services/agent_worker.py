@@ -36,7 +36,7 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal, engine
 from models import AgentJob, ChatMessage, ChatSession
-from services.agent_runner import get_default_agent_runner
+from services.agent_runner import get_default_agent_runner, get_workflow_agent_runner
 
 logger = logging.getLogger("agriadvisor.agent_worker")
 if not logger.handlers:
@@ -321,6 +321,7 @@ class AgentWorker:
 
             message = payload.get("message", "")
             session_id = payload.get("session_id")
+            workflow_name = (payload.get("workflow") or "general_advisory").strip().lower()
             conversation_context = ""
             session = None
 
@@ -351,8 +352,8 @@ class AgentWorker:
                 except Exception as ctx_err:
                     logger.warning("Error fetching conversation context: %s", sanitize_worker_error(ctx_err))
 
-            # Invoke AgentRunner
-            runner = get_default_agent_runner()
+            # Invoke AgentRunner for selected workflow
+            runner = get_workflow_agent_runner(workflow_name)
             result = runner.run(
                 user_query=message,
                 conversation_context=conversation_context or None,

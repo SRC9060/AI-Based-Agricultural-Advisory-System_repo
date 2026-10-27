@@ -86,7 +86,7 @@ from config import Config
 
 from database import SessionLocal, engine
 from models import *
-from services.agent_runner import get_default_agent_runner
+from services.agent_runner import get_default_agent_runner, get_workflow_agent_runner
 
 app = FastAPI()
 
@@ -2189,6 +2189,31 @@ def delete_user_account(
         db.close()
 
 
+@app.get(
+    "/agent/workflows",
+    response_model=WorkflowListResponse,
+    dependencies=[Depends(require_authenticated_user)],
+)
+def list_agent_workflows(
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    from services.workflow_registry import get_default_workflow_registry
+    registry = get_default_workflow_registry()
+    metadata_list = registry.list_workflows(include_disabled=False)
+    return WorkflowListResponse(
+        workflows=[
+            WorkflowMetadataResponse(
+                name=m["name"],
+                description=m["description"],
+                allowed_tools=m["allowed_tools"],
+                max_rounds=m["max_rounds"],
+                enabled=m["enabled"],
+            )
+            for m in metadata_list
+        ]
+    )
+
+
 @app.post(
     "/agent/chat",
     response_model=AgentChatResponse,
@@ -2199,6 +2224,21 @@ def agent_chat(
     authenticated_user_id: int = Depends(require_authenticated_user),
 ):
     ensure_user_access(authenticated_user_id, request.user_id)
+
+    workflow_name = (request.workflow or "general_advisory").strip().lower()
+    from services.workflow_registry import (
+        get_default_workflow_registry,
+        WorkflowNotFoundError,
+        WorkflowDisabledError,
+    )
+    workflow_registry = get_default_workflow_registry()
+    try:
+        workflow_registry.get_workflow(workflow_name)
+    except (WorkflowNotFoundError, WorkflowDisabledError) as wf_err:
+        raise HTTPException(
+            status_code=400,
+            detail=str(wf_err),
+        )
 
     db = SessionLocal()
     session = None
@@ -2234,7 +2274,7 @@ def agent_chat(
     finally:
         db.close()
 
-    runner = get_default_agent_runner()
+    runner = get_workflow_agent_runner(workflow_name)
     result = runner.run(
         user_query=request.message,
         conversation_context=conversation_context or None,
@@ -2330,10 +2370,26 @@ def create_agent_job(
             except (ValueError, TypeError):
                 raise HTTPException(status_code=400, detail="Invalid session_id format.")
 
+        workflow_name = (request.workflow or "general_advisory").strip().lower()
+        from services.workflow_registry import (
+            get_default_workflow_registry,
+            WorkflowNotFoundError,
+            WorkflowDisabledError,
+        )
+        workflow_registry = get_default_workflow_registry()
+        try:
+            workflow = workflow_registry.get_workflow(workflow_name)
+        except (WorkflowNotFoundError, WorkflowDisabledError) as wf_err:
+            raise HTTPException(
+                status_code=400,
+                detail=str(wf_err),
+            )
+
         payload_dict = {
             "message": request.message,
             "session_id": session_id_int,
             "language": request.language,
+            "workflow": workflow.name,
         }
         canonical_json = json.dumps(payload_dict, sort_keys=True, separators=(",", ":"))
         payload_hash = hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()

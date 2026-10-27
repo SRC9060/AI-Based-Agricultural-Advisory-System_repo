@@ -43,6 +43,12 @@ For long-running or mobile-friendly operations, queries can also be dispatched a
 
 > For queue architecture, idempotency rules, and worker commands, see the [Background Jobs Documentation](docs/background-jobs.md).
 
+### ⚙️ Configurable AI Workflows (`/agent/workflows`)
+
+To prevent tool overload and reduce reasoning latency, queries can be routed through declarative, schema-validated AI workflows (such as `general_advisory`, `crop_care`, and `market_and_weather`). Each workflow defines a strict allowlist of registered tools, bounded reasoning rounds, and specialized system prompts without code changes.
+
+> For workflow definitions, schema constraints, and API requests, see the [Configurable Workflows Documentation](docs/agent-workflows.md).
+
 ### 📚 RAG-Powered Agricultural Knowledge
 
 The system uses **Retrieval-Augmented Generation (RAG)** to ground AI responses in a curated agricultural knowledge base.

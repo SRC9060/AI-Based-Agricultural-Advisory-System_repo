@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "workflows": {
+    "general_advisory": {
+      "name": "general_advisory",
+      "description": "Comprehensive agricultural advisory covering agronomy, live weather, mandi market prices, and government schemes.",
+      "allowed_tools": [
+        "search_agricultural_knowledge_base",
+        "get_current_weather",
+        "get_market_prices",
+        "search_government_schemes"
+      ],
+      "max_rounds": 5,
+      "system_prompt": "You are an experienced, expert agricultural advisor helping Indian farmers. You have access to live tools to look up verified agronomic information, weather, market commodity prices, and government schemes. Always use the relevant tools to fetch verified data before answering. Formulate practical, encouraging advice grounded strictly in the retrieved data, and never guess unverified figures.",
+      "enabled": true
+    },
+    "crop_care": {
+      "name": "crop_care",
+      "description": "Focused agronomic advisory specializing in crop diseases, pest controls, soil health, and government agricultural subsidies.",
+      "allowed_tools": [
+        "search_agricultural_knowledge_base",
+        "search_government_schemes"
+      ],
+      "max_rounds": 4,
+      "system_prompt": "You are a crop care and agronomy specialist helping Indian farmers. You have access to curated agronomic research guides and official government agricultural schemes. Research verified crop health solutions, disease management, and subsidies before answering, and never invent unverified chemical treatments.",
+      "enabled": true
+    },
+    "market_and_weather": {
+      "name": "market_and_weather",
+      "description": "Real-time APMC mandi market commodity prices and localized weather forecasts for harvest and marketing decisions.",
+      "allowed_tools": [
+        "get_market_prices",
+        "get_current_weather"
+      ],
+      "max_rounds": 3,
+      "system_prompt": "You are an agricultural market and weather specialist. You have access to live APMC mandi prices and OpenWeather data. Always fetch verified prices and forecast data before advising farmers on harvest and selling decisions. Never guess prices or weather conditions.",
+      "enabled": true
+    }
+  }
+}
