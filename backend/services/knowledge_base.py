@@ -220,6 +220,30 @@ def initialize_knowledge_base(force_rebuild: bool = False) -> bool:
             return False
 
 
+_KB_INIT_THREAD: Optional[threading.Thread] = None
+_KB_THREAD_LOCK = threading.Lock()
+
+
+def start_knowledge_base_initialization() -> Optional[threading.Thread]:
+    """
+    Start background initialization of the knowledge base in a single thread if not already ready or running.
+    Guarantees that at most one initialization thread runs per process.
+    """
+    global _KB_INIT_THREAD
+    with _KB_THREAD_LOCK:
+        if KNOWLEDGE_BASE_READY.is_set():
+            return None
+        if _KB_INIT_THREAD is not None and _KB_INIT_THREAD.is_alive():
+            return _KB_INIT_THREAD
+        _KB_INIT_THREAD = threading.Thread(
+            target=initialize_knowledge_base,
+            name="AppKBInit",
+            daemon=True,
+        )
+        _KB_INIT_THREAD.start()
+        return _KB_INIT_THREAD
+
+
 # General Search in Knowledge Base
 def search_knowledge_base(query):
     if not KNOWLEDGE_BASE_READY.is_set():

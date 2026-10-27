@@ -15,8 +15,13 @@ from services.knowledge_base import (
     KNOWLEDGE_BASE_PATH,
     rebuild_vector_database,
     initialize_knowledge_base,
+    start_knowledge_base_initialization,
     is_vector_database_ready,
     KNOWLEDGE_BASE_READY,
+)
+from services.agent_worker import (
+    start_embedded_worker,
+    stop_embedded_worker,
 )
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header, Response, status
@@ -77,10 +82,12 @@ app = FastAPI()
 @app.on_event("startup")
 def startup_event():
     init_releaseguard()
-    threading.Thread(target=initialize_knowledge_base, daemon=True).start()
+    start_knowledge_base_initialization()
+    start_embedded_worker()
 
 @app.on_event("shutdown")
 def shutdown_event():
+    stop_embedded_worker(timeout=10.0)
     shutdown_releaseguard()
 
 @app.exception_handler(Exception)

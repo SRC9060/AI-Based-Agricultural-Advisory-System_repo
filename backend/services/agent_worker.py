@@ -37,7 +37,10 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import AgentJob, ChatMessage, ChatSession
 from services.agent_runner import get_default_agent_runner, get_workflow_agent_runner
-from services.knowledge_base import initialize_knowledge_base
+from services.knowledge_base import (
+    initialize_knowledge_base,
+    start_knowledge_base_initialization,
+)
 
 logger = logging.getLogger("agriadvisor.agent_worker")
 if not logger.handlers:
@@ -90,6 +93,7 @@ class AgentWorker:
         poll_interval: float = 1.0,
         base_backoff: float = 2.0,
         max_backoff: float = 300.0,
+        warmup_knowledge_base: bool = True,
         session_factory=SessionLocal,
         db_engine=engine,
     ):
@@ -98,6 +102,7 @@ class AgentWorker:
         self.poll_interval = float(os.getenv("WORKER_POLL_INTERVAL", str(poll_interval)))
         self.base_backoff = float(os.getenv("BASE_BACKOFF_SECONDS", str(base_backoff)))
         self.max_backoff = float(os.getenv("MAX_BACKOFF_SECONDS", str(max_backoff)))
+        self.warmup_knowledge_base = warmup_knowledge_base
         self.session_factory = session_factory
         self.db_engine = db_engine
         self._stop_event = threading.Event()
@@ -611,33 +616,150 @@ class AgentWorker:
             self.poll_interval,
             self.lease_seconds,
         )
-        try:
-            threading.Thread(
-                target=initialize_knowledge_base,
-                name="WorkerKBInit",
-                daemon=True,
-            ).start()
-        except Exception as kb_err:
-            logger.warning("Failed to start knowledge base background initialization: %s", kb_err)
+        if self.warmup_knowledge_base:
+            try:
+                start_knowledge_base_initialization()
+            except Exception as kb_err:
+                logger.warning("Failed to start knowledge base background initialization: %s", kb_err)
 
         processed_count = 0
+        consecutive_errors = 0
+        max_error_delay = 30.0
 
         while not self._stop_event.is_set():
             if max_jobs is not None and processed_count >= max_jobs:
                 break
 
-            did_work = self.run_once()
-            if did_work:
-                processed_count += 1
-            else:
-                self._stop_event.wait(self.poll_interval)
+            try:
+                did_work = self.run_once()
+                consecutive_errors = 0
+                if did_work:
+                    processed_count += 1
+                else:
+                    self._stop_event.wait(self.poll_interval)
+            except Exception as loop_err:
+                consecutive_errors += 1
+                sanitized_msg = sanitize_worker_error(loop_err)
+                if consecutive_errors <= 3 or consecutive_errors % 10 == 0:
+                    logger.error(
+                        "Worker %s encountered loop error (consecutive=%d): %s",
+                        self.worker_id,
+                        consecutive_errors,
+                        sanitized_msg,
+                    )
+                error_delay = min(max_error_delay, self.poll_interval * (2 ** min(5, consecutive_errors)))
+                self._stop_event.wait(error_delay)
 
         logger.info("Worker %s shutting down. Total jobs processed: %d", self.worker_id, processed_count)
         return processed_count
 
 
+_EMBEDDED_WORKER: Optional[AgentWorker] = None
+_EMBEDDED_WORKER_THREAD: Optional[threading.Thread] = None
+_EMBEDDED_WORKER_LOCK = threading.Lock()
+
+
+def get_worker_mode() -> str:
+    """
+    Return the configured worker execution mode ('embedded' or 'disabled').
+    Defaults to 'disabled' to avoid accidentally running duplicate workers if a
+    dedicated worker service is deployed.
+    """
+    raw = os.getenv("AGENT_WORKER_MODE")
+    if raw is None or not raw.strip():
+        return "disabled"
+    mode = raw.strip().lower()
+    if mode in ("embedded", "disabled"):
+        return mode
+    logger.warning("Unrecognized AGENT_WORKER_MODE '%s'; defaulting to 'disabled'", mode)
+    return "disabled"
+
+
+def start_embedded_worker() -> Optional[AgentWorker]:
+    """
+    Start an embedded AgentWorker in a background thread if AGENT_WORKER_MODE == 'embedded'.
+    Guarantees that at most one worker thread runs within the current process.
+    Does not block API startup.
+    """
+    global _EMBEDDED_WORKER, _EMBEDDED_WORKER_THREAD
+
+    mode = get_worker_mode()
+    if mode != "embedded":
+        logger.info(
+            "Agent worker is %s (AGENT_WORKER_MODE=%s); skipping embedded background worker.",
+            mode,
+            mode,
+        )
+        return None
+
+    with _EMBEDDED_WORKER_LOCK:
+        if _EMBEDDED_WORKER_THREAD is not None and _EMBEDDED_WORKER_THREAD.is_alive():
+            logger.warning(
+                "Embedded agent worker is already running (worker_id=%s, thread=%s); skipping duplicate start.",
+                getattr(_EMBEDDED_WORKER, "worker_id", "unknown"),
+                _EMBEDDED_WORKER_THREAD.name,
+            )
+            return _EMBEDDED_WORKER
+
+        # Create worker with warmup_knowledge_base=False since FastAPI startup manages KB initialization
+        worker = AgentWorker(warmup_knowledge_base=False)
+        thread = threading.Thread(
+            target=worker.run,
+            name="EmbeddedAgentWorker",
+            daemon=True,
+        )
+        _EMBEDDED_WORKER = worker
+        _EMBEDDED_WORKER_THREAD = thread
+        thread.start()
+        logger.info(
+            "Embedded agent worker started successfully in background thread (worker_id=%s, thread=%s)",
+            worker.worker_id,
+            thread.name,
+        )
+        return worker
+
+
+def stop_embedded_worker(timeout: float = 10.0) -> None:
+    """
+    Gracefully stop the embedded AgentWorker thread and join it within the specified timeout.
+    """
+    global _EMBEDDED_WORKER, _EMBEDDED_WORKER_THREAD
+
+    with _EMBEDDED_WORKER_LOCK:
+        if _EMBEDDED_WORKER is None and _EMBEDDED_WORKER_THREAD is None:
+            return
+
+        worker = _EMBEDDED_WORKER
+        thread = _EMBEDDED_WORKER_THREAD
+
+        if worker is not None:
+            logger.info("Signaling embedded agent worker %s to stop...", worker.worker_id)
+            worker.stop()
+
+        if thread is not None and thread.is_alive():
+            logger.info("Waiting for embedded agent worker thread %s to exit (timeout=%.1fs)...", thread.name, timeout)
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                logger.warning(
+                    "Embedded agent worker thread %s did not exit within %.1fs timeout",
+                    thread.name,
+                    timeout,
+                )
+            else:
+                logger.info("Embedded agent worker thread %s exited cleanly.", thread.name)
+
+        _EMBEDDED_WORKER = None
+        _EMBEDDED_WORKER_THREAD = None
+
+
+def get_embedded_worker() -> Optional[AgentWorker]:
+    """Return the running embedded worker instance, if any."""
+    with _EMBEDDED_WORKER_LOCK:
+        return _EMBEDDED_WORKER
+
+
 if __name__ == "__main__":
-    worker = AgentWorker()
+    worker = AgentWorker(warmup_knowledge_base=True)
 
     def handle_signal(sig, frame):
         logger.info("Signal %s received; initiating graceful shutdown...", sig)

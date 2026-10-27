@@ -61,43 +61,8 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: "qwen/qwen3.8-27b"
-
-  - type: worker
-    name: agriadvisor-agent-worker
-    runtime: docker
-    plan: starter
-    region: singapore
-    rootDir: backend
-    dockerfilePath: ./Dockerfile
-    dockerCommand: python -m services.agent_worker
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: agriadvisor-redis
-          property: connectionString
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GROQ_MODEL
-        value: "qwen/qwen3.8-27b"
-      - key: SARVAM_API_KEY
-        sync: false
-      - key: OPENWEATHER_API_KEY
-        sync: false
-      - key: AGMARKNET_API_KEY
-        sync: false
-      - key: AGMARKNET_BASE_URL
-        sync: false
-      - key: HF_TOKEN
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_MODEL
-        value: "gemini-3.6-flash"
+      - key: AGENT_WORKER_MODE
+        value: "disabled"
 
   - type: web
     name: agriadvisor-pwa
