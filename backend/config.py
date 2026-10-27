@@ -23,11 +23,26 @@ class Config:
     # and deliberately invalidates sessions whenever the backend restarts.
     AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY") or secrets.token_urlsafe(48)
     AUTH_TOKEN_TTL_SECONDS = int(os.getenv("AUTH_TOKEN_TTL_SECONDS", "86400"))
+    ENVIRONMENT = (
+        os.getenv("ENVIRONMENT")
+        or os.getenv("RELEASEGUARD_ENVIRONMENT")
+        or ("production" if os.getenv("RENDER") else "development")
+    ).lower()
+    IS_PRODUCTION = ENVIRONMENT in ("production", "prod")
+
+    PROD_FRONTEND_ORIGIN = "https://ai-based-agricultural-advisory-syst-liard.vercel.app"
+
+    _DEFAULT_ORIGINS = (
+        PROD_FRONTEND_ORIGIN
+        if IS_PRODUCTION
+        else f"http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,{PROD_FRONTEND_ORIGIN}"
+    )
+
     ALLOWED_ORIGINS = [
-        origin.strip()
-        for origin in os.getenv(
-            "ALLOWED_ORIGINS",
-            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,https://ai-based-agricultural-advisory-syst-liard.vercel.app",
-        ).split(",")
-        if origin.strip()
+        origin.strip().rstrip("/")
+        for origin in os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS).split(",")
+        if origin.strip() and origin.strip() != "*"
     ]
+    if PROD_FRONTEND_ORIGIN not in ALLOWED_ORIGINS:
+        ALLOWED_ORIGINS.append(PROD_FRONTEND_ORIGIN)
+

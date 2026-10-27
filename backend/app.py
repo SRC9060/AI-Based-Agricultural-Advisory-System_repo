@@ -153,11 +153,17 @@ async def health_check():
         "service": "AI Agricultural Advisory System"
     }
 
+allow_origin_regex = (
+    None
+    if getattr(Config, "IS_PRODUCTION", False)
+    else r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?"
+)
+
 app.middleware("http")(enforce_rate_limit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=Config.ALLOWED_ORIGINS,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?",
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
