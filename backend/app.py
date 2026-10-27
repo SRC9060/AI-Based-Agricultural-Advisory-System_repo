@@ -39,6 +39,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, 
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from starlette.background import BackgroundTask
 
 from releaseguard_integration import (
@@ -2385,24 +2386,63 @@ def create_agent_job(
             next_retry_at=now,
         )
         db.add(new_job)
-        db.commit()
-        db.refresh(new_job)
+        try:
+            db.commit()
+            db.refresh(new_job)
 
-        response.status_code = status.HTTP_202_ACCEPTED
-        return AgentJobStatusResponse(
-            job_id=new_job.id,
-            user_id=new_job.user_id,
-            task_type=new_job.task_type,
-            status=new_job.status,
-            attempt_count=new_job.attempt_count,
-            max_attempts=new_job.max_attempts,
-            created_at=new_job.created_at,
-            updated_at=new_job.updated_at,
-            started_at=None,
-            completed_at=None,
-            result=None,
-            error_summary=None,
-        )
+            response.status_code = status.HTTP_202_ACCEPTED
+            return AgentJobStatusResponse(
+                job_id=new_job.id,
+                user_id=new_job.user_id,
+                task_type=new_job.task_type,
+                status=new_job.status,
+                attempt_count=new_job.attempt_count,
+                max_attempts=new_job.max_attempts,
+                created_at=new_job.created_at,
+                updated_at=new_job.updated_at,
+                started_at=None,
+                completed_at=None,
+                result=None,
+                error_summary=None,
+            )
+        except IntegrityError:
+            db.rollback()
+            # Race condition: another concurrent transaction committed (user_id, idempotency_key).
+            # Re-query the record using authenticated user ID and idempotency key.
+            existing_job = (
+                db.query(AgentJob)
+                .filter(
+                    AgentJob.user_id == authenticated_user_id,
+                    AgentJob.idempotency_key == clean_idempotency_key,
+                )
+                .first()
+            )
+            if existing_job:
+                if existing_job.payload_hash != payload_hash:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Idempotency key has already been used with a different request payload.",
+                    )
+                response.status_code = status.HTTP_200_OK
+                result_dict = json.loads(existing_job.result) if existing_job.result else None
+                return AgentJobStatusResponse(
+                    job_id=existing_job.id,
+                    user_id=existing_job.user_id,
+                    task_type=existing_job.task_type,
+                    status=existing_job.status,
+                    attempt_count=existing_job.attempt_count,
+                    max_attempts=existing_job.max_attempts,
+                    created_at=existing_job.created_at,
+                    updated_at=existing_job.updated_at,
+                    started_at=existing_job.started_at,
+                    completed_at=existing_job.completed_at,
+                    result=result_dict,
+                    error_summary=existing_job.error_summary,
+                )
+            raise HTTPException(
+                status_code=409,
+                detail="A concurrent transaction conflicted with this idempotency key.",
+            )
     finally:
         db.close()
 

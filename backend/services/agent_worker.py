@@ -48,21 +48,31 @@ if not logger.handlers:
     logger.setLevel(logging.INFO)
 
 
-def sanitize_worker_error(exc: Exception) -> str:
+def sanitize_worker_error(exc: Exception | str) -> str:
     """
     Sanitize exception messages to prevent leaking credentials, internal file paths,
-    or SQL connection secrets to clients or database records.
+    or SQL connection secrets to logs, clients, or database records.
     """
     msg = str(exc)
-    # Strip potential API keys or tokens
-    msg = re.sub(r"gsk_[A-Za-z0-9_-]{20,}", "[REDACTED_API_KEY]", msg)
-    msg = re.sub(r"sk-[A-Za-z0-9_-]{20,}", "[REDACTED_API_KEY]", msg)
+    # Strip potential API keys or tokens (Groq, OpenAI, Google, generic Bearer)
+    msg = re.sub(r"gsk_[A-Za-z0-9_-]{16,}", "[REDACTED_API_KEY]", msg)
+    msg = re.sub(r"sk-[A-Za-z0-9_-]{16,}", "[REDACTED_API_KEY]", msg)
+    msg = re.sub(r"AIza[0-9A-Za-z-_]{35}", "[REDACTED_API_KEY]", msg)
     msg = re.sub(r"Bearer\s+[A-Za-z0-9_\-\.]+", "Bearer [REDACTED]", msg, flags=re.IGNORECASE)
-    # Strip system local paths
-    msg = re.sub(r"([A-Za-z]:\\[^:\s]+|/(?:home|Users|tmp|var)[^:\s]+)", "[PATH]", msg)
+    # Strip database connection strings with passwords (e.g. postgresql://user:pass@host)
+    msg = re.sub(r"://([^:]+):([^@]+)@", r"://\1:[REDACTED]@", msg)
+    # Strip sensitive key=value pairs
+    msg = re.sub(
+        r"(password|token|secret|key|api_key|auth_token)\s*[:=]\s*['\"]?[^\s,'\"]+['\"]?",
+        r"\1=[REDACTED]",
+        msg,
+        flags=re.IGNORECASE,
+    )
+    # Strip Windows drive paths and Unix paths
+    msg = re.sub(r"([A-Za-z]:\\[^\s'\"]+|/(?:home|Users|tmp|var|etc)[^\s'\"]+)", "[PATH]", msg)
     cleaned = msg.strip()
     if not cleaned:
-        cleaned = type(exc).__name__
+        cleaned = type(exc).__name__ if isinstance(exc, Exception) else "UnknownError"
     return cleaned[:500]
 
 
@@ -270,7 +280,7 @@ class AgentWorker:
             return None
         except Exception as claim_err:
             db.rollback()
-            logger.error("Error during claim_next_job: %s", claim_err)
+            logger.error("Error during claim_next_job: %s", sanitize_worker_error(claim_err))
             return None
         finally:
             db.close()
@@ -339,7 +349,7 @@ class AgentWorker:
                                 for msg in reversed(recent_messages)
                             )
                 except Exception as ctx_err:
-                    logger.warning("Error fetching conversation context: %s", ctx_err)
+                    logger.warning("Error fetching conversation context: %s", sanitize_worker_error(ctx_err))
 
             # Invoke AgentRunner
             runner = get_default_agent_runner()
@@ -386,7 +396,7 @@ class AgentWorker:
                     )
                     session.updated_at = datetime.utcnow()
                 except Exception as hist_err:
-                    logger.warning("Failed to persist session chat turn: %s", hist_err)
+                    logger.warning("Failed to persist session chat turn: %s", sanitize_worker_error(hist_err))
 
             now = datetime.utcnow()
             job.status = "COMPLETED"
@@ -403,7 +413,7 @@ class AgentWorker:
 
         except Exception as exc:
             db.rollback()
-            logger.error("Job %s execution failed with error: %s", job_id, exc)
+            logger.error("Job %s execution failed with error: %s", job_id, sanitize_worker_error(exc))
             self._handle_job_failure(job_id, exc)
             return False
         finally:
@@ -461,7 +471,7 @@ class AgentWorker:
             db.commit()
         except Exception as update_err:
             db.rollback()
-            logger.error("Error updating failure state for job %s: %s", job_id, update_err)
+            logger.error("Error updating failure state for job %s: %s", job_id, sanitize_worker_error(update_err))
         finally:
             db.close()
 

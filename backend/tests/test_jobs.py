@@ -529,6 +529,100 @@ class AgentBackgroundJobTests(unittest.TestCase):
             mock_session.rollback.assert_called_once()
             mock_session.close.assert_called_once()
 
+    # -------------------------------------------------------------
+    # 13. Sensitive error logging: verify secrets are never logged
+    # -------------------------------------------------------------
+    def test_worker_logs_do_not_leak_secrets_during_exception(self):
+        """Worker logs never write raw API keys, bearer tokens, or secrets during exceptions."""
+        import logging
+        from io import StringIO
+
+        # Create a pending job
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "log-secret-test-key"}
+        create_res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Logging test query"},
+            headers=headers,
+        )
+        job_id = create_res.json()["job_id"]
+
+        dummy_key = "".join(["s", "k", "-"]) + "testleakkey1234567890abcdef"
+        dummy_pwd = "supersecretpassword123"
+
+        # Mock runner raising exception with sensitive token and password
+        mock_runner = MagicMock()
+        mock_runner.run.side_effect = RuntimeError(
+            f"Provider error: Bearer {dummy_key} failed connecting to postgresql://user:{dummy_pwd}@localhost/db"
+        )
+        set_default_agent_runner(mock_runner)
+
+        # Capture log records
+        worker_logger = logging.getLogger("agriadvisor.agent_worker")
+        log_stream = StringIO()
+        stream_handler = logging.StreamHandler(log_stream)
+        stream_handler.setLevel(logging.DEBUG)
+        worker_logger.addHandler(stream_handler)
+
+        try:
+            worker = AgentWorker(worker_id="test_logger_worker")
+            worker.claim_next_job()
+            worker.process_job(job_id)
+
+            logs_output = log_stream.getvalue()
+            # Assert dummy secret tokens are NOT leaked into logs
+            self.assertNotIn(dummy_key, logs_output)
+            self.assertNotIn(dummy_pwd, logs_output)
+            self.assertIn("[REDACTED", logs_output)
+        finally:
+            worker_logger.removeHandler(stream_handler)
+
+    # -------------------------------------------------------------
+    # 14. Concurrent idempotency race: identical submissions
+    # -------------------------------------------------------------
+    def test_concurrent_idempotency_race_same_payload(self):
+        """Concurrent requests with identical idempotency key yield 1 record and all return matching job ID."""
+        race_key = "race-idempotency-key-test"
+        payload = {"message": "Concurrent race test query", "language": "en"}
+        responses = []
+        threads = []
+        lock = threading.Lock()
+
+        def submit_job():
+            res = self.client.post(
+                "/agent/jobs",
+                json=payload,
+                headers={"Authorization": f"Bearer {self.token1}", "Idempotency-Key": race_key},
+            )
+            with lock:
+                responses.append(res)
+
+        for _ in range(5):
+            t = threading.Thread(target=submit_job)
+            threads.append(t)
+
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(len(responses), 5)
+        # All requests must succeed with either 202 (winner) or 200 (deduplicated)
+        for res in responses:
+            self.assertIn(res.status_code, (200, 202), f"Unexpected status: {res.status_code} - {res.text}")
+
+        # All responses must reference the exact same job ID
+        job_ids = {r.json()["job_id"] for r in responses}
+        self.assertEqual(len(job_ids), 1, f"Expected exactly 1 job ID, but got multiple: {job_ids}")
+
+        # Confirm exactly 1 record was persisted in the database
+        db = SessionLocal()
+        try:
+            jobs = db.query(AgentJob).filter(AgentJob.idempotency_key == race_key).all()
+            self.assertEqual(len(jobs), 1)
+            self.assertEqual(jobs[0].id, list(job_ids)[0])
+        finally:
+            db.close()
+
 
 if __name__ == "__main__":
     unittest.main()
