@@ -1,0 +1,534 @@
+"""
+Unit and integration tests for AgriAdvisor background agent jobs and worker.
+
+Covers:
+1. Job creation and initial PENDING status.
+2. Authenticated status polling and result retrieval.
+3. Unauthorized access to another user's job (returns 404 to avoid leaking existence).
+4. Identical idempotency key and payload returning the same job.
+5. Same key with different payload returning HTTP 409 Conflict.
+6. Successful worker processing and persisted results.
+7. Retry scheduling after a transient error with backoff.
+8. Permanent failure after retries are exhausted.
+9. Recovery of abandoned RUNNING jobs with expired leases.
+10. Concurrency safety: multiple workers cannot claim the same pending job.
+11. Invalid requests and authorization failures.
+12. Database-session cleanup and rollback after an exception.
+"""
+
+import json
+import os
+import threading
+import unittest
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
+
+from fastapi.testclient import TestClient
+
+from app import app
+from database import SessionLocal
+from models import AgentJob, ChatMessage, ChatSession, User
+from services.agent_runner import AgentRunResult, set_default_agent_runner
+from services.agent_worker import AgentWorker, sanitize_worker_error
+from services.auth import create_access_token
+
+
+class AgentBackgroundJobTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.client = TestClient(app)
+        cls.user1_id = 1
+        cls.user2_id = 2
+        cls.token1 = create_access_token(cls.user1_id)
+        cls.token2 = create_access_token(cls.user2_id)
+        cls.headers1 = {
+            "Authorization": f"Bearer {cls.token1}",
+            "Idempotency-Key": "test-key-default",
+        }
+        cls.headers2 = {
+            "Authorization": f"Bearer {cls.token2}",
+            "Idempotency-Key": "test-key-user2",
+        }
+
+        # Seed test users in DB if not present
+        db = SessionLocal()
+        try:
+            for uid, name, email in [
+                (cls.user1_id, "Farmer One", "farmer1@example.com"),
+                (cls.user2_id, "Farmer Two", "farmer2@example.com"),
+            ]:
+                user = db.query(User).filter(User.id == uid).first()
+                if not user:
+                    db.add(User(id=uid, name=name, email=email, password="hashedpassword123"))
+            db.commit()
+        finally:
+            db.close()
+
+    def setUp(self):
+        self._cleanup_jobs()
+
+    def tearDown(self):
+        set_default_agent_runner(None)
+        self._cleanup_jobs()
+
+    def _cleanup_jobs(self):
+        db = SessionLocal()
+        try:
+            db.query(AgentJob).delete()
+            db.commit()
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 1. Job creation and initial PENDING status
+    # -------------------------------------------------------------
+    def test_job_creation_and_initial_pending_status(self):
+        """POST /agent/jobs stores the job and immediately returns 202 Accepted with status PENDING."""
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "create-pending-key"}
+        response = self.client.post(
+            "/agent/jobs",
+            json={"message": "What is the best fertilizer for wheat in Punjab?"},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 202)
+        data = response.json()
+        self.assertTrue(data["job_id"].startswith("job_"))
+        self.assertEqual(data["status"], "PENDING")
+        self.assertEqual(data["user_id"], self.user1_id)
+        self.assertEqual(data["attempt_count"], 0)
+        self.assertEqual(data["max_attempts"], 3)
+        self.assertIsNone(data["result"])
+        self.assertIsNone(data["error_summary"])
+
+        # Verify persisted in database
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == data["job_id"]).first()
+            self.assertIsNotNone(job)
+            self.assertEqual(job.status, "PENDING")
+            self.assertEqual(job.idempotency_key, "create-pending-key")
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 2. Authenticated status polling and result retrieval
+    # -------------------------------------------------------------
+    def test_authenticated_status_polling_and_result_retrieval(self):
+        """GET /agent/jobs/{job_id} returns the job status and completed result."""
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "poll-status-key"}
+        create_res = self.client.post(
+            "/agent/jobs",
+            json={"message": "What is the market price of cotton?"},
+            headers=headers,
+        )
+        self.assertEqual(create_res.status_code, 202)
+        job_id = create_res.json()["job_id"]
+
+        # Initial poll: status PENDING
+        poll_res = self.client.get(
+            f"/agent/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {self.token1}"},
+        )
+        self.assertEqual(poll_res.status_code, 200)
+        self.assertEqual(poll_res.json()["status"], "PENDING")
+
+        # Manually complete the job in DB to test completion retrieval
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            job.status = "COMPLETED"
+            job.result = json.dumps({
+                "answer": "The current modal price for Cotton is ₹6,800/quintal.",
+                "tool_calls": [{"tool": "get_market_prices", "success": True}],
+                "rounds": 1,
+            })
+            job.completed_at = datetime.utcnow()
+            db.commit()
+        finally:
+            db.close()
+
+        # Completed poll: status COMPLETED with result dict
+        comp_res = self.client.get(
+            f"/agent/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {self.token1}"},
+        )
+        self.assertEqual(comp_res.status_code, 200)
+        data = comp_res.json()
+        self.assertEqual(data["status"], "COMPLETED")
+        self.assertIsNotNone(data["result"])
+        self.assertIn("modal price for Cotton", data["result"]["answer"])
+
+    # -------------------------------------------------------------
+    # 3. Unauthorized access to another user's job
+    # -------------------------------------------------------------
+    def test_unauthorized_access_to_another_users_job(self):
+        """Accessing another user's job yields 404 without leaking existence."""
+        headers1 = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "user1-secret-key"}
+        create_res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Private farmer query"},
+            headers=headers1,
+        )
+        self.assertEqual(create_res.status_code, 202)
+        job_id = create_res.json()["job_id"]
+
+        # User 2 attempts to view User 1's job
+        headers2 = {"Authorization": f"Bearer {self.token2}"}
+        res = self.client.get(f"/agent/jobs/{job_id}", headers=headers2)
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.json()["detail"], "Job not found")
+
+    # -------------------------------------------------------------
+    # 4. Identical idempotency key and payload returning same job
+    # -------------------------------------------------------------
+    def test_identical_idempotency_key_and_payload_returns_same_job(self):
+        """Re-submitting the same key with the exact same payload returns the existing job."""
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "idempotent-dedup-key"}
+        payload = {"message": "Will it rain in Shimla tomorrow?", "language": "en"}
+
+        res1 = self.client.post("/agent/jobs", json=payload, headers=headers)
+        self.assertEqual(res1.status_code, 202)
+        job1_id = res1.json()["job_id"]
+
+        # Duplicate submission
+        res2 = self.client.post("/agent/jobs", json=payload, headers=headers)
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.json()["job_id"], job1_id)
+
+        # Confirm only 1 job exists in the DB
+        db = SessionLocal()
+        try:
+            count = db.query(AgentJob).filter(AgentJob.idempotency_key == "idempotent-dedup-key").count()
+            self.assertEqual(count, 1)
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 5. Same key with different payload returning HTTP 409
+    # -------------------------------------------------------------
+    def test_same_key_with_different_payload_returns_conflict(self):
+        """Reusing an idempotency key with a modified payload returns HTTP 409 Conflict."""
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "reused-conflict-key"}
+        payload1 = {"message": "Check weather in Pune"}
+        payload2 = {"message": "Check market price in Pune"}
+
+        res1 = self.client.post("/agent/jobs", json=payload1, headers=headers)
+        self.assertEqual(res1.status_code, 202)
+
+        res2 = self.client.post("/agent/jobs", json=payload2, headers=headers)
+        self.assertEqual(res2.status_code, 409)
+        self.assertIn("different request payload", res2.json()["detail"])
+
+    # -------------------------------------------------------------
+    # 6. Successful worker processing and persisted results
+    # -------------------------------------------------------------
+    def test_successful_worker_processing_and_persisted_results(self):
+        """Worker claims PENDING job, runs AgentRunner, and stores completed result."""
+        # Create a chat session
+        db = SessionLocal()
+        try:
+            session = ChatSession(user_id=self.user1_id, title="Test Background Session")
+            db.add(session)
+            db.commit()
+            session_id = session.id
+        finally:
+            db.close()
+
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "worker-success-key"}
+        create_res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Best sowing date for mustard", "session_id": session_id},
+            headers=headers,
+        )
+        self.assertEqual(create_res.status_code, 202)
+        job_id = create_res.json()["job_id"]
+
+        # Mock AgentRunner
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = AgentRunResult(
+            answer="Mustard is best sown between mid-October and early November.",
+            tool_calls_executed=[{"tool": "search_agricultural_knowledge_base", "success": True}],
+            tool_calls_count=1,
+            rounds=1,
+            status="completed",
+        )
+        set_default_agent_runner(mock_runner)
+
+        # Worker processes job
+        worker = AgentWorker(worker_id="test_worker_1")
+        did_work = worker.run_once()
+        self.assertTrue(did_work)
+
+        # Verify DB status
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "COMPLETED")
+            self.assertIsNotNone(job.completed_at)
+            result = json.loads(job.result)
+            self.assertIn("mid-October", result["answer"])
+            self.assertEqual(result["tool_calls_count"], 1)
+
+            # Verify session chat history was persisted
+            messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).all()
+            self.assertEqual(len(messages), 2)
+            self.assertEqual(messages[0].role, "user")
+            self.assertEqual(messages[1].role, "assistant")
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 7. Retry scheduling after a transient error
+    # -------------------------------------------------------------
+    def test_retry_scheduling_after_transient_error(self):
+        """When AgentRunner raises an exception, the job is transitioned to RETRY_WAIT with backoff."""
+        headers = {"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "worker-retry-key"}
+        create_res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Temporary error test query"},
+            headers=headers,
+        )
+        job_id = create_res.json()["job_id"]
+
+        # Mock AgentRunner failure
+        mock_runner = MagicMock()
+        mock_runner.run.side_effect = RuntimeError("Upstream OpenWeather connection timeout")
+        set_default_agent_runner(mock_runner)
+
+        worker = AgentWorker(worker_id="test_worker_retry", base_backoff=1.0)
+        worker.run_once()
+
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "RETRY_WAIT")
+            self.assertEqual(job.attempt_count, 1)
+            self.assertIsNotNone(job.next_retry_at)
+            self.assertGreater(job.next_retry_at, job.created_at)
+            self.assertIn("Transient error:", job.error_summary)
+            self.assertIn("connection timeout", job.error_summary)
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 8. Permanent failure after retries are exhausted
+    # -------------------------------------------------------------
+    def test_permanent_failure_after_retries_exhausted(self):
+        """When attempt_count reaches max_attempts, the job is marked permanently FAILED."""
+        # Create a job that is already on its last attempt
+        db = SessionLocal()
+        try:
+            job = AgentJob(
+                id="job_exhaust_test",
+                user_id=self.user1_id,
+                task_type="agent_query",
+                payload=json.dumps({"message": "Permanent failure test", "language": "en"}),
+                payload_hash="testhash123",
+                idempotency_key="exhaust-key",
+                status="RETRY_WAIT",
+                attempt_count=2,  # next attempt will be 3 (max_attempts = 3)
+                max_attempts=3,
+                next_retry_at=datetime.utcnow() - timedelta(seconds=1),
+            )
+            db.add(job)
+            db.commit()
+        finally:
+            db.close()
+
+        mock_runner = MagicMock()
+        mock_runner.run.side_effect = RuntimeError("Persistent API outage")
+        set_default_agent_runner(mock_runner)
+
+        worker = AgentWorker(worker_id="test_worker_exhaust")
+        worker.run_once()
+
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == "job_exhaust_test").first()
+            self.assertEqual(job.status, "FAILED")
+            self.assertEqual(job.attempt_count, 3)
+            self.assertIsNotNone(job.completed_at)
+            self.assertIn("Max attempts (3) reached", job.error_summary)
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 9. Recovery of abandoned RUNNING jobs
+    # -------------------------------------------------------------
+    def test_recovery_of_abandoned_running_jobs(self):
+        """Stale RUNNING job with an expired lease is recovered and executed by another worker."""
+        # Create an abandoned job with expired lease
+        past_time = datetime.utcnow() - timedelta(seconds=200)
+        db = SessionLocal()
+        try:
+            abandoned_job = AgentJob(
+                id="job_abandoned_1",
+                user_id=self.user1_id,
+                task_type="agent_query",
+                payload=json.dumps({"message": "Recovered query", "language": "en"}),
+                payload_hash="abandoned_hash",
+                idempotency_key="abandoned-key",
+                status="RUNNING",
+                locked_by="crashed_worker_dead",
+                locked_at=past_time,
+                lease_timeout_at=past_time + timedelta(seconds=60),  # expired ~140s ago
+                attempt_count=1,
+                max_attempts=3,
+            )
+            db.add(abandoned_job)
+            db.commit()
+        finally:
+            db.close()
+
+        # Mock runner success
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = AgentRunResult(
+            answer="Successfully recovered after worker failure.",
+            tool_calls_executed=[],
+            tool_calls_count=0,
+            rounds=1,
+            status="completed",
+        )
+        set_default_agent_runner(mock_runner)
+
+        new_worker = AgentWorker(worker_id="recovering_worker_hero")
+        claimed_id = new_worker.claim_next_job()
+        self.assertEqual(claimed_id, "job_abandoned_1")
+
+        processed = new_worker.process_job(claimed_id)
+        self.assertTrue(processed)
+
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == "job_abandoned_1").first()
+            self.assertEqual(job.status, "COMPLETED")
+            self.assertEqual(job.attempt_count, 2)
+            result = json.loads(job.result)
+            self.assertIn("Successfully recovered", result["answer"])
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 10. Concurrency safety: multiple workers claiming same job
+    # -------------------------------------------------------------
+    def test_concurrent_workers_cannot_claim_same_job(self):
+        """When multiple workers compete for a pending job, exactly one wins the lease."""
+        db = SessionLocal()
+        try:
+            pending_job = AgentJob(
+                id="job_race_condition",
+                user_id=self.user1_id,
+                task_type="agent_query",
+                payload=json.dumps({"message": "Race test", "language": "en"}),
+                payload_hash="race_hash",
+                idempotency_key="race-key",
+                status="PENDING",
+                attempt_count=0,
+                max_attempts=3,
+                next_retry_at=datetime.utcnow() - timedelta(seconds=1),
+            )
+            db.add(pending_job)
+            db.commit()
+        finally:
+            db.close()
+
+        claimed_by = []
+        claim_lock = threading.Lock()
+
+        def worker_attempt_claim(wid: str):
+            worker = AgentWorker(worker_id=wid)
+            claimed = worker.claim_next_job()
+            if claimed:
+                with claim_lock:
+                    claimed_by.append((wid, claimed))
+
+        threads = [
+            threading.Thread(target=worker_attempt_claim, args=(f"concurrent_worker_{i}",))
+            for i in range(5)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Exactly 1 worker should have claimed the job
+        self.assertEqual(len(claimed_by), 1, f"Expected exactly 1 claim, got: {claimed_by}")
+        winner_worker_id, claimed_job_id = claimed_by[0]
+        self.assertEqual(claimed_job_id, "job_race_condition")
+
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == "job_race_condition").first()
+            self.assertEqual(job.status, "RUNNING")
+            self.assertEqual(job.locked_by, winner_worker_id)
+            self.assertEqual(job.attempt_count, 1)
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 11. Invalid requests and authorization failures
+    # -------------------------------------------------------------
+    def test_invalid_requests_and_authorization_failures(self):
+        """Rejects missing idempotency headers, unauthenticated calls, and invalid payloads."""
+        # Missing Idempotency-Key header
+        res_no_key = self.client.post(
+            "/agent/jobs",
+            json={"message": "Valid query"},
+            headers={"Authorization": f"Bearer {self.token1}"},
+        )
+        self.assertEqual(res_no_key.status_code, 400)
+        self.assertIn("Idempotency-Key", res_no_key.json()["detail"])
+
+        # Missing authorization
+        res_no_auth = self.client.post(
+            "/agent/jobs",
+            json={"message": "Valid query"},
+            headers={"Idempotency-Key": "some-key"},
+        )
+        self.assertEqual(res_no_auth.status_code, 401)
+
+        # Empty message
+        res_empty = self.client.post(
+            "/agent/jobs",
+            json={"message": "   "},
+            headers={"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "empty-key"},
+        )
+        self.assertEqual(res_empty.status_code, 422)
+
+        # Non-existent or other user's session_id
+        res_bad_session = self.client.post(
+            "/agent/jobs",
+            json={"message": "Valid query", "session_id": 999999},
+            headers={"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "bad-session-key"},
+        )
+        self.assertEqual(res_bad_session.status_code, 404)
+
+    # -------------------------------------------------------------
+    # 12. Database session cleanup and error sanitization
+    # -------------------------------------------------------------
+    def test_database_session_cleanup_and_error_sanitization(self):
+        """Worker safely closes DB sessions, rolls back, and sanitizes secret credentials."""
+        # Error sanitization test
+        mock_token = "".join(["g", "s", "k", "_"]) + "mockfakekeyvalue1234567890"
+        raw_error = Exception(f"Failed connecting to https://api.groq.com/v1 with Bearer {mock_token} at D:\\Users\\agri\\secret.py")
+        sanitized = sanitize_worker_error(raw_error)
+        self.assertNotIn(mock_token, sanitized)
+        self.assertNotIn("D:\\Users\\agri\\secret.py", sanitized)
+        self.assertIn("[REDACTED", sanitized)
+
+        # Ensure DB session rollback works cleanly
+        worker = AgentWorker(worker_id="test_cleanup_worker")
+        with patch.object(worker, "session_factory") as mock_session_factory:
+            mock_session = MagicMock()
+            mock_session.query.side_effect = Exception("DB Connection interrupted")
+            mock_session_factory.return_value = mock_session
+
+            claimed = worker.claim_next_job()
+            self.assertIsNone(claimed)
+            # Verify rollback and close were called
+            mock_session.rollback.assert_called_once()
+            mock_session.close.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -37,6 +37,12 @@ For complex, multi-faceted queries requiring dynamic information retrieval, the 
 
 > For complete architectural details, sequence diagrams, and API specifications, see the [Agent Tool-Calling Documentation](docs/agent-tool-calling.md).
 
+### ⏳ Asynchronous Background Jobs (`/agent/jobs`)
+
+For long-running or mobile-friendly operations, queries can also be dispatched asynchronously. The API validates the query and client `Idempotency-Key`, returns an immediate `job_id` (`202 Accepted`), and lets an independent worker (`python -m services.agent_worker`) process the query in the background with atomic lease claiming, exponential retry backoff, and crash recovery.
+
+> For queue architecture, idempotency rules, and worker commands, see the [Background Jobs Documentation](docs/background-jobs.md).
+
 ### 📚 RAG-Powered Agricultural Knowledge
 
 The system uses **Retrieval-Augmented Generation (RAG)** to ground AI responses in a curated agricultural knowledge base.
@@ -274,6 +280,7 @@ You can also ask through the **voice interface**.
 
 - **Full-stack AI application** built with Next.js and FastAPI
 - **Autonomous tool-calling agent** with Pydantic parameter validation and bounded reasoning ([details](docs/agent-tool-calling.md))
+- **Asynchronous background job queue** with idempotent submission, worker lease recovery, and retry backoff ([details](docs/background-jobs.md))
 - **RAG-based agricultural advisory** using LangChain and ChromaDB
 - **Semantic similarity search** over a curated agricultural knowledge base
 - **Multilingual NLP** for Indian-language farmer queries

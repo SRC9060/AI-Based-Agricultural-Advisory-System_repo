@@ -1,5 +1,8 @@
+import hashlib
+import json
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Optional
 # os.environ["HF_HUB_OFFLINE"] = "1"
@@ -32,7 +35,7 @@ def initialize_knowledge_base():
         except Exception as e:
             print(f"[RAG] Vector database initialization failed: {e}")
 
-from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header
+from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
@@ -2280,4 +2283,164 @@ def agent_chat(
     )
 
 
+@app.post(
+    "/agent/jobs",
+    response_model=AgentJobStatusResponse,
+    status_code=202,
+    dependencies=[Depends(require_authenticated_user)],
+)
+def create_agent_job(
+    request: AgentJobCreateRequest,
+    response: Response,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    if not idempotency_key or not idempotency_key.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Idempotency-Key header is required.",
+        )
+    clean_idempotency_key = idempotency_key.strip()
+    if len(clean_idempotency_key) > 128:
+        raise HTTPException(
+            status_code=400,
+            detail="Idempotency-Key header must not exceed 128 characters.",
+        )
+
+    db = SessionLocal()
+    try:
+        session_id_int: Optional[int] = None
+        if request.session_id is not None:
+            try:
+                session_id_int = int(request.session_id)
+                session = (
+                    db.query(ChatSession)
+                    .filter(
+                        ChatSession.id == session_id_int,
+                        ChatSession.user_id == authenticated_user_id,
+                    )
+                    .first()
+                )
+                if not session:
+                    raise HTTPException(
+                        status_code=404,
+                        detail="Chat session not found or does not belong to this user.",
+                    )
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=400, detail="Invalid session_id format.")
+
+        payload_dict = {
+            "message": request.message,
+            "session_id": session_id_int,
+            "language": request.language,
+        }
+        canonical_json = json.dumps(payload_dict, sort_keys=True, separators=(",", ":"))
+        payload_hash = hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+
+        existing_job = (
+            db.query(AgentJob)
+            .filter(
+                AgentJob.user_id == authenticated_user_id,
+                AgentJob.idempotency_key == clean_idempotency_key,
+            )
+            .first()
+        )
+        if existing_job:
+            if existing_job.payload_hash != payload_hash:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Idempotency key has already been used with a different request payload.",
+                )
+            response.status_code = status.HTTP_200_OK
+            result_dict = json.loads(existing_job.result) if existing_job.result else None
+            return AgentJobStatusResponse(
+                job_id=existing_job.id,
+                user_id=existing_job.user_id,
+                task_type=existing_job.task_type,
+                status=existing_job.status,
+                attempt_count=existing_job.attempt_count,
+                max_attempts=existing_job.max_attempts,
+                created_at=existing_job.created_at,
+                updated_at=existing_job.updated_at,
+                started_at=existing_job.started_at,
+                completed_at=existing_job.completed_at,
+                result=result_dict,
+                error_summary=existing_job.error_summary,
+            )
+
+        job_id = f"job_{uuid.uuid4().hex}"
+        now = datetime.utcnow()
+        new_job = AgentJob(
+            id=job_id,
+            user_id=authenticated_user_id,
+            task_type="agent_query",
+            payload=canonical_json,
+            payload_hash=payload_hash,
+            idempotency_key=clean_idempotency_key,
+            status="PENDING",
+            attempt_count=0,
+            max_attempts=3,
+            created_at=now,
+            updated_at=now,
+            next_retry_at=now,
+        )
+        db.add(new_job)
+        db.commit()
+        db.refresh(new_job)
+
+        response.status_code = status.HTTP_202_ACCEPTED
+        return AgentJobStatusResponse(
+            job_id=new_job.id,
+            user_id=new_job.user_id,
+            task_type=new_job.task_type,
+            status=new_job.status,
+            attempt_count=new_job.attempt_count,
+            max_attempts=new_job.max_attempts,
+            created_at=new_job.created_at,
+            updated_at=new_job.updated_at,
+            started_at=None,
+            completed_at=None,
+            result=None,
+            error_summary=None,
+        )
+    finally:
+        db.close()
+
+
+@app.get(
+    "/agent/jobs/{job_id}",
+    response_model=AgentJobStatusResponse,
+    dependencies=[Depends(require_authenticated_user)],
+)
+def get_agent_job_status(
+    job_id: str,
+    authenticated_user_id: int = Depends(require_authenticated_user),
+):
+    db = SessionLocal()
+    try:
+        job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+        # Security safeguard: Never reveal whether another user's job exists
+        if not job or job.user_id != authenticated_user_id:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+        result_dict = json.loads(job.result) if job.result else None
+        return AgentJobStatusResponse(
+            job_id=job.id,
+            user_id=job.user_id,
+            task_type=job.task_type,
+            status=job.status,
+            attempt_count=job.attempt_count,
+            max_attempts=job.max_attempts,
+            created_at=job.created_at,
+            updated_at=job.updated_at,
+            started_at=job.started_at,
+            completed_at=job.completed_at,
+            result=result_dict,
+            error_summary=job.error_summary,
+        )
+    finally:
+        db.close()
+
+
 Base.metadata.create_all(bind=engine)
+

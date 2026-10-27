@@ -1,7 +1,7 @@
 from datetime import datetime
 import re
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, ForeignKey, Index, UniqueConstraint
 
 # ==========================================
 # Data Schema Models
@@ -206,6 +206,36 @@ class AgentChatResponse(BaseModel):
     rounds: int = 0
     status: str = "completed"
 
+class AgentJobCreateRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    session_id: int | str | None = None
+    language: str = "en"
+
+    @field_validator("message")
+    @classmethod
+    def sanitize_message(cls, value: str) -> str:
+        cleaned = "".join(
+            character for character in value.strip()
+            if character in "\n\t" or ord(character) >= 32
+        )
+        if not cleaned:
+            raise ValueError("Message cannot be empty.")
+        return cleaned
+
+class AgentJobStatusResponse(BaseModel):
+    job_id: str
+    user_id: int
+    task_type: str
+    status: str
+    attempt_count: int
+    max_attempts: int
+    created_at: datetime
+    updated_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    result: dict | None = None
+    error_summary: str | None = None
+
 # ==========================================
 # Database Models
 # ==========================================
@@ -293,3 +323,38 @@ class UnansweredQuery(Base):
     query = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AgentJob(Base):
+    __tablename__ = "agent_jobs"
+
+    id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    task_type = Column(String(50), nullable=False, default="agent_query")
+    payload = Column(Text, nullable=False)
+    payload_hash = Column(String(64), nullable=False)
+    idempotency_key = Column(String(128), nullable=False, index=True)
+
+    status = Column(String(20), nullable=False, default="PENDING", index=True)
+    attempt_count = Column(Integer, nullable=False, default=0)
+    max_attempts = Column(Integer, nullable=False, default=3)
+
+    result = Column(Text, nullable=True)
+    error_summary = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    next_retry_at = Column(DateTime, nullable=True, index=True)
+
+    locked_by = Column(String(128), nullable=True)
+    locked_at = Column(DateTime, nullable=True)
+    lease_timeout_at = Column(DateTime, nullable=True, index=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_agent_jobs_user_idempotency_key"),
+        Index("ix_agent_jobs_status_next_retry", "status", "next_retry_at"),
+        Index("ix_agent_jobs_user_created", "user_id", "created_at"),
+        Index("ix_agent_jobs_status_lease", "status", "lease_timeout_at"),
+    )
