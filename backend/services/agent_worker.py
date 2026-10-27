@@ -37,6 +37,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import AgentJob, ChatMessage, ChatSession
 from services.agent_runner import get_default_agent_runner, get_workflow_agent_runner
+from services.knowledge_base import initialize_knowledge_base
 
 logger = logging.getLogger("agriadvisor.agent_worker")
 if not logger.handlers:
@@ -610,6 +611,15 @@ class AgentWorker:
             self.poll_interval,
             self.lease_seconds,
         )
+        try:
+            threading.Thread(
+                target=initialize_knowledge_base,
+                name="WorkerKBInit",
+                daemon=True,
+            ).start()
+        except Exception as kb_err:
+            logger.warning("Failed to start knowledge base background initialization: %s", kb_err)
+
         processed_count = 0
 
         while not self._stop_event.is_set():

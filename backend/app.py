@@ -14,26 +14,10 @@ from services.knowledge_base import (
     CHROMA_DB_PATH,
     KNOWLEDGE_BASE_PATH,
     rebuild_vector_database,
+    initialize_knowledge_base,
+    is_vector_database_ready,
+    KNOWLEDGE_BASE_READY,
 )
-
-KNOWLEDGE_BASE_READY = threading.Event()
-_INIT_LOCK = threading.Lock()
-
-def initialize_knowledge_base():
-    with _INIT_LOCK:
-        if KNOWLEDGE_BASE_READY.is_set():
-            return
-        try:
-            if os.path.exists(CHROMA_DB_PATH):
-                print("[RAG] Using existing vector database.")
-            else:
-                print("[RAG] Vector database initialization started.")
-                print("No Vector Database Found, Building...")
-                rebuild_vector_database()
-                print("[RAG] Vector database initialization completed.")
-            KNOWLEDGE_BASE_READY.set()
-        except Exception as e:
-            print(f"[RAG] Vector database initialization failed: {e}")
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, File, Form, Header, Response, status
 from fastapi.responses import FileResponse, JSONResponse

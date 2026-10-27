@@ -19,9 +19,7 @@ services:
       sizeGB: 1
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: agriadvisor-database
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         fromService:
           type: keyvalue
@@ -74,9 +72,7 @@ services:
     dockerCommand: python -m services.agent_worker
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: agriadvisor-database
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         fromService:
           type: keyvalue
@@ -115,9 +111,3 @@ services:
       - key: NEXT_PUBLIC_API_URL
         sync: false
 
-databases:
-  - name: agriadvisor-database
-    plan: free
-    region: singapore
-    databaseName: agriadvisor
-    user: agriadvisor

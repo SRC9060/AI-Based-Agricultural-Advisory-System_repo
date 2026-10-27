@@ -1,7 +1,9 @@
 import os
 import shutil
 import sys
+import threading
 from pathlib import Path
+from typing import Optional
 
 class ChromaONNXAdapter:
     def __init__(self):
@@ -41,17 +43,40 @@ CHROMA_DB_PATH = Path(
 
 # A cloud disk starts empty. Seed it once with the PDFs committed with the
 # application, then keep subsequent admin uploads and the vector index durable.
-if (
-    KNOWLEDGE_BASE_PATH != PACKAGED_KNOWLEDGE_BASE_PATH.resolve()
-    and PACKAGED_KNOWLEDGE_BASE_PATH.exists()
-    and not any(KNOWLEDGE_BASE_PATH.rglob("*.pdf"))
-):
-    KNOWLEDGE_BASE_PATH.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(
-        PACKAGED_KNOWLEDGE_BASE_PATH,
-        KNOWLEDGE_BASE_PATH,
-        dirs_exist_ok=True,
-    )
+try:
+    if (
+        KNOWLEDGE_BASE_PATH != PACKAGED_KNOWLEDGE_BASE_PATH.resolve()
+        and PACKAGED_KNOWLEDGE_BASE_PATH.exists()
+    ):
+        has_pdfs = KNOWLEDGE_BASE_PATH.exists() and any(KNOWLEDGE_BASE_PATH.rglob("*.pdf"))
+        if not has_pdfs:
+            KNOWLEDGE_BASE_PATH.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(
+                PACKAGED_KNOWLEDGE_BASE_PATH,
+                KNOWLEDGE_BASE_PATH,
+                dirs_exist_ok=True,
+            )
+except Exception as seed_err:
+    print(f"Warning: could not seed KNOWLEDGE_BASE_PATH ({seed_err}). Falling back to packaged files.")
+
+
+def get_effective_knowledge_base_path() -> Path:
+    """
+    Determine the directory to load knowledge base documents from.
+    Prefers KNOWLEDGE_BASE_PATH if it exists and contains at least one document;
+    otherwise falls back safely to PACKAGED_KNOWLEDGE_BASE_PATH.
+    """
+    try:
+        if KNOWLEDGE_BASE_PATH.exists():
+            for f in KNOWLEDGE_BASE_PATH.rglob("*"):
+                if f.is_file() and f.suffix.lower() in (".pdf", ".txt", ".md"):
+                    return KNOWLEDGE_BASE_PATH
+    except Exception as e:
+        print(f"Warning: error inspecting KNOWLEDGE_BASE_PATH ({e})")
+
+    if PACKAGED_KNOWLEDGE_BASE_PATH.exists():
+        return PACKAGED_KNOWLEDGE_BASE_PATH
+    return KNOWLEDGE_BASE_PATH
 
 
 def _safe_console_preview(text, length):
@@ -60,12 +85,13 @@ def _safe_console_preview(text, length):
 
 
 # Load Documents (.pdf, .txt, .md)
-def load_documents():
+def load_documents(source_path: Optional[Path] = None):
     documents = []
-    if not os.path.exists(KNOWLEDGE_BASE_PATH):
-        print("ERROR: No Knowledge Base Folder Found")
+    base_path = Path(source_path).resolve() if source_path else get_effective_knowledge_base_path()
+    if not base_path.exists():
+        print(f"ERROR: No Knowledge Base Folder Found at {base_path}")
         return documents
-    for root, dirs, files in os.walk(KNOWLEDGE_BASE_PATH):
+    for root, dirs, files in os.walk(base_path):
         for file in files:
             ext = file.lower().split(".")[-1]
             if ext in ("pdf", "txt", "md"):
@@ -141,8 +167,63 @@ def load_vector_database():
         return None
 
 
+KNOWLEDGE_BASE_READY = threading.Event()
+_INIT_LOCK = threading.Lock()
+
+
+def is_vector_database_ready() -> bool:
+    """
+    Check if the local Chroma vector database exists at CHROMA_DB_PATH
+    and contains indexed documents.
+    Does not delete or alter any existing data.
+    """
+    if not CHROMA_DB_PATH.exists():
+        return False
+    try:
+        vector_db = load_vector_database()
+        if not vector_db:
+            return False
+        if hasattr(vector_db, "_collection") and vector_db._collection is not None:
+            return vector_db._collection.count() > 0
+        return any(CHROMA_DB_PATH.iterdir())
+    except Exception as e:
+        print(f"[RAG] Vector database readiness check failed: {e}")
+        return False
+
+
+def initialize_knowledge_base(force_rebuild: bool = False) -> bool:
+    """
+    Safely initialize the local vector database if it is not already ready.
+    Reuses any existing populated database without rebuilding or deleting it.
+    If empty or missing, rebuilds from the effective knowledge base documents.
+    """
+    with _INIT_LOCK:
+        if not force_rebuild and KNOWLEDGE_BASE_READY.is_set():
+            return True
+        try:
+            if not force_rebuild and is_vector_database_ready():
+                print(f"[RAG] Using existing ready vector database at {CHROMA_DB_PATH}.")
+                KNOWLEDGE_BASE_READY.set()
+                return True
+
+            print(f"[RAG] Vector database at {CHROMA_DB_PATH} not initialized or empty. Initializing...")
+            rebuild_vector_database(replace_existing=force_rebuild)
+            if is_vector_database_ready():
+                KNOWLEDGE_BASE_READY.set()
+                print(f"[RAG] Vector database initialization completed successfully at {CHROMA_DB_PATH}.")
+                return True
+            else:
+                print(f"[RAG] Vector database built, but remains empty or unreadable.")
+                return False
+        except Exception as e:
+            print(f"[RAG] Vector database initialization error: {e}")
+            return False
+
+
 # General Search in Knowledge Base
 def search_knowledge_base(query):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        initialize_knowledge_base()
     vector_db = load_vector_database()
     if not vector_db:
         return []
@@ -205,6 +286,8 @@ def search_knowledge_base(query):
 
 # Search Documents inside Government Schemes 
 def search_government_schemes(query):
+    if not KNOWLEDGE_BASE_READY.is_set():
+        initialize_knowledge_base()
     vector_db = load_vector_database()
     if not vector_db:
         return []
