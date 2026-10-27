@@ -84,7 +84,7 @@ from services.auth import (
 )
 from config import Config
 
-from database import SessionLocal, engine
+from database import SessionLocal, engine, get_db
 from models import *
 from services.agent_runner import get_default_agent_runner, get_workflow_agent_runner
 
@@ -541,72 +541,74 @@ def search_schemes(
 @app.post("/register")
 def register(request: RegisterRequest):
     db = SessionLocal()
-    existing_user = (
-        db.query(User)
-        .filter(User.email == request.email)
-        .first()
-    )
-    if existing_user:
-        db.close()
-        raise HTTPException(
-            status_code=400,
-            detail="Email Already Registered"
+    try:
+        existing_user = (
+            db.query(User)
+            .filter(User.email == request.email)
+            .first()
         )
-    new_user = User(
-        name=request.name,
-        email=request.email,
-        password=hash_password(request.password),
-        language=request.language
-    )
-    db.add(new_user)
-    db.flush()
-    db.add(Notification(
-        user_id=new_user.id,
-        title="Welcome to AgriAdvisor",
-        message="Complete Your Profile to Receive Personalised Weather, Market and Scheme Updates"
-    ))
-    db.commit()
-    db.refresh(new_user)
-    db.close()
-    return {
-        "message": "Registration Successful"
-    }
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Email Already Registered"
+            )
+        new_user = User(
+            name=request.name,
+            email=request.email,
+            password=hash_password(request.password),
+            language=request.language
+        )
+        db.add(new_user)
+        db.flush()
+        db.add(Notification(
+            user_id=new_user.id,
+            title="Welcome to AgriAdvisor",
+            message="Complete Your Profile to Receive Personalised Weather, Market and Scheme Updates"
+        ))
+        db.commit()
+        db.refresh(new_user)
+        return {
+            "message": "Registration Successful"
+        }
+    finally:
+        db.close()
 
 @app.post("/login")
 def login(request: LoginRequest):
     db = SessionLocal()
-    user = (
-        db.query(User)
-        .filter(User.email == request.email)
-        .first()
-    )
-    if user is None or not verify_password(request.password, user.password):
-        db.close()
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid Credentials"
+    try:
+        user = (
+            db.query(User)
+            .filter(User.email == request.email)
+            .first()
         )
-    if not password_is_hashed(user.password):
-        user.password = hash_password(request.password)
-        db.commit()
+        if user is None or not verify_password(request.password, user.password):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Credentials"
+            )
+        if not password_is_hashed(user.password):
+            user.password = hash_password(request.password)
+            db.commit()
 
-    response = {
-        "message": "Login Successful",
-        "access_token": create_access_token(user.id),
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "language": user.language,
-            "phone": user.phone,
-            "state": user.state,
-            "district": user.district,
-            "city": user.city
+        response = {
+            "message": "Login Successful",
+            "access_token": create_access_token(user.id),
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "language": user.language,
+                "phone": user.phone,
+                "state": user.state,
+                "district": user.district,
+                "city": user.city
+            }
         }
-    }
-    db.close()
-    return response
+        return response
+    finally:
+        db.close()
 
 
 @app.get("/auth/verify")
@@ -635,40 +637,41 @@ def get_profile(
 ):
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
-    user = db.query(User).filter(
-        User.id == user_id
-    ).first()
-    if not user:
-        db.close()
-        raise HTTPException(
-            status_code=404,
-            detail="User Not Found"
+    try:
+        user = db.query(User).filter(
+            User.id == user_id
+        ).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User Not Found"
+            )
+        response = ProfileResponse(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            phone=user.phone or "",
+            state=user.state or "",
+            district=user.district or "",
+            city=user.city or "",
+            language=user.language or "English",
+            farmer_type=user.farmer_type or "",
+            crop=user.crop or "",
+            farm_size=user.farm_size or "",
+            soil_type=user.soil_type or "",
+            farm_name=getattr(user, "farm_name", "") or "",
+            farm_size_unit=getattr(user, "farm_size_unit", "Acres") or "Acres",
+            irrigation_type=getattr(user, "irrigation_type", "") or "",
+            farming_type=getattr(user, "farming_type", "") or getattr(user, "farmer_type", "") or "",
+            crop_variety=getattr(user, "crop_variety", "") or "",
+            sowing_date=getattr(user, "sowing_date", "") or "",
+            expected_harvest_date=getattr(user, "expected_harvest_date", "") or "",
+            crop_area=getattr(user, "crop_area", "") or "",
+            growth_stage=getattr(user, "growth_stage", "") or ""
         )
-    response = ProfileResponse(
-        id=user.id,
-        name=user.name,
-        email=user.email,
-        phone=user.phone or "",
-        state=user.state or "",
-        district=user.district or "",
-        city=user.city or "",
-        language=user.language or "English",
-        farmer_type=user.farmer_type or "",
-        crop=user.crop or "",
-        farm_size=user.farm_size or "",
-        soil_type=user.soil_type or "",
-        farm_name=getattr(user, "farm_name", "") or "",
-        farm_size_unit=getattr(user, "farm_size_unit", "Acres") or "Acres",
-        irrigation_type=getattr(user, "irrigation_type", "") or "",
-        farming_type=getattr(user, "farming_type", "") or getattr(user, "farmer_type", "") or "",
-        crop_variety=getattr(user, "crop_variety", "") or "",
-        sowing_date=getattr(user, "sowing_date", "") or "",
-        expected_harvest_date=getattr(user, "expected_harvest_date", "") or "",
-        crop_area=getattr(user, "crop_area", "") or "",
-        growth_stage=getattr(user, "growth_stage", "") or ""
-    )
-    db.close()
-    return response
+        return response
+    finally:
+        db.close()
 
 @app.put("/profile/{user_id}")
 def update_profile(
@@ -678,82 +681,83 @@ def update_profile(
 ):
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
-    user = db.query(User).filter(
-        User.id == user_id
-    ).first()
-    if not user:
-        db.close()
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
-    profile_changed = False
-    if request.phone is not None and user.phone != request.phone:
-        user.phone = request.phone
-        profile_changed = True
-    if request.state is not None and user.state != request.state:
-        user.state = request.state
-        profile_changed = True
-    if request.district is not None and user.district != request.district:
-        user.district = request.district
-        profile_changed = True
-    if request.city is not None and user.city != request.city:
-        user.city = request.city
-        profile_changed = True
-    if request.language is not None and user.language != request.language:
-        user.language = request.language
-    if request.farmer_type is not None and user.farmer_type != request.farmer_type:
-        user.farmer_type = request.farmer_type
-        profile_changed = True
-    if request.crop is not None and user.crop != request.crop:
-        user.crop = request.crop
-        profile_changed = True
-    if request.farm_size is not None and user.farm_size != request.farm_size:
-        user.farm_size = request.farm_size
-        profile_changed = True
-    if request.soil_type is not None and user.soil_type != request.soil_type:
-        user.soil_type = request.soil_type
-        profile_changed = True
-    if hasattr(user, "farm_name") and request.farm_name is not None and user.farm_name != request.farm_name:
-        user.farm_name = request.farm_name
-        profile_changed = True
-    if hasattr(user, "farm_size_unit") and request.farm_size_unit is not None and user.farm_size_unit != request.farm_size_unit:
-        user.farm_size_unit = request.farm_size_unit
-        profile_changed = True
-    if hasattr(user, "irrigation_type") and request.irrigation_type is not None and user.irrigation_type != request.irrigation_type:
-        user.irrigation_type = request.irrigation_type
-        profile_changed = True
-    if hasattr(user, "farming_type") and request.farming_type is not None and user.farming_type != request.farming_type:
-        user.farming_type = request.farming_type
-        user.farmer_type = request.farming_type
-        profile_changed = True
-    if hasattr(user, "crop_variety") and request.crop_variety is not None and user.crop_variety != request.crop_variety:
-        user.crop_variety = request.crop_variety
-        profile_changed = True
-    if hasattr(user, "sowing_date") and request.sowing_date is not None and user.sowing_date != request.sowing_date:
-        user.sowing_date = request.sowing_date
-        profile_changed = True
-    if hasattr(user, "expected_harvest_date") and request.expected_harvest_date is not None and user.expected_harvest_date != request.expected_harvest_date:
-        user.expected_harvest_date = request.expected_harvest_date
-        profile_changed = True
-    if hasattr(user, "crop_area") and request.crop_area is not None and user.crop_area != request.crop_area:
-        user.crop_area = request.crop_area
-        profile_changed = True
-    if hasattr(user, "growth_stage") and request.growth_stage is not None and user.growth_stage != request.growth_stage:
-        user.growth_stage = request.growth_stage
-        profile_changed = True
+    try:
+        user = db.query(User).filter(
+            User.id == user_id
+        ).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+        profile_changed = False
+        if request.phone is not None and user.phone != request.phone:
+            user.phone = request.phone
+            profile_changed = True
+        if request.state is not None and user.state != request.state:
+            user.state = request.state
+            profile_changed = True
+        if request.district is not None and user.district != request.district:
+            user.district = request.district
+            profile_changed = True
+        if request.city is not None and user.city != request.city:
+            user.city = request.city
+            profile_changed = True
+        if request.language is not None and user.language != request.language:
+            user.language = request.language
+        if request.farmer_type is not None and user.farmer_type != request.farmer_type:
+            user.farmer_type = request.farmer_type
+            profile_changed = True
+        if request.crop is not None and user.crop != request.crop:
+            user.crop = request.crop
+            profile_changed = True
+        if request.farm_size is not None and user.farm_size != request.farm_size:
+            user.farm_size = request.farm_size
+            profile_changed = True
+        if request.soil_type is not None and user.soil_type != request.soil_type:
+            user.soil_type = request.soil_type
+            profile_changed = True
+        if hasattr(user, "farm_name") and request.farm_name is not None and user.farm_name != request.farm_name:
+            user.farm_name = request.farm_name
+            profile_changed = True
+        if hasattr(user, "farm_size_unit") and request.farm_size_unit is not None and user.farm_size_unit != request.farm_size_unit:
+            user.farm_size_unit = request.farm_size_unit
+            profile_changed = True
+        if hasattr(user, "irrigation_type") and request.irrigation_type is not None and user.irrigation_type != request.irrigation_type:
+            user.irrigation_type = request.irrigation_type
+            profile_changed = True
+        if hasattr(user, "farming_type") and request.farming_type is not None and user.farming_type != request.farming_type:
+            user.farming_type = request.farming_type
+            user.farmer_type = request.farming_type
+            profile_changed = True
+        if hasattr(user, "crop_variety") and request.crop_variety is not None and user.crop_variety != request.crop_variety:
+            user.crop_variety = request.crop_variety
+            profile_changed = True
+        if hasattr(user, "sowing_date") and request.sowing_date is not None and user.sowing_date != request.sowing_date:
+            user.sowing_date = request.sowing_date
+            profile_changed = True
+        if hasattr(user, "expected_harvest_date") and request.expected_harvest_date is not None and user.expected_harvest_date != request.expected_harvest_date:
+            user.expected_harvest_date = request.expected_harvest_date
+            profile_changed = True
+        if hasattr(user, "crop_area") and request.crop_area is not None and user.crop_area != request.crop_area:
+            user.crop_area = request.crop_area
+            profile_changed = True
+        if hasattr(user, "growth_stage") and request.growth_stage is not None and user.growth_stage != request.growth_stage:
+            user.growth_stage = request.growth_stage
+            profile_changed = True
 
-    if profile_changed:
-        db.add(Notification(
-            user_id=user.id,
-            title="Profile updated",
-            message="Your farming profile has been updated successfully."
-        ))
-    db.commit()
-    db.close()
-    return {
-        "message": "Profile Updated Successfully"
-    }
+        if profile_changed:
+            db.add(Notification(
+                user_id=user.id,
+                title="Profile updated",
+                message="Your farming profile has been updated successfully."
+            ))
+        db.commit()
+        return {
+            "message": "Profile Updated Successfully"
+        }
+    finally:
+        db.close()
 
 @app.get("/farm/{user_id}", response_model=ProfileResponse)
 def get_farm_details(
@@ -777,33 +781,34 @@ def profile_status(
 ):
     ensure_user_access(authenticated_user_id, user_id)
     db = SessionLocal()
-    user = db.query(User).filter(
-        User.id == user_id
-    ).first()
-    if not user:
+    try:
+        user = db.query(User).filter(
+            User.id == user_id
+        ).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User Not Found"
+            )
+        print("Phone:", user.phone)
+        print("State:", user.state)
+        print("District:", user.district)
+        print("City:", user.city)
+        print("Language:", user.language)
+        print("Crop:", user.crop)
+        completed = all([
+            user.phone,
+            user.state,
+            user.district,
+            user.city,
+            user.language,
+            user.crop
+        ])
+        return {
+            "profile_completed": completed
+        }
+    finally:
         db.close()
-        raise HTTPException(
-            status_code=404,
-            detail="User Not Found"
-        )
-    print("Phone:", user.phone)
-    print("State:", user.state)
-    print("District:", user.district)
-    print("City:", user.city)
-    print("Language:", user.language)
-    print("Crop:", user.crop)
-    completed = all([
-        user.phone,
-        user.state,
-        user.district,
-        user.city,
-        user.language,
-        user.crop
-    ])
-    db.close()
-    return {
-        "profile_completed": completed
-    }
 
 @app.get("/notifications/{user_id}")
 def get_notifications(
@@ -1143,190 +1148,549 @@ def chat(
         raise HTTPException(status_code=400, detail="Invalid session ID")
 
     db = SessionLocal()
-    session = (
-        db.query(ChatSession)
-        .filter(
-            ChatSession.id == session_id_int,
-            ChatSession.user_id == authenticated_user_id,
+    try:
+        session = (
+            db.query(ChatSession)
+            .filter(
+                ChatSession.id == session_id_int,
+                ChatSession.user_id == authenticated_user_id,
+            )
+            .first()
         )
-        .first()
-    )
-    if session is None:
-        db.close()
-        raise HTTPException(
-            status_code=404,
-            detail="Session Not Found"
+        if session is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Session Not Found"
+            )
+        user_message = request.message
+        translated_text = user_message or ""
+        if session.title == "New Chat" or not session.title:
+            session.title = user_message[:45] + ("..." if len(user_message) > 45 else "")
+        session.updated_at = datetime.utcnow()
+        db.commit()
+        processing_message = user_message
+        recent_messages = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session.id)
+            .order_by(ChatMessage.created_at.desc())
+            .limit(6)
+            .all()
         )
-    user_message = request.message
-    translated_text = user_message or ""
-    if session.title == "New Chat" or not session.title:
-        session.title = user_message[:45] + ("..." if len(user_message) > 45 else "")
-    session.updated_at = datetime.utcnow()
-    db.commit()
-    processing_message = user_message
-    recent_messages = (
-        db.query(ChatMessage)
-        .filter(ChatMessage.session_id == session.id)
-        .order_by(ChatMessage.created_at.desc())
-        .limit(6)
-        .all()
-    )
-    previous_user_message = next(
-        (
-            message
-            for message in recent_messages
-            if message.role == "user"
-        ),
-        None,
-    )
-    conversation_context = "\n".join(
-        f"{message.role.title()}: {message.message}"
-        for message in reversed(recent_messages)
-    )
-    is_contextual_follow_up = (
-        previous_user_message is not None
-        and len(user_message.split()) <= 15
-        and (
-            user_message.lower().strip().startswith(
-                (
-                    "what about",
-                    "how about",
-                    "can i",
-                    "should i",
-                    "how much",
-                    "when should",
-                    "why",
-                    "and ",
-                    "also ",
+        previous_user_message = next(
+            (
+                message
+                for message in recent_messages
+                if message.role == "user"
+            ),
+            None,
+        )
+        conversation_context = "\n".join(
+            f"{message.role.title()}: {message.message}"
+            for message in reversed(recent_messages)
+        )
+        is_contextual_follow_up = (
+            previous_user_message is not None
+            and len(user_message.split()) <= 15
+            and (
+                user_message.lower().strip().startswith(
+                    (
+                        "what about",
+                        "how about",
+                        "can i",
+                        "should i",
+                        "how much",
+                        "when should",
+                        "why",
+                        "and ",
+                        "also ",
+                    )
+                )
+                or any(term in user_message.lower() for term in ("rain", "weather", "tomorrow", "ಮಳೆ", "ಹವಾಮಾನ", "ನಾಳೆ", "ತಾಪಮಾನ", "ಗೋಧಿ", "ಬೆಳೆ"))
+                or any(term in (translated_text or "").lower() for term in ("rain", "weather", "tomorrow", "forecast", "temperature"))
+            )
+        )
+        previous_user_message_from_query = (
+            db.query(ChatMessage)
+            .filter(
+                ChatMessage.session_id == session.id,
+                ChatMessage.role == "user",
+            )
+            .order_by(ChatMessage.created_at.desc())
+            .first()
+        )
+        is_short_location_reply = (
+            len(user_message.split()) <= 4
+            and bool(re.fullmatch(r"[A-Za-z .-]+", user_message.strip()))
+        )
+        if (
+            is_short_location_reply
+            and previous_user_message_from_query
+            and any(
+                term in previous_user_message_from_query.message.lower()
+                for term in ("weather", "forecast", "harvest", "rain", "price")
+            )
+        ):
+            processing_message = (
+                f"{previous_user_message_from_query.message}\n"
+                f"Location: {user_message.strip()}"
+            )
+        elif is_contextual_follow_up:
+            processing_message = (
+                f"{previous_user_message.message}\n"
+                f"Follow-up question: {user_message.strip()}"
+            )
+
+        requested_language = (request.language or "").strip().lower()
+        detected_input_language = detect_language(user_message)
+        # A non-Latin script is unambiguous for these languages. Prefer the
+        # language that the farmer actually typed over a stale browser preference.
+        # Hindi and Marathi share Devanagari, so retain an explicit Marathi choice.
+        if detected_input_language in {"kn", "te", "ta", "ml", "gu"}:
+            language = detected_input_language
+        elif detected_input_language == "hi" and requested_language == "mr":
+            language = "mr"
+        else:
+            language = requested_language or detected_input_language
+        print("User Query:", user_message.encode("ascii", errors="replace").decode("ascii"))
+        print("Selected Language:", language)
+        lang_map = {
+            "en": "en-IN",
+            "hi": "hi-IN",
+            "kn": "kn-IN",
+            "ta": "ta-IN",
+            "te": "te-IN",
+            "ml": "ml-IN",
+            "mr": "mr-IN",
+            "gu": "gu-IN",
+            "bn": "bn-IN",
+            "pa": "pa-IN",
+            "or": "od-IN",
+            "as": "as-IN",
+            "ur": "ur-IN",
+            "ne": "ne-IN"
+        }
+        translated_text = processing_message or ""
+        source_language = lang_map.get(language, "en-IN")
+        if source_language != "en-IN":
+            try:
+                result = translate_text(
+                    processing_message,
+                    source_language,
+                    "en-IN"
+                )
+                if result and result.translated_text:
+                    translated_text = result.translated_text
+            except Exception as error:
+                print("Translation to English failed in /chat:", error)
+                translated_text = processing_message
+
+        translated_text = translated_text or ""
+        intent_result = classify_intent(translated_text)
+        if intent_result["intent"] == "government_scheme_query":
+            entities = []
+        else:
+            entities = extract_entities(translated_text)
+        agri_entities = extract_agri_entities(translated_text)
+        is_agri, rejection_reason = is_agriculture_domain_query(
+            translated_text,
+            user_message,
+            agri_entities,
+            intent_result.get("intent", ""),
+        )
+
+        print("Original Query:", user_message)
+        print("Translated Query:", translated_text)
+        print(f"Detected Intent: {intent_result['intent']} (score: {intent_result.get('score', 0.0)})")
+        print("Domain Classification:", "Agriculture" if is_agri else "Out of Domain")
+        print("Reason for rejection:", rejection_reason if not is_agri else "None")
+
+        if not is_agri:
+            response_text = out_of_domain_response()
+            target_language = lang_map.get(language, "en-IN")
+            translated_response = response_text
+            if target_language != "en-IN":
+                try:
+                    res = translate_text(
+                        response_text,
+                        "en-IN",
+                        target_language,
+                    )
+                    if res and res.translated_text:
+                        translated_response = res.translated_text
+                except Exception as error:
+                    print("Out-of-domain response translation failed:", error)
+                    translated_response = response_text
+            user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
+            user_chat = ChatMessage(
+                session_id=session.id,
+                role="user",
+                intent="out_of_domain",
+                message=user_message
+            )
+            db.add(user_chat)
+            assistant_chat = ChatMessage(
+                session_id=session.id,
+                role="assistant",
+                intent="out_of_domain",
+                message=translated_response
+            )
+            db.add(assistant_chat)
+            db.flush()
+            assistant_message_id = assistant_chat.id
+            session_payload = {
+                "id": session.id,
+                "user_id": session.user_id,
+                "title": session.title,
+            }
+            db.add(UnansweredQuery(
+                user_id=user_id_int,
+                session_id=session.id,
+                query=user_message,
+                response=translated_response,
+            ))
+            db.commit()
+            return {
+                "user_id": str(request.user_id),
+                "message": str(user_message),
+                "detected_language": str(language),
+                "translated_text": str(translated_text),
+                "intent": "out_of_domain",
+                "confidence_score": 1.0,
+                "entities": entities,
+                "agricultural_entities": agri_entities,
+                "english_response": response_text,
+                "response_in_user_language": translated_response,
+                "audio_file": None,
+                "session": session_payload,
+                "response_quality": calculate_response_quality(1.0, response_text),
+                "assistant_message_id": assistant_message_id,
+            }
+        user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
+        user = db.query(User).filter(User.id == user_id_int).first() if user_id_int else None
+        market_state = None
+        market_district = None
+        locs = []
+        for entity in entities:
+            if entity["entity_group"] == "LOC":
+                locs.append(entity["word"].replace(".", "").strip())
+        if len(locs) >= 2:
+            market_district = locs[0]
+            market_state = locs[1]
+        elif len(locs) == 1:
+            market_district = locs[0]
+        query_lower = translated_text.lower()
+        is_compound_scheme_query = (
+            intent_result["intent"] == "government_scheme_query"
+            and any(
+                term in query_lower
+                for term in (
+                    "disease", "spots", "leaves", "fungicide", "pesticide",
+                    "pest", "crop", "paddy", "rice", "wheat", "maize",
+                    "cotton", "irrigation", "fertilizer",
                 )
             )
-            or any(term in user_message.lower() for term in ("rain", "weather", "tomorrow", "ಮಳೆ", "ಹವಾಮಾನ", "ನಾಳೆ", "ತಾಪಮಾನ", "ಗೋಧಿ", "ಬೆಳೆ"))
-            or any(term in (translated_text or "").lower() for term in ("rain", "weather", "tomorrow", "forecast", "temperature"))
-        )
-    )
-    previous_user_message_from_query = (
-        db.query(ChatMessage)
-        .filter(
-            ChatMessage.session_id == session.id,
-            ChatMessage.role == "user",
-        )
-        .order_by(ChatMessage.created_at.desc())
-        .first()
-    )
-    is_short_location_reply = (
-        len(user_message.split()) <= 4
-        and bool(re.fullmatch(r"[A-Za-z .-]+", user_message.strip()))
-    )
-    if (
-        is_short_location_reply
-        and previous_user_message_from_query
-        and any(
-            term in previous_user_message_from_query.message.lower()
-            for term in ("weather", "forecast", "harvest", "rain", "price")
-        )
-    ):
-        processing_message = (
-            f"{previous_user_message_from_query.message}\n"
-            f"Location: {user_message.strip()}"
-        )
-    elif is_contextual_follow_up:
-        processing_message = (
-            f"{previous_user_message.message}\n"
-            f"Follow-up question: {user_message.strip()}"
         )
 
-    requested_language = (request.language or "").strip().lower()
-    detected_input_language = detect_language(user_message)
-    # A non-Latin script is unambiguous for these languages. Prefer the
-    # language that the farmer actually typed over a stale browser preference.
-    # Hindi and Marathi share Devanagari, so retain an explicit Marathi choice.
-    if detected_input_language in {"kn", "te", "ta", "ml", "gu"}:
-        language = detected_input_language
-    elif detected_input_language == "hi" and requested_language == "mr":
-        language = "mr"
-    else:
-        language = requested_language or detected_input_language
-    print("User Query:", user_message.encode("ascii", errors="replace").decode("ascii"))
-    print("Selected Language:", language)
-    lang_map = {
-        "en": "en-IN",
-        "hi": "hi-IN",
-        "kn": "kn-IN",
-        "ta": "ta-IN",
-        "te": "te-IN",
-        "ml": "ml-IN",
-        "mr": "mr-IN",
-        "gu": "gu-IN",
-        "bn": "bn-IN",
-        "pa": "pa-IN",
-        "or": "od-IN",
-        "as": "as-IN",
-        "ur": "ur-IN",
-        "ne": "ne-IN"
-    }
-    translated_text = processing_message or ""
-    source_language = lang_map.get(language, "en-IN")
-    if source_language != "en-IN":
-        try:
-            result = translate_text(
-                processing_message,
-                source_language,
-                "en-IN"
+        wants_weather = any(
+            term in query_lower
+            for term in ("weather", "forecast", "rain", "temperature", "humidity")
+        )
+        wants_market = any(
+            term in query_lower
+            for term in ("market price", "price", "mandi", "sell")
+        )
+        wants_harvest = "harvest" in query_lower
+        wants_crop_action = any(
+            term in query_lower
+            for term in ("spray", "disease", "fungicide", "pesticide")
+        )
+        is_live_compound_query = wants_weather and (
+            wants_market or wants_harvest or wants_crop_action
+        )
+
+        location_match = re.search(
+            r"Location:\s*([A-Za-z .-]+)",
+            translated_text,
+            flags=re.IGNORECASE,
+        )
+        weather_location_aliases = {
+            "uttarakannada": "Karwar",
+            "uttara kannada": "Karwar",
+            "bangalore": "Bengaluru",
+            "mysore": "Mysuru",
+            "bagalkot": "Bagalkot",
+            "bagalkote": "Bagalkot",
+            "ಬಾಗಲಕೋಟೆ": "Bagalkot",
+            "ಬಾಗಲಕೋಟೆಯ": "Bagalkot",
+            "ಬೆಂಗಳೂರು": "Bengaluru",
+            "ಮೈಸೂರು": "Mysuru",
+            "ಬೆಳಗಾವಿ": "Belagavi",
+            "ಧಾರವಾಡ": "Dharwad",
+            "ಹುಬ್ಬಳ್ಳಿ": "Hubli",
+            "ಕಲಬುರಗಿ": "Kalaburagi",
+            "ಕೋಲಾರ": "Kolar",
+            "ಮಂಡ್ಯ": "Mandya",
+            "ಹಾಸನ": "Hassan",
+            "ಉಡುಪಿ": "Udupi",
+            "ಮಂಗಳೂರು": "Mangalore",
+            "ಶಿವಮೊಗ್ಗ": "Shivamogga",
+            "ದಾವಣಗೆರೆ": "Davanagere",
+            "ಚಿತ್ರದುರ್ಗ": "Chitradurga",
+            "ರಾಯಚೂರು": "Raichur",
+            "ಬಳ್ಳಾರಿ": "Ballari",
+            "ಕೊಪ್ಪಳ": "Koppal",
+            "ಯಾದಗಿರಿ": "Yadgir",
+        }
+
+        # Extract location from query text, recent conversation history, or fallback to user default
+        found_city = None
+        for alias_key, canonical_city in weather_location_aliases.items():
+            if alias_key in user_message.lower() or alias_key in translated_text.lower():
+                found_city = canonical_city
+                break
+
+        # Look up location mentioned in previous chat turns for contextual follow-ups
+        previous_location = None
+        if not found_city and recent_messages:
+            for msg in recent_messages:
+                msg_text_lower = msg.message.lower()
+                for alias_key, canonical_city in weather_location_aliases.items():
+                    if alias_key in msg_text_lower:
+                        previous_location = canonical_city
+                        break
+                if previous_location:
+                    break
+
+        requested_location = (
+            found_city
+            or previous_location
+            or (location_match.group(1).strip() if location_match else (user.city or user.district if user else None))
+        )
+        if requested_location:
+            requested_location = weather_location_aliases.get(
+                requested_location.lower(),
+                requested_location,
             )
-            if result and result.translated_text:
-                translated_text = result.translated_text
-        except Exception as error:
-            print("Translation to English failed in /chat:", error)
-            translated_text = processing_message
 
-    translated_text = translated_text or ""
-    intent_result = classify_intent(translated_text)
-    if intent_result["intent"] == "government_scheme_query":
-        entities = []
-    else:
-        entities = extract_entities(translated_text)
-    agri_entities = extract_agri_entities(translated_text)
-    is_agri, rejection_reason = is_agriculture_domain_query(
-        translated_text,
-        user_message,
-        agri_entities,
-        intent_result.get("intent", ""),
-    )
+        comparison_locations = []
+        response_is_localized = False
+        for aliases, canonical in (
+            (("bangalore", "bengaluru"), "Bangalore"),
+            (("mysore", "mysuru"), "Mysore"),
+        ):
+            if any(alias in query_lower for alias in aliases):
+                comparison_locations.append(canonical)
 
-    print("Original Query:", user_message)
-    print("Translated Query:", translated_text)
-    print(f"Detected Intent: {intent_result['intent']} (score: {intent_result.get('score', 0.0)})")
-    print("Domain Classification:", "Agriculture" if is_agri else "Out of Domain")
-    print("Reason for rejection:", rejection_reason if not is_agri else "None")
+        if wants_market and len(comparison_locations) >= 2:
+            commodity = agri_entities.get("crop") or "Tomato"
+            market_results = []
+            for district in comparison_locations:
+                try:
+                    price = get_market_price(
+                        commodity=commodity,
+                        state=(user.state if user and user.state else None),
+                        district=district,
+                    )
+                    market_results.append(price)
+                except Exception as error:
+                    print(f"Market comparison unavailable for {district}: {error}")
 
-    if not is_agri:
-        response_text = out_of_domain_response()
-        target_language = lang_map.get(language, "en-IN")
+            if len(market_results) == 2:
+                first, second = market_results
+                better = first if first.modal_price >= second.modal_price else second
+                other = second if better is first else first
+                difference = better.modal_price - other.modal_price
+                response_text = (
+                    f"{first.market}, {first.district}: modal price "
+                    f"₹{first.modal_price:.0f} per quintal on {first.arrival_date}. "
+                    f"{second.market}, {second.district}: modal price "
+                    f"₹{second.modal_price:.0f} per quintal on {second.arrival_date}. "
+                    f"{better.market} has the higher reported modal price by "
+                    f"₹{difference:.0f} per quintal. Sell there only if that "
+                    "difference exceeds transport, commission, and spoilage costs."
+                )
+            else:
+                response_text = (
+                    "I could not retrieve comparable current tomato records for "
+                    "both Bangalore and Mysore from the live market feed. I cannot "
+                    "safely recommend a market without same-date prices. Please "
+                    "check both APMC quotes and subtract transport, commission, and "
+                    "spoilage costs before choosing."
+                )
+        elif is_live_compound_query and requested_location:
+            live_context_parts = []
+            current_weather = get_weather(requested_location)
+            forecast_data = get_forecast(requested_location)
+            if "error" not in current_weather:
+                live_context_parts.append(
+                    "Current weather for {city}: {weather}, {temperature}°C, "
+                    "humidity {humidity}%, wind {wind_speed} m/s.".format(
+                        **current_weather
+                    )
+                )
+            else:
+                live_context_parts.append(
+                    f"Current weather unavailable: {current_weather['error']}."
+                )
+            if "error" not in forecast_data:
+                forecast_lines = [
+                    (
+                        f"{item['date']}: {item['weather']}, "
+                        f"{item['temperature']}°C, humidity {item['humidity']}%."
+                    )
+                    for item in forecast_data["forecast"][:3]
+                ]
+                live_context_parts.append(
+                    "Three-day forecast for "
+                    f"{forecast_data['city']}: {' '.join(forecast_lines)}"
+                )
+            else:
+                live_context_parts.append(
+                    f"Forecast unavailable: {forecast_data['error']}."
+                )
+
+            if wants_market:
+                commodity = agri_entities.get("crop") or (user.crop if user else None)
+                if commodity:
+                    try:
+                        price = get_market_price(
+                            commodity=commodity,
+                            state=(user.state if user and user.state else None),
+                            district=requested_location,
+                        )
+                        live_context_parts.append(
+                            f"Market price for {price.commodity} at {price.market}: "
+                            f"minimum ₹{price.min_price:.0f}, maximum "
+                            f"₹{price.max_price:.0f}, modal ₹{price.modal_price:.0f} "
+                            f"per quintal on {price.arrival_date}."
+                        )
+                    except Exception as error:
+                        print(f"Market data unavailable: {error}")
+                        live_context_parts.append(
+                            "Today's requested crop price is unavailable from the "
+                            "live market feed; do not invent a price."
+                        )
+
+            response_text = generate_response(
+                translated_text,
+                supplemental_context="\n".join(
+                    part for part in (
+                        (
+                            "Recent conversation:\n" + conversation_context
+                            if conversation_context
+                            else ""
+                        ),
+                        "\n".join(live_context_parts),
+                    )
+                    if part
+                ),
+            )
+        elif is_live_compound_query:
+            response_text = (
+                "Please tell me the city or district so I can combine its live "
+                "weather forecast with the crop and market advice."
+            )
+        elif is_compound_scheme_query:
+            response_text = generate_response(
+                translated_text,
+                supplemental_context=(
+                    "Recent conversation:\n" + conversation_context
+                    if conversation_context
+                    else ""
+                ),
+            )
+        elif intent_result["intent"] == "weather_query":
+            city = None
+            for entity in entities:
+                if entity["entity_group"] == "LOC":
+                    city = entity["word"].replace(".", "").strip()
+                    break
+            if city is None and requested_location:
+                city = requested_location
+            if city is None:
+                response_text = "Please tell me the city name to get the weather information."
+            else:
+                weather = get_weather(city)
+                if "error" in weather:
+                    response_text = weather["error"]
+                else:
+                    is_specific_weather_question = (
+                        is_contextual_follow_up
+                        or any(
+                            term in translated_text.lower()
+                            for term in ("rain", "tomorrow", "forecast", "will it", "should i", "can i", "spray", "harvest", "hot", "cold", "humidity")
+                        )
+                    )
+                    if is_specific_weather_question:
+                        live_weather_info = (
+                            f"Current Live Weather Data for {city}:\n"
+                            f"- Temperature: {weather.get('temperature')}°C\n"
+                            f"- Humidity: {weather.get('humidity')}%\n"
+                            f"- Condition: {weather.get('description')}\n"
+                            f"- Wind Speed: {weather.get('wind_speed')} m/s\n"
+                        )
+                        response_text = generate_response(
+                            translated_text,
+                            supplemental_context=(
+                                f"{live_weather_info}\n"
+                                f"Recent Conversation History:\n{conversation_context}"
+                            ),
+                        )
+                    else:
+                        response_text = format_current_weather(weather, language)
+                        response_is_localized = language != "en"
+        else:
+            if intent_result["intent"] == "market_price_query":
+                response_text = route_query(
+                    intent=intent_result["intent"],
+                    commodity=agri_entities.get("crop") or (user.crop if user else None),
+                    state=(
+                        market_state
+                        or (user.state if user and user.state else None)
+                    ),
+                    district=(
+                        market_district
+                        or (user.district if user else None)
+                    )
+                )
+            else:
+                # All non-live farming topics share one grounded RAG path. This
+                # avoids losing secondary intents and makes ordinary follow-ups
+                # work across crops, pests, soil, irrigation, schemes, and harvest.
+                response_text = generate_response(
+                    translated_text,
+                    supplemental_context=(
+                        "Recent conversation:\n" + conversation_context
+                        if conversation_context
+                        else ""
+                    ),
+                )
+        english_response = response_text
         translated_response = response_text
-        if target_language != "en-IN":
+        target_language = lang_map.get(language, "en-IN")
+        if target_language != "en-IN" and not response_is_localized:
             try:
-                res = translate_text(
+                result = translate_text(
                     response_text,
                     "en-IN",
-                    target_language,
+                    target_language
                 )
-                if res and res.translated_text:
-                    translated_response = res.translated_text
+                if result and result.translated_text:
+                    translated_response = result.translated_text
             except Exception as error:
-                print("Out-of-domain response translation failed:", error)
+                print("Response translation failed:", error)
                 translated_response = response_text
-        user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
         user_chat = ChatMessage(
             session_id=session.id,
             role="user",
-            intent="out_of_domain",
+            intent=str(intent_result["intent"]),
             message=user_message
         )
         db.add(user_chat)
         assistant_chat = ChatMessage(
             session_id=session.id,
             role="assistant",
-            intent="out_of_domain",
+            intent=str(intent_result["intent"]),
             message=translated_response
         )
         db.add(assistant_chat)
@@ -1337,413 +1701,55 @@ def chat(
             "user_id": session.user_id,
             "title": session.title,
         }
-        db.add(UnansweredQuery(
-            user_id=user_id_int,
-            session_id=session.id,
-            query=user_message,
-            response=translated_response,
-        ))
+        if any(
+            marker in translated_response.lower()
+            for marker in (
+                "could not find",
+                "do not have enough",
+                "don't have enough",
+                "unavailable",
+                "unable to",
+            )
+        ):
+            db.add(UnansweredQuery(
+                user_id=user_id_int,
+                session_id=session.id,
+                query=user_message,
+                response=translated_response,
+            ))
         db.commit()
-        db.close()
+        print("Bot Response:", translated_response.encode("ascii", errors="replace").decode("ascii"))
+        # Voice is requested through /speak after the text is rendered. Generating
+        # audio here too used twice the TTS quota and could overwrite another
+        # farmer's audio during concurrent chats.
+        tts_result = {"audio_file": None}
+        quality_result = calculate_response_quality(
+            intent_result["score"],
+            english_response
+        )
+        print("Response Quality:", quality_result)
         return {
             "user_id": str(request.user_id),
             "message": str(user_message),
             "detected_language": str(language),
             "translated_text": str(translated_text),
-            "intent": "out_of_domain",
-            "confidence_score": 1.0,
+            "intent": str(intent_result["intent"]),
+            "confidence_score": float(intent_result["score"]),
             "entities": entities,
             "agricultural_entities": agri_entities,
-            "english_response": response_text,
-            "response_in_user_language": translated_response,
-            "audio_file": None,
+            "english_response": str(english_response),
+            "response_in_user_language": str(translated_response),
+            "audio_file": tts_result.get("audio_file"),
+            # Do not return the SQLAlchemy instance after its database session has
+            # been committed and closed. Serializing an expired/detached model can
+            # raise a 500 after the answer has already been generated and saved.
             "session": session_payload,
-            "response_quality": calculate_response_quality(1.0, response_text),
+            "response_quality": quality_result,
             "assistant_message_id": assistant_message_id,
         }
-    user_id_int = int(request.user_id) if str(request.user_id).isdigit() else None
-    user = db.query(User).filter(User.id == user_id_int).first() if user_id_int else None
-    market_state = None
-    market_district = None
-    locs = []
-    for entity in entities:
-        if entity["entity_group"] == "LOC":
-            locs.append(entity["word"].replace(".", "").strip())
-    if len(locs) >= 2:
-        market_district = locs[0]
-        market_state = locs[1]
-    elif len(locs) == 1:
-        market_district = locs[0]
-    query_lower = translated_text.lower()
-    is_compound_scheme_query = (
-        intent_result["intent"] == "government_scheme_query"
-        and any(
-            term in query_lower
-            for term in (
-                "disease", "spots", "leaves", "fungicide", "pesticide",
-                "pest", "crop", "paddy", "rice", "wheat", "maize",
-                "cotton", "irrigation", "fertilizer",
-            )
-        )
-    )
 
-    wants_weather = any(
-        term in query_lower
-        for term in ("weather", "forecast", "rain", "temperature", "humidity")
-    )
-    wants_market = any(
-        term in query_lower
-        for term in ("market price", "price", "mandi", "sell")
-    )
-    wants_harvest = "harvest" in query_lower
-    wants_crop_action = any(
-        term in query_lower
-        for term in ("spray", "disease", "fungicide", "pesticide")
-    )
-    is_live_compound_query = wants_weather and (
-        wants_market or wants_harvest or wants_crop_action
-    )
-
-    location_match = re.search(
-        r"Location:\s*([A-Za-z .-]+)",
-        translated_text,
-        flags=re.IGNORECASE,
-    )
-    weather_location_aliases = {
-        "uttarakannada": "Karwar",
-        "uttara kannada": "Karwar",
-        "bangalore": "Bengaluru",
-        "mysore": "Mysuru",
-        "bagalkot": "Bagalkot",
-        "bagalkote": "Bagalkot",
-        "ಬಾಗಲಕೋಟೆ": "Bagalkot",
-        "ಬಾಗಲಕೋಟೆಯ": "Bagalkot",
-        "ಬೆಂಗಳೂರು": "Bengaluru",
-        "ಮೈಸೂರು": "Mysuru",
-        "ಬೆಳಗಾವಿ": "Belagavi",
-        "ಧಾರವಾಡ": "Dharwad",
-        "ಹುಬ್ಬಳ್ಳಿ": "Hubli",
-        "ಕಲಬುರಗಿ": "Kalaburagi",
-        "ಕೋಲಾರ": "Kolar",
-        "ಮಂಡ್ಯ": "Mandya",
-        "ಹಾಸನ": "Hassan",
-        "ಉಡುಪಿ": "Udupi",
-        "ಮಂಗಳೂರು": "Mangalore",
-        "ಶಿವಮೊಗ್ಗ": "Shivamogga",
-        "ದಾವಣಗೆರೆ": "Davanagere",
-        "ಚಿತ್ರದುರ್ಗ": "Chitradurga",
-        "ರಾಯಚೂರು": "Raichur",
-        "ಬಳ್ಳಾರಿ": "Ballari",
-        "ಕೊಪ್ಪಳ": "Koppal",
-        "ಯಾದಗಿರಿ": "Yadgir",
-    }
-
-    # Extract location from query text, recent conversation history, or fallback to user default
-    found_city = None
-    for alias_key, canonical_city in weather_location_aliases.items():
-        if alias_key in user_message.lower() or alias_key in translated_text.lower():
-            found_city = canonical_city
-            break
-
-    # Look up location mentioned in previous chat turns for contextual follow-ups
-    previous_location = None
-    if not found_city and recent_messages:
-        for msg in recent_messages:
-            msg_text_lower = msg.message.lower()
-            for alias_key, canonical_city in weather_location_aliases.items():
-                if alias_key in msg_text_lower:
-                    previous_location = canonical_city
-                    break
-            if previous_location:
-                break
-
-    requested_location = (
-        found_city
-        or previous_location
-        or (location_match.group(1).strip() if location_match else (user.city or user.district if user else None))
-    )
-    if requested_location:
-        requested_location = weather_location_aliases.get(
-            requested_location.lower(),
-            requested_location,
-        )
-
-    comparison_locations = []
-    response_is_localized = False
-    for aliases, canonical in (
-        (("bangalore", "bengaluru"), "Bangalore"),
-        (("mysore", "mysuru"), "Mysore"),
-    ):
-        if any(alias in query_lower for alias in aliases):
-            comparison_locations.append(canonical)
-
-    if wants_market and len(comparison_locations) >= 2:
-        commodity = agri_entities.get("crop") or "Tomato"
-        market_results = []
-        for district in comparison_locations:
-            try:
-                price = get_market_price(
-                    commodity=commodity,
-                    state=(user.state if user and user.state else None),
-                    district=district,
-                )
-                market_results.append(price)
-            except Exception as error:
-                print(f"Market comparison unavailable for {district}: {error}")
-
-        if len(market_results) == 2:
-            first, second = market_results
-            better = first if first.modal_price >= second.modal_price else second
-            other = second if better is first else first
-            difference = better.modal_price - other.modal_price
-            response_text = (
-                f"{first.market}, {first.district}: modal price "
-                f"₹{first.modal_price:.0f} per quintal on {first.arrival_date}. "
-                f"{second.market}, {second.district}: modal price "
-                f"₹{second.modal_price:.0f} per quintal on {second.arrival_date}. "
-                f"{better.market} has the higher reported modal price by "
-                f"₹{difference:.0f} per quintal. Sell there only if that "
-                "difference exceeds transport, commission, and spoilage costs."
-            )
-        else:
-            response_text = (
-                "I could not retrieve comparable current tomato records for "
-                "both Bangalore and Mysore from the live market feed. I cannot "
-                "safely recommend a market without same-date prices. Please "
-                "check both APMC quotes and subtract transport, commission, and "
-                "spoilage costs before choosing."
-            )
-    elif is_live_compound_query and requested_location:
-        live_context_parts = []
-        current_weather = get_weather(requested_location)
-        forecast_data = get_forecast(requested_location)
-        if "error" not in current_weather:
-            live_context_parts.append(
-                "Current weather for {city}: {weather}, {temperature}°C, "
-                "humidity {humidity}%, wind {wind_speed} m/s.".format(
-                    **current_weather
-                )
-            )
-        else:
-            live_context_parts.append(
-                f"Current weather unavailable: {current_weather['error']}."
-            )
-        if "error" not in forecast_data:
-            forecast_lines = [
-                (
-                    f"{item['date']}: {item['weather']}, "
-                    f"{item['temperature']}°C, humidity {item['humidity']}%."
-                )
-                for item in forecast_data["forecast"][:3]
-            ]
-            live_context_parts.append(
-                "Three-day forecast for "
-                f"{forecast_data['city']}: {' '.join(forecast_lines)}"
-            )
-        else:
-            live_context_parts.append(
-                f"Forecast unavailable: {forecast_data['error']}."
-            )
-
-        if wants_market:
-            commodity = agri_entities.get("crop") or (user.crop if user else None)
-            if commodity:
-                try:
-                    price = get_market_price(
-                        commodity=commodity,
-                        state=(user.state if user and user.state else None),
-                        district=requested_location,
-                    )
-                    live_context_parts.append(
-                        f"Market price for {price.commodity} at {price.market}: "
-                        f"minimum ₹{price.min_price:.0f}, maximum "
-                        f"₹{price.max_price:.0f}, modal ₹{price.modal_price:.0f} "
-                        f"per quintal on {price.arrival_date}."
-                    )
-                except Exception as error:
-                    print(f"Market data unavailable: {error}")
-                    live_context_parts.append(
-                        "Today's requested crop price is unavailable from the "
-                        "live market feed; do not invent a price."
-                    )
-
-        response_text = generate_response(
-            translated_text,
-            supplemental_context="\n".join(
-                part for part in (
-                    (
-                        "Recent conversation:\n" + conversation_context
-                        if conversation_context
-                        else ""
-                    ),
-                    "\n".join(live_context_parts),
-                )
-                if part
-            ),
-        )
-    elif is_live_compound_query:
-        response_text = (
-            "Please tell me the city or district so I can combine its live "
-            "weather forecast with the crop and market advice."
-        )
-    elif is_compound_scheme_query:
-        response_text = generate_response(
-            translated_text,
-            supplemental_context=(
-                "Recent conversation:\n" + conversation_context
-                if conversation_context
-                else ""
-            ),
-        )
-    elif intent_result["intent"] == "weather_query":
-        city = None
-        for entity in entities:
-            if entity["entity_group"] == "LOC":
-                city = entity["word"].replace(".", "").strip()
-                break
-        if city is None and requested_location:
-            city = requested_location
-        if city is None:
-            response_text = "Please tell me the city name to get the weather information."
-        else:
-            weather = get_weather(city)
-            if "error" in weather:
-                response_text = weather["error"]
-            else:
-                is_specific_weather_question = (
-                    is_contextual_follow_up
-                    or any(
-                        term in translated_text.lower()
-                        for term in ("rain", "tomorrow", "forecast", "will it", "should i", "can i", "spray", "harvest", "hot", "cold", "humidity")
-                    )
-                )
-                if is_specific_weather_question:
-                    live_weather_info = (
-                        f"Current Live Weather Data for {city}:\n"
-                        f"- Temperature: {weather.get('temperature')}°C\n"
-                        f"- Humidity: {weather.get('humidity')}%\n"
-                        f"- Condition: {weather.get('description')}\n"
-                        f"- Wind Speed: {weather.get('wind_speed')} m/s\n"
-                    )
-                    response_text = generate_response(
-                        translated_text,
-                        supplemental_context=(
-                            f"{live_weather_info}\n"
-                            f"Recent Conversation History:\n{conversation_context}"
-                        ),
-                    )
-                else:
-                    response_text = format_current_weather(weather, language)
-                    response_is_localized = language != "en"
-    else:
-        if intent_result["intent"] == "market_price_query":
-            response_text = route_query(
-                intent=intent_result["intent"],
-                commodity=agri_entities.get("crop") or (user.crop if user else None),
-                state=(
-                    market_state
-                    or (user.state if user and user.state else None)
-                ),
-                district=(
-                    market_district
-                    or (user.district if user else None)
-                )
-            )
-        else:
-            # All non-live farming topics share one grounded RAG path. This
-            # avoids losing secondary intents and makes ordinary follow-ups
-            # work across crops, pests, soil, irrigation, schemes, and harvest.
-            response_text = generate_response(
-                translated_text,
-                supplemental_context=(
-                    "Recent conversation:\n" + conversation_context
-                    if conversation_context
-                    else ""
-                ),
-            )
-    english_response = response_text
-    translated_response = response_text
-    target_language = lang_map.get(language, "en-IN")
-    if target_language != "en-IN" and not response_is_localized:
-        try:
-            result = translate_text(
-                response_text,
-                "en-IN",
-                target_language
-            )
-            if result and result.translated_text:
-                translated_response = result.translated_text
-        except Exception as error:
-            print("Response translation failed:", error)
-            translated_response = response_text
-    user_chat = ChatMessage(
-        session_id=session.id,
-        role="user",
-        intent=str(intent_result["intent"]),
-        message=user_message
-    )
-    db.add(user_chat)
-    assistant_chat = ChatMessage(
-        session_id=session.id,
-        role="assistant",
-        intent=str(intent_result["intent"]),
-        message=translated_response
-    )
-    db.add(assistant_chat)
-    db.flush()
-    assistant_message_id = assistant_chat.id
-    session_payload = {
-        "id": session.id,
-        "user_id": session.user_id,
-        "title": session.title,
-    }
-    if any(
-        marker in translated_response.lower()
-        for marker in (
-            "could not find",
-            "do not have enough",
-            "don't have enough",
-            "unavailable",
-            "unable to",
-        )
-    ):
-        db.add(UnansweredQuery(
-            user_id=user_id_int,
-            session_id=session.id,
-            query=user_message,
-            response=translated_response,
-        ))
-    db.commit()
-    db.close()
-    print("Bot Response:", translated_response.encode("ascii", errors="replace").decode("ascii"))
-    # Voice is requested through /speak after the text is rendered. Generating
-    # audio here too used twice the TTS quota and could overwrite another
-    # farmer's audio during concurrent chats.
-    tts_result = {"audio_file": None}
-    quality_result = calculate_response_quality(
-        intent_result["score"],
-        english_response
-    )
-    print("Response Quality:", quality_result)
-    return {
-        "user_id": str(request.user_id),
-        "message": str(user_message),
-        "detected_language": str(language),
-        "translated_text": str(translated_text),
-        "intent": str(intent_result["intent"]),
-        "confidence_score": float(intent_result["score"]),
-        "entities": entities,
-        "agricultural_entities": agri_entities,
-        "english_response": str(english_response),
-        "response_in_user_language": str(translated_response),
-        "audio_file": tts_result.get("audio_file"),
-        # Do not return the SQLAlchemy instance after its database session has
-        # been committed and closed. Serializing an expired/detached model can
-        # raise a 500 after the answer has already been generated and saved.
-        "session": session_payload,
-        "response_quality": quality_result,
-        "assistant_message_id": assistant_message_id,
-    }
+    finally:
+        db.close()
 
 @app.post("/speak", dependencies=[Depends(require_authenticated_user)])
 def speak(request: SpeakRequest):

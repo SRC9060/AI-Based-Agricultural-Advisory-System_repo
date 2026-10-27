@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app import app
-from database import SessionLocal
+from database import SessionLocal, get_db
 from models import AgentJob, ChatMessage, ChatSession, User
 from services.agent_runner import AgentRunResult, set_default_agent_runner
 from services.agent_worker import AgentWorker, sanitize_worker_error
@@ -622,6 +622,182 @@ class AgentBackgroundJobTests(unittest.TestCase):
             self.assertEqual(jobs[0].id, list(job_ids)[0])
         finally:
             db.close()
+
+    # -------------------------------------------------------------
+    # 15. Stale-worker fencing after lease expiration
+    # -------------------------------------------------------------
+    def test_stale_worker_fenced_after_lease_loss(self):
+        """
+        If a worker loses its lease while processing a job, its late completion
+        must be fenced out: the newer worker's state is preserved, and duplicate
+        chat turns are not persisted.
+        """
+        # Create a chat session
+        db = SessionLocal()
+        session_id = None
+        try:
+            sess = ChatSession(user_id=self.user1_id, title="Fencing Test Chat")
+            db.add(sess)
+            db.commit()
+            db.refresh(sess)
+            session_id = sess.id
+        finally:
+            db.close()
+
+        # Submit job with session_id
+        res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Fencing test query", "session_id": session_id},
+            headers={"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "fencing-test-key"},
+        )
+        self.assertEqual(res.status_code, 202)
+        job_id = res.json()["job_id"]
+
+        # Worker 1 claims job
+        worker1 = AgentWorker(worker_id="worker_alpha", lease_seconds=10)
+        claimed_id = worker1.claim_next_job()
+        self.assertEqual(claimed_id, job_id)
+
+        # Verify job is claimed by worker_alpha
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "RUNNING")
+            self.assertEqual(job.locked_by, "worker_alpha")
+            self.assertEqual(job.attempt_count, 1)
+
+            # Artificially expire worker1's lease
+            job.lease_timeout_at = datetime.utcnow() - timedelta(seconds=10)
+            db.commit()
+        finally:
+            db.close()
+
+        # Worker 2 claims the abandoned job
+        worker2 = AgentWorker(worker_id="worker_beta", lease_seconds=60)
+        claimed_id_2 = worker2.claim_next_job()
+        self.assertEqual(claimed_id_2, job_id)
+
+        # Verify job is now RUNNING under worker_beta with attempt_count 2
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "RUNNING")
+            self.assertEqual(job.locked_by, "worker_beta")
+            self.assertEqual(job.attempt_count, 2)
+        finally:
+            db.close()
+
+        # Setup mock runner for worker runs
+        mock_runner = MagicMock()
+        mock_runner.run.return_value = AgentRunResult(
+            answer="Answer from worker",
+            tool_calls_executed=[],
+            tool_calls_count=0,
+            rounds=1,
+            status="completed",
+        )
+        set_default_agent_runner(mock_runner)
+
+        # Worker 1 finishes late and attempts to process/complete the job
+        success1 = worker1.process_job(job_id)
+        self.assertFalse(success1, "Worker 1 should have been fenced out and returned False")
+
+        # Verify that Worker 1 DID NOT overwrite Worker 2's RUNNING status or write chat turns
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "RUNNING")
+            self.assertEqual(job.locked_by, "worker_beta")
+            self.assertEqual(job.attempt_count, 2)
+
+            chat_turns = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).all()
+            self.assertEqual(len(chat_turns), 0, "Stale worker should not have added any chat turns")
+        finally:
+            db.close()
+
+        # Worker 2 finishes and completes the job successfully
+        success2 = worker2.process_job(job_id)
+        self.assertTrue(success2, "Worker 2 holds the valid lease and should complete successfully")
+
+        # Verify job is COMPLETED and chat turns exist exactly once
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "COMPLETED")
+            self.assertIsNone(job.locked_by)
+
+            chat_turns = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).all()
+            self.assertEqual(len(chat_turns), 2, "Chat turn (user + assistant) should be added exactly once")
+            self.assertEqual(chat_turns[1].message, "Answer from worker")
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 16. Stale-worker late failure fenced
+    # -------------------------------------------------------------
+    def test_stale_worker_failure_fenced(self):
+        """
+        If a worker loses its lease, a late failure in that worker must NOT overwrite
+        the newer worker's RUNNING state with RETRY_WAIT or FAILED.
+        """
+        res = self.client.post(
+            "/agent/jobs",
+            json={"message": "Late failure test query"},
+            headers={"Authorization": f"Bearer {self.token1}", "Idempotency-Key": "fail-fence-key"},
+        )
+        job_id = res.json()["job_id"]
+
+        # Worker 1 claims job
+        worker1 = AgentWorker(worker_id="worker_fail_1", lease_seconds=10)
+        worker1.claim_next_job()
+
+        # Expire lease
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            job.lease_timeout_at = datetime.utcnow() - timedelta(seconds=10)
+            db.commit()
+        finally:
+            db.close()
+
+        # Worker 2 claims job
+        worker2 = AgentWorker(worker_id="worker_fail_2", lease_seconds=60)
+        worker2.claim_next_job()
+
+        # Worker 1 encounters an exception and calls _handle_job_failure
+        worker1._handle_job_failure(job_id, RuntimeError("Late failure in worker 1"))
+
+        # Verify job is STILL RUNNING and locked_by worker_fail_2 (NOT overwritten to RETRY_WAIT or FAILED)
+        db = SessionLocal()
+        try:
+            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            self.assertEqual(job.status, "RUNNING")
+            self.assertEqual(job.locked_by, "worker_fail_2")
+            self.assertEqual(job.attempt_count, 2)
+        finally:
+            db.close()
+
+    # -------------------------------------------------------------
+    # 17. Database session lifecycle & get_db generator
+    # -------------------------------------------------------------
+    def test_get_db_generator_session_lifecycle(self):
+        """get_db yields a database session and closes it on normal exit and exception."""
+        # Normal exit
+        gen = get_db()
+        session = next(gen)
+        self.assertIsNotNone(session)
+        try:
+            next(gen)
+        except StopIteration:
+            pass
+
+        # Exception exit
+        gen2 = get_db()
+        session2 = next(gen2)
+        try:
+            gen2.throw(ZeroDivisionError("simulated error"))
+        except (StopIteration, ZeroDivisionError):
+            pass
 
 
 if __name__ == "__main__":

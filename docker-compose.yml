@@ -9,6 +9,17 @@ services:
     volumes:
       - agriadvisor-data:/app/data
 
+  worker:
+    build: ./backend
+    command: ["python", "-m", "services.agent_worker"]
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: sqlite:////app/data/users.db
+    volumes:
+      - agriadvisor-data:/app/data
+    depends_on:
+      - backend
+
   frontend:
     build:
       context: ./frontend

@@ -297,6 +297,16 @@ class AgentWorker:
                 logger.warning("Claimed job %s not found in database", job_id)
                 return False
 
+            if job.locked_by != self.worker_id or job.status != "RUNNING":
+                logger.warning(
+                    "Worker %s does not own lease for job %s (status=%s, locked_by=%s); skipping.",
+                    self.worker_id,
+                    job_id,
+                    job.status,
+                    job.locked_by,
+                )
+                return False
+
             logger.info(
                 "Processing job %s (attempt %d of %d)",
                 job_id,
@@ -304,19 +314,37 @@ class AgentWorker:
                 job.max_attempts,
             )
 
+            job_user_id = job.user_id
+
             # Parse payload
             try:
                 payload = json.loads(job.payload)
             except Exception as parse_err:
-                # Fatal payload error: mark FAILED immediately
+                # Fatal payload error: mark FAILED immediately if still owned
                 now = datetime.utcnow()
-                job.status = "FAILED"
-                job.error_summary = f"Malformed job payload: {sanitize_worker_error(parse_err)}"
-                job.completed_at = now
-                job.updated_at = now
-                job.locked_by = None
-                job.lease_timeout_at = None
-                db.commit()
+                rows = (
+                    db.query(AgentJob)
+                    .filter(
+                        AgentJob.id == job_id,
+                        AgentJob.status == "RUNNING",
+                        AgentJob.locked_by == self.worker_id,
+                    )
+                    .update(
+                        {
+                            AgentJob.status: "FAILED",
+                            AgentJob.error_summary: f"Malformed job payload: {sanitize_worker_error(parse_err)}",
+                            AgentJob.completed_at: now,
+                            AgentJob.updated_at: now,
+                            AgentJob.locked_by: None,
+                            AgentJob.lease_timeout_at: None,
+                        },
+                        synchronize_session=False,
+                    )
+                )
+                if rows > 0:
+                    db.commit()
+                else:
+                    db.rollback()
                 return False
 
             message = payload.get("message", "")
@@ -332,7 +360,7 @@ class AgentWorker:
                         db.query(ChatSession)
                         .filter(
                             ChatSession.id == session_id_int,
-                            ChatSession.user_id == job.user_id,
+                            ChatSession.user_id == job_user_id,
                         )
                         .first()
                     )
@@ -376,7 +404,42 @@ class AgentWorker:
                 "status": result.status,
             }
 
-            # Persist chat history if session exists
+            # Fencing check & atomic update:
+            # Atomically verify that the job is still RUNNING and lease is still held by self.worker_id.
+            now = datetime.utcnow()
+            rows_updated = (
+                db.query(AgentJob)
+                .filter(
+                    AgentJob.id == job_id,
+                    AgentJob.status == "RUNNING",
+                    AgentJob.locked_by == self.worker_id,
+                )
+                .update(
+                    {
+                        AgentJob.status: "COMPLETED",
+                        AgentJob.result: json.dumps(result_payload),
+                        AgentJob.error_summary: None,
+                        AgentJob.completed_at: now,
+                        AgentJob.updated_at: now,
+                        AgentJob.locked_by: None,
+                        AgentJob.lease_timeout_at: None,
+                    },
+                    synchronize_session=False,
+                )
+            )
+
+            if rows_updated == 0:
+                # Fenced out: Another worker reclaimed the job after lease expiry
+                logger.warning(
+                    "Worker %s lost lease for job %s before completion; discarding stale result.",
+                    self.worker_id,
+                    job_id,
+                )
+                db.rollback()
+                return False
+
+            # Transactionally safe chat history persistence:
+            # Only append chat turns if this worker still holds the lease and completed the job
             if session:
                 try:
                     db.add(
@@ -395,18 +458,10 @@ class AgentWorker:
                             message=result.answer,
                         )
                     )
-                    session.updated_at = datetime.utcnow()
+                    session.updated_at = now
                 except Exception as hist_err:
                     logger.warning("Failed to persist session chat turn: %s", sanitize_worker_error(hist_err))
 
-            now = datetime.utcnow()
-            job.status = "COMPLETED"
-            job.result = json.dumps(result_payload)
-            job.error_summary = None
-            job.completed_at = now
-            job.updated_at = now
-            job.locked_by = None
-            job.lease_timeout_at = None
             db.commit()
 
             logger.info("Successfully completed job %s", job_id)
@@ -424,11 +479,26 @@ class AgentWorker:
         """
         Record failure, evaluate retry eligibility, apply exponential backoff with jitter,
         or mark permanently FAILED if max attempts are exhausted.
+        Atomically fences stale workers if the lease was lost to another worker.
         """
         db: Session = self.session_factory()
         try:
-            job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
+            # Verify lease ownership
+            job = (
+                db.query(AgentJob)
+                .filter(
+                    AgentJob.id == job_id,
+                    AgentJob.status == "RUNNING",
+                    AgentJob.locked_by == self.worker_id,
+                )
+                .first()
+            )
             if not job:
+                logger.warning(
+                    "Worker %s lost lease for job %s before failure handling; discarding stale failure.",
+                    self.worker_id,
+                    job_id,
+                )
                 return
 
             now = datetime.utcnow()
@@ -441,35 +511,78 @@ class AgentWorker:
                 jitter = random.uniform(0.1, 1.0)
                 delay_seconds = backoff + jitter
 
-                job.status = "RETRY_WAIT"
-                job.error_summary = f"Transient error: {sanitized}"
-                job.next_retry_at = now + timedelta(seconds=delay_seconds)
-                job.updated_at = now
-                job.locked_by = None
-                job.lease_timeout_at = None
+                rows = (
+                    db.query(AgentJob)
+                    .filter(
+                        AgentJob.id == job_id,
+                        AgentJob.status == "RUNNING",
+                        AgentJob.locked_by == self.worker_id,
+                    )
+                    .update(
+                        {
+                            AgentJob.status: "RETRY_WAIT",
+                            AgentJob.error_summary: f"Transient error: {sanitized}",
+                            AgentJob.next_retry_at: now + timedelta(seconds=delay_seconds),
+                            AgentJob.updated_at: now,
+                            AgentJob.locked_by: None,
+                            AgentJob.lease_timeout_at: None,
+                        },
+                        synchronize_session=False,
+                    )
+                )
+                if rows == 0:
+                    logger.warning(
+                        "Worker %s lost lease for job %s during failure update; discarding stale failure.",
+                        self.worker_id,
+                        job_id,
+                    )
+                    db.rollback()
+                    return
+                db.commit()
                 logger.info(
                     "Job %s scheduled for retry #%d in %.2fs (next_retry_at=%s)",
                     job_id,
                     job.attempt_count + 1,
                     delay_seconds,
-                    job.next_retry_at,
+                    now + timedelta(seconds=delay_seconds),
                 )
             else:
-                job.status = "FAILED"
-                job.error_summary = (
-                    f"Max attempts ({job.max_attempts}) reached. Last error: {sanitized}"
+                rows = (
+                    db.query(AgentJob)
+                    .filter(
+                        AgentJob.id == job_id,
+                        AgentJob.status == "RUNNING",
+                        AgentJob.locked_by == self.worker_id,
+                    )
+                    .update(
+                        {
+                            AgentJob.status: "FAILED",
+                            AgentJob.error_summary: (
+                                f"Max attempts ({job.max_attempts}) reached. Last error: {sanitized}"
+                            ),
+                            AgentJob.completed_at: now,
+                            AgentJob.updated_at: now,
+                            AgentJob.locked_by: None,
+                            AgentJob.lease_timeout_at: None,
+                        },
+                        synchronize_session=False,
+                    )
                 )
-                job.completed_at = now
-                job.updated_at = now
-                job.locked_by = None
-                job.lease_timeout_at = None
+                if rows == 0:
+                    logger.warning(
+                        "Worker %s lost lease for job %s during failure update; discarding stale failure.",
+                        self.worker_id,
+                        job_id,
+                    )
+                    db.rollback()
+                    return
+                db.commit()
                 logger.warning(
                     "Job %s permanently FAILED after %d attempts",
                     job_id,
                     job.attempt_count,
                 )
 
-            db.commit()
         except Exception as update_err:
             db.rollback()
             logger.error("Error updating failure state for job %s: %s", job_id, sanitize_worker_error(update_err))

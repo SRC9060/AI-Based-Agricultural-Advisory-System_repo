@@ -100,5 +100,72 @@ class AuthenticationTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 403)
 
 
+    def test_register_and_login_guarantee_session_cleanup(self):
+        """Endpoints always close their SQLAlchemy session on error or success."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import MagicMock
+        import app as app_module
+
+        client = TestClient(app_module.app)
+        real_sessionlocal = app_module.SessionLocal
+
+        # Test login with invalid credentials guarantees session close
+        sessions_created = []
+        def spied_sessionlocal():
+            sess = real_sessionlocal()
+            real_close = sess.close
+            sess.close = MagicMock(side_effect=real_close)
+            sessions_created.append(sess)
+            return sess
+
+        with patch("services.security._local_rate_limited", return_value=False):
+            with patch.object(app_module, "SessionLocal", side_effect=spied_sessionlocal):
+                res = client.post(
+                    "/login",
+                    json={"email": "nonexistent_farmer@example.com", "password": "wrongpassword123"},
+                )
+                self.assertEqual(res.status_code, 401)
+                self.assertEqual(len(sessions_created), 1)
+                sessions_created[0].close.assert_called_once()
+
+        # Test duplicate register guarantees session close on 400 error
+        sessions_created.clear()
+        import uuid
+        unique_email = f"session_{uuid.uuid4().hex[:8]}@example.com"
+        reg_payload = {
+            "name": "Session Farmer",
+            "email": unique_email,
+            "password": "ValidPassword123!",
+            "language": "English",
+        }
+        try:
+            with patch("services.security._local_rate_limited", return_value=False):
+                # First registration succeeds
+                with patch.object(app_module, "SessionLocal", side_effect=spied_sessionlocal):
+                    res1 = client.post("/register", json=reg_payload)
+                    self.assertEqual(res1.status_code, 200)
+                    self.assertEqual(len(sessions_created), 1)
+                    sessions_created[0].close.assert_called_once()
+
+                # Second registration with same email raises 400 and guarantees session close
+                sessions_created.clear()
+                with patch.object(app_module, "SessionLocal", side_effect=spied_sessionlocal):
+                    res2 = client.post("/register", json=reg_payload)
+                    self.assertEqual(res2.status_code, 400)
+                    self.assertEqual(len(sessions_created), 1)
+                    sessions_created[0].close.assert_called_once()
+        finally:
+            cleanup_db = real_sessionlocal()
+            try:
+                cleanup_db.query(app_module.User).filter(app_module.User.email == unique_email).delete()
+                cleanup_db.commit()
+            finally:
+                cleanup_db.close()
+
+
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
