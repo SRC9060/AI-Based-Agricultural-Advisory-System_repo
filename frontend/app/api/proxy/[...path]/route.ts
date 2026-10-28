@@ -4,6 +4,10 @@ import {
   BACKEND_API_URL,
   verifyCsrf,
 } from "@/lib/serverAuth";
+import {
+  sanitizeRequestHeaders,
+  sanitizeResponseHeaders,
+} from "@/lib/proxyHeaders";
 
 interface RouteParams {
   params: Promise<{
@@ -26,24 +30,7 @@ async function handleProxy(request: NextRequest, { params }: RouteParams) {
   const search = request.nextUrl.search;
   const targetUrl = `${BACKEND_API_URL}/${targetPath}${search}`;
 
-  const forwardHeaders = new Headers();
-
-  // Forward incoming headers, skipping hop-by-hop headers
-  const skippedHeaders = new Set([
-    "host",
-    "cookie",
-    "connection",
-    "keep-alive",
-    "content-length",
-    "transfer-encoding",
-  ]);
-
-  request.headers.forEach((value, key) => {
-    const lowerKey = key.toLowerCase();
-    if (!skippedHeaders.has(lowerKey)) {
-      forwardHeaders.set(key, value);
-    }
-  });
+  const forwardHeaders = sanitizeRequestHeaders(request.headers);
 
   // Inject backend bearer token from HttpOnly cookie if present
   if (token) {
@@ -71,13 +58,7 @@ async function handleProxy(request: NextRequest, { params }: RouteParams) {
   try {
     const backendRes = await fetch(targetUrl, init);
 
-    const responseHeaders = new Headers();
-    backendRes.headers.forEach((value, key) => {
-      const lowerKey = key.toLowerCase();
-      if (!skippedHeaders.has(lowerKey) && lowerKey !== "set-cookie") {
-        responseHeaders.set(key, value);
-      }
-    });
+    const responseHeaders = sanitizeResponseHeaders(backendRes.headers);
 
     const response = new Response(backendRes.body, {
       status: backendRes.status,

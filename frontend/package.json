@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "node .next/standalone/frontend/server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/test-auth-security.mjs && node scripts/test-proxy-headers.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
