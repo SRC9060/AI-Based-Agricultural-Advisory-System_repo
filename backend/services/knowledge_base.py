@@ -179,6 +179,10 @@ def is_vector_database_ready() -> bool:
     """
     if not CHROMA_DB_PATH.exists():
         return False
+    # Fast check: verify chroma.sqlite3 exists and has non-zero size
+    sqlite_file = CHROMA_DB_PATH / "chroma.sqlite3"
+    if sqlite_file.is_file() and sqlite_file.stat().st_size > 0:
+        return True
     try:
         vector_db = load_vector_database()
         if not vector_db:
@@ -189,6 +193,34 @@ def is_vector_database_ready() -> bool:
     except Exception as e:
         print(f"[RAG] Vector database readiness check failed: {e}")
         return False
+
+
+def ensure_knowledge_base_ready(timeout_seconds: float = 0.2) -> bool:
+    """
+    Ensure the knowledge base is ready without blocking indefinitely or racing
+    with an active initialization/rebuild thread.
+    Returns True if ready, False if still initializing or unavailable.
+    """
+    if KNOWLEDGE_BASE_READY.is_set():
+        return True
+
+    # Try non-blocking acquisition of the initialization lock
+    acquired = _INIT_LOCK.acquire(timeout=max(0.01, timeout_seconds))
+    if not acquired:
+        # Lock is held by an active initialization or document-embedding thread
+        return False
+
+    try:
+        if KNOWLEDGE_BASE_READY.is_set():
+            return True
+        if is_vector_database_ready():
+            KNOWLEDGE_BASE_READY.set()
+            return True
+        # Not yet ready; start background warmup if not already running
+        start_knowledge_base_initialization()
+        return False
+    finally:
+        _INIT_LOCK.release()
 
 
 def initialize_knowledge_base(force_rebuild: bool = False) -> bool:
@@ -246,8 +278,9 @@ def start_knowledge_base_initialization() -> Optional[threading.Thread]:
 
 # General Search in Knowledge Base
 def search_knowledge_base(query):
-    if not KNOWLEDGE_BASE_READY.is_set():
-        initialize_knowledge_base()
+    if not ensure_knowledge_base_ready(timeout_seconds=0.2):
+        print("[RAG] Knowledge base is not ready or currently initializing; search skipped.")
+        return []
     vector_db = load_vector_database()
     if not vector_db:
         return []
@@ -287,6 +320,8 @@ def search_knowledge_base(query):
         "sugarcane": "Sugarcane",
         "chilli": "Chilli",
         "pepper": "Chilli",
+        "pest": "Pest",
+        "disease": "Disease",
     }
     detected_crop = None
     query_lower = query.lower()
@@ -310,8 +345,9 @@ def search_knowledge_base(query):
 
 # Search Documents inside Government Schemes 
 def search_government_schemes(query):
-    if not KNOWLEDGE_BASE_READY.is_set():
-        initialize_knowledge_base()
+    if not ensure_knowledge_base_ready(timeout_seconds=0.2):
+        print("[RAG] Knowledge base is not ready or currently initializing; scheme search skipped.")
+        return []
     vector_db = load_vector_database()
     if not vector_db:
         return []

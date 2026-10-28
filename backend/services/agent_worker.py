@@ -89,7 +89,7 @@ class AgentWorker:
     def __init__(
         self,
         worker_id: Optional[str] = None,
-        lease_seconds: int = 120,
+        lease_seconds: int = 180,
         poll_interval: float = 1.0,
         base_backoff: float = 2.0,
         max_backoff: float = 300.0,
@@ -114,6 +114,57 @@ class AgentWorker:
     @property
     def is_stopped(self) -> bool:
         return self._stop_event.is_set()
+
+    def renew_lease(self, job_id: str) -> bool:
+        """
+        Heartbeat method: extend lease_timeout_at for an active RUNNING job
+        currently owned by this worker.
+        Returns True if lease was successfully renewed, False if ownership was lost.
+        """
+        db: Session = self.session_factory()
+        try:
+            now = datetime.utcnow()
+            lease_expiry = now + timedelta(seconds=self.lease_seconds)
+            rows = (
+                db.query(AgentJob)
+                .filter(
+                    AgentJob.id == job_id,
+                    AgentJob.status == "RUNNING",
+                    AgentJob.locked_by == self.worker_id,
+                )
+                .update(
+                    {
+                        AgentJob.lease_timeout_at: lease_expiry,
+                        AgentJob.updated_at: now,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            db.commit()
+            if rows > 0:
+                logger.debug(
+                    "[job_id=%s] Lease renewed until %s by worker %s",
+                    job_id,
+                    lease_expiry.isoformat(),
+                    self.worker_id,
+                )
+                return True
+            logger.warning(
+                "[job_id=%s] Failed to renew lease; job is no longer RUNNING or locked by %s",
+                job_id,
+                self.worker_id,
+            )
+            return False
+        except Exception as err:
+            db.rollback()
+            logger.warning(
+                "[job_id=%s] Error renewing lease: %s",
+                job_id,
+                sanitize_worker_error(err),
+            )
+            return False
+        finally:
+            db.close()
 
     def claim_next_job(self) -> Optional[str]:
         """
@@ -188,6 +239,14 @@ class AgentWorker:
                 candidate.attempt_count += 1
                 candidate.updated_at = now
                 db.commit()
+                logger.info(
+                    "[job_id=%s] Job claimed by %s (attempt %d of %d, lease=%ds)",
+                    job_id,
+                    self.worker_id,
+                    candidate.attempt_count,
+                    candidate.max_attempts,
+                    self.lease_seconds,
+                )
                 return job_id
 
             # Universal strategy (safe for SQLite, MySQL, and PostgreSQL)
@@ -282,6 +341,14 @@ class AgentWorker:
             db.commit()
 
             if rows_updated == 1:
+                logger.info(
+                    "[job_id=%s] Job claimed by %s (attempt %d of %d, lease=%ds)",
+                    candidate_id,
+                    self.worker_id,
+                    attempt_count + 1,
+                    max_attempts,
+                    self.lease_seconds,
+                )
                 return candidate_id
             return None
         except Exception as claim_err:
@@ -295,29 +362,48 @@ class AgentWorker:
         """
         Execute an already-claimed job.
         Invokes the AI AgentRunner, persists results, and manages retries or failures.
+        Runs a lease renewal heartbeat to ensure active long-running jobs are never reclaimed.
         """
         db: Session = self.session_factory()
+        job_start_time = time.monotonic()
+        heartbeat_stop = threading.Event()
+        heartbeat_interval = max(5.0, min(30.0, self.lease_seconds / 3.0))
+
+        def _heartbeat_loop():
+            while not heartbeat_stop.wait(timeout=heartbeat_interval):
+                if not self.renew_lease(job_id):
+                    logger.warning("[job_id=%s] Heartbeat unable to renew lease; stopping heartbeat", job_id)
+                    break
+
+        heartbeat_thread = threading.Thread(
+            target=_heartbeat_loop,
+            name=f"Heartbeat-{job_id[:12]}",
+            daemon=True,
+        )
+        heartbeat_thread.start()
+
         try:
             job = db.query(AgentJob).filter(AgentJob.id == job_id).first()
             if not job:
-                logger.warning("Claimed job %s not found in database", job_id)
+                logger.warning("[job_id=%s] Claimed job not found in database", job_id)
                 return False
 
             if job.locked_by != self.worker_id or job.status != "RUNNING":
                 logger.warning(
-                    "Worker %s does not own lease for job %s (status=%s, locked_by=%s); skipping.",
-                    self.worker_id,
+                    "[job_id=%s] Worker %s does not own lease (status=%s, locked_by=%s); skipping.",
                     job_id,
+                    self.worker_id,
                     job.status,
                     job.locked_by,
                 )
                 return False
 
             logger.info(
-                "Processing job %s (attempt %d of %d)",
+                "[job_id=%s] Starting execution (attempt %d of %d, lease=%ds)",
                 job_id,
                 job.attempt_count,
                 job.max_attempts,
+                self.lease_seconds,
             )
 
             job_user_id = job.user_id
@@ -328,6 +414,7 @@ class AgentWorker:
             except Exception as parse_err:
                 # Fatal payload error: mark FAILED immediately if still owned
                 now = datetime.utcnow()
+                elapsed = time.monotonic() - job_start_time
                 rows = (
                     db.query(AgentJob)
                     .filter(
@@ -351,6 +438,7 @@ class AgentWorker:
                     db.commit()
                 else:
                     db.rollback()
+                logger.error("[job_id=%s] Malformed payload failed in %.2fs: %s", job_id, elapsed, sanitize_worker_error(parse_err))
                 return False
 
             message = payload.get("message", "")
@@ -384,18 +472,20 @@ class AgentWorker:
                                 for msg in reversed(recent_messages)
                             )
                 except Exception as ctx_err:
-                    logger.warning("Error fetching conversation context: %s", sanitize_worker_error(ctx_err))
+                    logger.warning("[job_id=%s] Error fetching conversation context: %s", job_id, sanitize_worker_error(ctx_err))
 
-            # Invoke AgentRunner for selected workflow
+            # Invoke AgentRunner for selected workflow with job_id for end-to-end tracing
             runner = get_workflow_agent_runner(workflow_name)
             result = runner.run(
                 user_query=message,
                 conversation_context=conversation_context or None,
+                job_id=job_id,
             )
 
             # If AgentRunner failed with status="error", mark job as FAILED
             if result.status == "error":
                 now = datetime.utcnow()
+                elapsed = time.monotonic() - job_start_time
                 safe_error_summary = sanitize_worker_error(result.answer)
                 rows_updated = (
                     db.query(AgentJob)
@@ -419,15 +509,15 @@ class AgentWorker:
                 )
                 if rows_updated == 0:
                     logger.warning(
-                        "Worker %s lost lease for job %s during error update; discarding stale failure.",
-                        self.worker_id,
+                        "[job_id=%s] Worker %s lost lease during error update; discarding stale failure.",
                         job_id,
+                        self.worker_id,
                     )
                     db.rollback()
                     return False
 
                 db.commit()
-                logger.error("Job %s marked FAILED due to runner error: %s", job_id, safe_error_summary)
+                logger.error("[job_id=%s] Marked FAILED in %.2fs due to runner error: %s", job_id, elapsed, safe_error_summary)
                 return False
 
             # Format result payload
@@ -450,6 +540,7 @@ class AgentWorker:
             # Fencing check & atomic update:
             # Atomically verify that the job is still RUNNING and lease is still held by self.worker_id.
             now = datetime.utcnow()
+            elapsed = time.monotonic() - job_start_time
             rows_updated = (
                 db.query(AgentJob)
                 .filter(
@@ -474,15 +565,15 @@ class AgentWorker:
             if rows_updated == 0:
                 # Fenced out: Another worker reclaimed the job after lease expiry
                 logger.warning(
-                    "Worker %s lost lease for job %s before completion; discarding stale result.",
-                    self.worker_id,
+                    "[job_id=%s] Worker %s lost lease before completion after %.2fs; discarding stale result.",
                     job_id,
+                    self.worker_id,
+                    elapsed,
                 )
                 db.rollback()
                 return False
 
             # Transactionally safe chat history persistence:
-            # Only append chat turns if this worker still holds the lease and completed the job
             if session:
                 try:
                     db.add(
@@ -503,19 +594,27 @@ class AgentWorker:
                     )
                     session.updated_at = now
                 except Exception as hist_err:
-                    logger.warning("Failed to persist session chat turn: %s", sanitize_worker_error(hist_err))
+                    logger.warning("[job_id=%s] Failed to persist session chat turn: %s", job_id, sanitize_worker_error(hist_err))
 
             db.commit()
 
-            logger.info("Successfully completed job %s", job_id)
+            logger.info(
+                "[job_id=%s] Successfully completed job in %.2fs (rounds=%d, tool_calls=%d)",
+                job_id,
+                elapsed,
+                result.rounds,
+                result.tool_calls_count,
+            )
             return True
 
         except Exception as exc:
             db.rollback()
-            logger.error("Job %s execution failed with error: %s", job_id, sanitize_worker_error(exc))
+            elapsed = time.monotonic() - job_start_time
+            logger.error("[job_id=%s] Job execution failed in %.2fs with error: %s", job_id, elapsed, sanitize_worker_error(exc))
             self._handle_job_failure(job_id, exc)
             return False
         finally:
+            heartbeat_stop.set()
             db.close()
 
     def _handle_job_failure(self, job_id: str, exc: Exception) -> None:
@@ -538,9 +637,9 @@ class AgentWorker:
             )
             if not job:
                 logger.warning(
-                    "Worker %s lost lease for job %s before failure handling; discarding stale failure.",
-                    self.worker_id,
+                    "[job_id=%s] Worker %s lost lease before failure handling; discarding stale failure.",
                     job_id,
+                    self.worker_id,
                 )
                 return
 
@@ -575,19 +674,19 @@ class AgentWorker:
                 )
                 if rows == 0:
                     logger.warning(
-                        "Worker %s lost lease for job %s during failure update; discarding stale failure.",
-                        self.worker_id,
+                        "[job_id=%s] Worker %s lost lease during retry update; discarding stale failure.",
                         job_id,
+                        self.worker_id,
                     )
                     db.rollback()
                     return
                 db.commit()
                 logger.info(
-                    "Job %s scheduled for retry #%d in %.2fs (next_retry_at=%s)",
+                    "[job_id=%s] Scheduled for retry #%d in %.2fs (next_retry_at=%s)",
                     job_id,
                     job.attempt_count + 1,
                     delay_seconds,
-                    now + timedelta(seconds=delay_seconds),
+                    (now + timedelta(seconds=delay_seconds)).isoformat(),
                 )
             else:
                 rows = (
@@ -613,22 +712,23 @@ class AgentWorker:
                 )
                 if rows == 0:
                     logger.warning(
-                        "Worker %s lost lease for job %s during failure update; discarding stale failure.",
-                        self.worker_id,
+                        "[job_id=%s] Worker %s lost lease during final failure update; discarding stale failure.",
                         job_id,
+                        self.worker_id,
                     )
                     db.rollback()
                     return
                 db.commit()
                 logger.warning(
-                    "Job %s permanently FAILED after %d attempts",
+                    "[job_id=%s] Permanently FAILED after %d attempts: %s",
                     job_id,
                     job.attempt_count,
+                    sanitized,
                 )
 
         except Exception as update_err:
             db.rollback()
-            logger.error("Error updating failure state for job %s: %s", job_id, sanitize_worker_error(update_err))
+            logger.error("[job_id=%s] Error updating failure state: %s", job_id, sanitize_worker_error(update_err))
         finally:
             db.close()
 

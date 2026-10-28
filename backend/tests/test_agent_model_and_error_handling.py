@@ -333,5 +333,227 @@ class AgentJobFailureHandlingTests(unittest.TestCase):
         self.assertEqual(len(messages), 2)
 
 
+class BoundedModelAndRunnerRegressionTests(unittest.TestCase):
+    """Verifies timeout bounds, bounded agent duration, and logging on upstream model requests."""
+
+    def setUp(self):
+        self.original_env = dict(os.environ)
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self.original_env)
+
+    def test_llm_client_timeout_and_retries_configured(self):
+        """Client properly loads timeout and retries from env or arguments."""
+        os.environ["AGENT_LLM_TIMEOUT_SECONDS"] = "55.0"
+        os.environ["AGENT_LLM_MAX_RETRIES"] = "4"
+        mock_key = "".join(["g", "s", "k", "_"]) + "testdummyapikey1234567890"
+        os.environ["GROQ_API_KEY"] = mock_key
+
+        client = OpenAIToolCallingClient()
+        self.assertEqual(client.timeout, 55.0)
+        self.assertEqual(client.max_retries, 4)
+
+        # Explicit constructor args take priority
+        client2 = OpenAIToolCallingClient(timeout=30.0, max_retries=1)
+        self.assertEqual(client2.timeout, 30.0)
+        self.assertEqual(client2.max_retries, 1)
+
+    def test_chat_completion_passes_timeout_and_job_id(self):
+        """chat_completion passes configured timeout and job_id in kwargs."""
+        mock_key = "".join(["g", "s", "k", "_"]) + "testdummyapikey1234567890"
+        client = OpenAIToolCallingClient(api_key=mock_key, timeout=25.0, max_retries=1)
+
+        mock_openai_client = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = "Test advice"
+        mock_choice.message.tool_calls = None
+        mock_choice.finish_reason = "stop"
+        mock_openai_client.chat.completions.create.return_value = MagicMock(choices=[mock_choice])
+
+        with patch.object(client, "_get_client", return_value=mock_openai_client):
+            with self.assertLogs("agriadvisor.agent_llm", level="INFO") as log_cm:
+                res = client.chat_completion(
+                    messages=[{"role": "user", "content": "Help with wheat"}],
+                    job_id="job_trace_123",
+                )
+                self.assertEqual(res.content, "Test advice")
+
+                # Verify kwargs to completions.create
+                create_kwargs = mock_openai_client.chat.completions.create.call_args[1]
+                self.assertEqual(create_kwargs.get("timeout"), 25.0)
+
+                # Verify logs contain job_id, provider, model, and duration
+                log_output = " ".join(log_cm.output)
+                self.assertIn("[job_trace_123]", log_output)
+                self.assertIn("LLM tool-calling request started", log_output)
+                self.assertIn("LLM tool-calling request completed", log_output)
+                self.assertNotIn(mock_key, log_output)
+
+    def test_agent_runner_enforces_max_execution_seconds(self):
+        """AgentRunner breaks out of reasoning loop when max_execution_seconds is exceeded."""
+        from services.agent_runner import AgentRunner
+        from services.tool_registry import ToolRegistry
+        registry = ToolRegistry()
+        mock_client = MagicMock()
+
+        # Mock client returning tool call indefinitely
+        from services.agent_llm import ToolCall
+        mock_client.chat_completion.return_value = AgentLLMResponse(
+            content=None,
+            tool_calls=[ToolCall(id="tc_1", name="dummy_tool", arguments="{}")],
+            finish_reason="tool_calls",
+        )
+
+        runner = AgentRunner(
+            tool_registry=registry,
+            llm_client=mock_client,
+            max_rounds=10,
+        )
+
+        # Set max_execution_seconds to 0.0 to immediately trigger time bound
+        result = runner.run(
+            user_query="Indefinite query",
+            max_execution_seconds=0.0,
+            job_id="job_bounded_time",
+        )
+        self.assertEqual(result.status, "max_rounds_reached")
+        self.assertEqual(result.rounds, 0)
+
+
+class WorkerLeaseRenewalRegressionTests(unittest.TestCase):
+    """Verifies that worker lease renewal prevents active work from being reclaimed."""
+
+    def setUp(self):
+        self.db = SessionLocal()
+        self.db.query(AgentJob).delete()
+        self.db.query(ChatMessage).delete()
+        self.db.query(ChatSession).delete()
+        self.db.query(User).delete()
+        self.db.commit()
+
+        self.test_user = User(
+            name="Lease Farmer",
+            email="lease_farmer@example.com",
+            password="hashedpassword123",
+            language="en",
+            city="Ludhiana",
+        )
+        self.db.add(self.test_user)
+        self.db.commit()
+
+    def tearDown(self):
+        self.db.close()
+
+    def test_worker_default_lease_is_180_seconds(self):
+        """Worker defaults to a 180-second lease, overridable by JOB_LEASE_SECONDS."""
+        worker = AgentWorker()
+        self.assertEqual(worker.lease_seconds, 180)
+
+        with patch.dict(os.environ, {"JOB_LEASE_SECONDS": "240"}):
+            worker2 = AgentWorker()
+            self.assertEqual(worker2.lease_seconds, 240)
+
+    def test_renew_lease_extends_timeout_for_owned_job(self):
+        """worker.renew_lease() successfully pushes lease_timeout_at forward."""
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        initial_timeout = now + timedelta(seconds=60)
+        job = AgentJob(
+            id="job_renew_lease_test",
+            user_id=self.test_user.id,
+            idempotency_key="idemp_renew_1",
+            payload_hash="hash_renew_1",
+            payload=json.dumps({"message": "test"}),
+            status="RUNNING",
+            locked_by="worker_owner_1",
+            locked_at=now,
+            lease_timeout_at=initial_timeout,
+            attempt_count=1,
+            max_attempts=3,
+        )
+        self.db.add(job)
+        self.db.commit()
+
+        worker = AgentWorker(worker_id="worker_owner_1", lease_seconds=180)
+        renewed = worker.renew_lease("job_renew_lease_test")
+        self.assertTrue(renewed, "renew_lease must return True for owned RUNNING job")
+
+        self.db.expire_all()
+        updated_job = self.db.query(AgentJob).filter(AgentJob.id == "job_renew_lease_test").first()
+        self.assertGreater(updated_job.lease_timeout_at, initial_timeout)
+
+    def test_renew_lease_fails_if_ownership_lost(self):
+        """worker.renew_lease() returns False if the job was stolen or fenced."""
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        job = AgentJob(
+            id="job_lost_lease_test",
+            user_id=self.test_user.id,
+            idempotency_key="idemp_lost_1",
+            payload_hash="hash_lost_1",
+            payload=json.dumps({"message": "test"}),
+            status="RUNNING",
+            locked_by="other_worker",
+            locked_at=now,
+            lease_timeout_at=now + timedelta(seconds=60),
+            attempt_count=1,
+            max_attempts=3,
+        )
+        self.db.add(job)
+        self.db.commit()
+
+        worker = AgentWorker(worker_id="my_worker", lease_seconds=180)
+        renewed = worker.renew_lease("job_lost_lease_test")
+        self.assertFalse(renewed, "renew_lease must return False if job is locked by other worker")
+
+
+class KnowledgeBaseNonBlockingReadinessTests(unittest.TestCase):
+    """Verifies that RAG path cannot block indefinitely or race with KB initialization."""
+
+    def test_ensure_knowledge_base_ready_non_blocking_when_lock_held(self):
+        """ensure_knowledge_base_ready returns False immediately if _INIT_LOCK is held."""
+        from services.knowledge_base import _INIT_LOCK, ensure_knowledge_base_ready, KNOWLEDGE_BASE_READY
+
+        KNOWLEDGE_BASE_READY.clear()
+        with _INIT_LOCK:
+            # While initialization lock is held by another thread, readiness check must be non-blocking
+            ready = ensure_knowledge_base_ready(timeout_seconds=0.05)
+            self.assertFalse(ready, "Must return False without blocking indefinitely when lock is held")
+
+    def test_search_knowledge_base_skips_when_not_ready(self):
+        """search_knowledge_base returns [] without blocking when KB is not ready."""
+        from services.knowledge_base import _INIT_LOCK, search_knowledge_base, KNOWLEDGE_BASE_READY
+
+        KNOWLEDGE_BASE_READY.clear()
+        with _INIT_LOCK:
+            docs = search_knowledge_base("wheat rust treatment")
+            self.assertEqual(docs, [], "Must return empty results without blocking when KB is warming up")
+
+    def test_tool_handlers_return_unavailable_retryable_when_kb_not_ready(self):
+        """Tool handlers return status='unavailable' with retryable=True when KB is warming up."""
+        from services.knowledge_base import _INIT_LOCK, KNOWLEDGE_BASE_READY
+        from services.tool_registry import (
+            SearchGovernmentSchemesInput,
+            SearchKnowledgeBaseInput,
+            handle_search_government_schemes,
+            handle_search_knowledge_base,
+        )
+
+        KNOWLEDGE_BASE_READY.clear()
+        with _INIT_LOCK:
+            res_kb = handle_search_knowledge_base(SearchKnowledgeBaseInput(query="paddy blast"))
+            self.assertEqual(res_kb.get("status"), "unavailable")
+            self.assertTrue(res_kb.get("retryable"))
+            self.assertIn("warming up", res_kb.get("message", "").lower())
+
+            res_scheme = handle_search_government_schemes(
+                SearchGovernmentSchemesInput(query="pm kisan")
+            )
+            self.assertEqual(res_scheme.get("status"), "unavailable")
+            self.assertTrue(res_scheme.get("retryable"))
+            self.assertIn("warming up", res_scheme.get("message", "").lower())
+
+
 if __name__ == "__main__":
     unittest.main()

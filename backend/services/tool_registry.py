@@ -80,7 +80,17 @@ class SearchGovernmentSchemesInput(BaseModel):
 def handle_search_knowledge_base(params: SearchKnowledgeBaseInput) -> Dict[str, Any]:
     """Execute vector search over curated agronomic documentation."""
     try:
-        from services.knowledge_base import search_knowledge_base
+        from services.knowledge_base import ensure_knowledge_base_ready, search_knowledge_base
+
+        if not ensure_knowledge_base_ready(timeout_seconds=0.2):
+            return {
+                "status": "unavailable",
+                "message": (
+                    "Agricultural knowledge base is currently initializing or warming up. "
+                    "Verified agronomic document search is temporarily unavailable; please retry shortly."
+                ),
+                "retryable": True,
+            }
 
         docs = search_knowledge_base(params.query)
         if not docs:
@@ -180,7 +190,17 @@ def handle_get_market_prices(params: GetMarketPricesInput) -> Dict[str, Any]:
 def handle_search_government_schemes(params: SearchGovernmentSchemesInput) -> Dict[str, Any]:
     """Fetch verified government scheme guidelines and subsidy details."""
     try:
-        from services.knowledge_base import search_government_schemes
+        from services.knowledge_base import ensure_knowledge_base_ready, search_government_schemes
+
+        if not ensure_knowledge_base_ready(timeout_seconds=0.2):
+            return {
+                "status": "unavailable",
+                "message": (
+                    "Government schemes knowledge base is currently initializing or warming up. "
+                    "Verified scheme search is temporarily unavailable; please retry shortly."
+                ),
+                "retryable": True,
+            }
 
         docs = search_government_schemes(params.query)
         if not docs:

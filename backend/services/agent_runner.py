@@ -8,6 +8,9 @@ receives validated results, and synthesizes grounded agricultural advisory respo
 from __future__ import annotations
 
 import json
+import logging
+import os
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +24,9 @@ from services.tool_registry import (
     create_default_agricultural_tool_registry,
 )
 
+logger = logging.getLogger("agriadvisor.agent_runner")
+
+DEFAULT_MAX_RUN_SECONDS = float(os.getenv("AGENT_MAX_RUN_SECONDS", "120.0"))
 
 DEFAULT_AGENT_SYSTEM_PROMPT = """You are an experienced, expert agricultural advisor helping Indian farmers.
 You have access to live tools to look up verified information:
@@ -66,11 +72,23 @@ class AgentRunner:
         self,
         user_query: str,
         conversation_context: Optional[str] = None,
+        job_id: Optional[str] = None,
+        max_execution_seconds: Optional[float] = None,
     ) -> AgentRunResult:
         """
-        Execute bounded tool-calling loop until LLM provides a final text response
-        or max_rounds is reached.
+        Execute bounded tool-calling loop until LLM provides a final text response,
+        max_rounds is reached, or max_execution_seconds is exceeded.
         """
+        start_time = time.monotonic()
+        max_sec = float(max_execution_seconds if max_execution_seconds is not None else DEFAULT_MAX_RUN_SECONDS)
+        job_prefix = f"[{job_id}] " if job_id else ""
+        logger.info(
+            "%sAgent run started [max_rounds=%d, max_execution_seconds=%.1fs]",
+            job_prefix,
+            self.max_rounds,
+            max_sec,
+        )
+
         tool_specs = self.registry.get_openai_tools()
         messages: List[Dict[str, Any]] = [
             {"role": "system", "content": self.system_prompt}
@@ -91,13 +109,39 @@ class AgentRunner:
         rounds = 0
 
         while rounds < self.max_rounds:
+            elapsed_so_far = time.monotonic() - start_time
+            if elapsed_so_far >= max_sec:
+                logger.warning(
+                    "%sAgent run reached max execution time (%.2fs >= %.1fs) at round %d; finalizing",
+                    job_prefix,
+                    elapsed_so_far,
+                    max_sec,
+                    rounds,
+                )
+                break
+
             rounds += 1
+            logger.info(
+                "%sRound %d/%d starting [elapsed=%.2fs]",
+                job_prefix,
+                rounds,
+                self.max_rounds,
+                elapsed_so_far,
+            )
             try:
                 response = self.client.chat_completion(
                     messages=messages,
                     tools=tool_specs,
+                    job_id=job_id,
                 )
             except Exception as llm_err:
+                elapsed_err = time.monotonic() - start_time
+                logger.error(
+                    "%sAgent run aborted on LLM error in %.2fs: %s",
+                    job_prefix,
+                    elapsed_err,
+                    type(llm_err).__name__,
+                )
                 return AgentRunResult(
                     answer=(
                         "I encountered a temporary service issue connecting to the AI advisory model. "
@@ -131,7 +175,17 @@ class AgentRunner:
 
                 # Process and execute each requested tool call
                 for tc in response.tool_calls:
+                    t_start = time.monotonic()
+                    logger.info("%sTool call '%s' started [round=%d]", job_prefix, tc.name, rounds)
                     exec_result = self.registry.execute(tc.name, tc.arguments)
+                    t_elapsed = time.monotonic() - t_start
+                    logger.info(
+                        "%sTool call '%s' completed in %.2fs [success=%s]",
+                        job_prefix,
+                        tc.name,
+                        t_elapsed,
+                        exec_result.get("success", False),
+                    )
 
                     # Extract arguments for audit trail
                     parsed_args = tc.arguments
@@ -166,6 +220,14 @@ class AgentRunner:
 
             # If the model emitted final text content without tool calls
             if response.content:
+                elapsed_total = time.monotonic() - start_time
+                logger.info(
+                    "%sAgent run completed in %.2fs [rounds=%d, tool_calls=%d, status=completed]",
+                    job_prefix,
+                    elapsed_total,
+                    rounds,
+                    len(tool_calls_executed),
+                )
                 return AgentRunResult(
                     answer=response.content.strip(),
                     tool_calls_executed=tool_calls_executed,
@@ -174,7 +236,7 @@ class AgentRunner:
                     status="completed",
                 )
 
-        # Loop exhausted max_rounds without a final answer: request final grounded summary
+        # Loop exhausted max_rounds or max_sec without a final answer: request final grounded summary
         try:
             messages.append({
                 "role": "user",
@@ -183,8 +245,15 @@ class AgentRunner:
                     "on the retrieved information above."
                 ),
             })
-            final_resp = self.client.chat_completion(messages=messages, tools=None)
+            final_resp = self.client.chat_completion(messages=messages, tools=None, job_id=job_id)
             if final_resp.content:
+                logger.info(
+                    "%sAgent run finalized in %.2fs [rounds=%d, tool_calls=%d, status=max_rounds_reached]",
+                    job_prefix,
+                    time.monotonic() - start_time,
+                    rounds,
+                    len(tool_calls_executed),
+                )
                 return AgentRunResult(
                     answer=final_resp.content.strip(),
                     tool_calls_executed=tool_calls_executed,
@@ -195,6 +264,13 @@ class AgentRunner:
         except Exception:
             pass
 
+        logger.info(
+            "%sAgent run exhausted in %.2fs [rounds=%d, tool_calls=%d, status=max_rounds_reached]",
+            job_prefix,
+            time.monotonic() - start_time,
+            rounds,
+            len(tool_calls_executed),
+        )
         return AgentRunResult(
             answer=(
                 f"I performed {len(tool_calls_executed)} research steps but reached the maximum allowed "

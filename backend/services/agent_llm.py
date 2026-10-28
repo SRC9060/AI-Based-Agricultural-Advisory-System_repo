@@ -70,6 +70,12 @@ def _sanitize_diagnostic_text(text: str, api_key: Optional[str] = None) -> str:
     return cleaned
 
 
+import time
+
+DEFAULT_LLM_TIMEOUT_SECONDS = float(os.getenv("AGENT_LLM_TIMEOUT_SECONDS", "45.0"))
+DEFAULT_LLM_MAX_RETRIES = int(os.getenv("AGENT_LLM_MAX_RETRIES", "2"))
+
+
 @dataclass
 class ToolCall:
     id: str
@@ -92,6 +98,8 @@ class BaseLLMClient:
         messages: List[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.2,
+        timeout: Optional[float] = None,
+        job_id: Optional[str] = None,
     ) -> AgentLLMResponse:
         raise NotImplementedError
 
@@ -99,7 +107,8 @@ class BaseLLMClient:
 class OpenAIToolCallingClient(BaseLLMClient):
     """
     OpenAI-compatible LLM client supporting native tool calling.
-    Automatically prioritizes configured keys (Groq ultra-fast or OpenAI).
+    Automatically prioritizes configured keys (Groq ultra-fast or OpenAI),
+    enforces bounded timeouts and retry limits, and logs request lifecycle.
     """
 
     def __init__(
@@ -107,9 +116,24 @@ class OpenAIToolCallingClient(BaseLLMClient):
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
     ):
         groq_key = os.getenv("GROQ_API_KEY") or getattr(Config, "GROQ_API_KEY", None)
         openai_key = os.getenv("OPENAI_API_KEY") or getattr(Config, "OPENAI_API_KEY", None)
+
+        env_timeout = os.getenv("AGENT_LLM_TIMEOUT_SECONDS")
+        self.timeout = float(
+            timeout
+            if timeout is not None
+            else (float(env_timeout) if env_timeout else DEFAULT_LLM_TIMEOUT_SECONDS)
+        )
+        env_retries = os.getenv("AGENT_LLM_MAX_RETRIES")
+        self.max_retries = int(
+            max_retries
+            if max_retries is not None
+            else (int(env_retries) if env_retries else DEFAULT_LLM_MAX_RETRIES)
+        )
 
         if api_key:
             self.api_key = api_key
@@ -141,7 +165,11 @@ class OpenAIToolCallingClient(BaseLLMClient):
             )
         if self._client is None:
             from openai import OpenAI
-            kwargs: Dict[str, Any] = {"api_key": self.api_key}
+            kwargs: Dict[str, Any] = {
+                "api_key": self.api_key,
+                "timeout": self.timeout,
+                "max_retries": self.max_retries,
+            }
             if self.base_url:
                 kwargs["base_url"] = self.base_url
             self._client = OpenAI(**kwargs)
@@ -152,21 +180,37 @@ class OpenAIToolCallingClient(BaseLLMClient):
         messages: List[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.2,
+        timeout: Optional[float] = None,
+        job_id: Optional[str] = None,
     ) -> AgentLLMResponse:
         client = self._get_client()
 
+        req_timeout = float(timeout if timeout is not None else self.timeout)
         kwargs: Dict[str, Any] = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
+            "timeout": req_timeout,
         }
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
 
+        job_prefix = f"[{job_id}] " if job_id else ""
+        logger.info(
+            "%sLLM tool-calling request started [provider=%s, model=%s, timeout=%.1fs, max_retries=%d]",
+            job_prefix,
+            self.provider,
+            self.model,
+            req_timeout,
+            self.max_retries,
+        )
+
+        start_time = time.monotonic()
         try:
             response = client.chat.completions.create(**kwargs)
         except Exception as err:
+            elapsed = time.monotonic() - start_time
             exc_category = type(err).__name__
             status_code = getattr(err, "status_code", None)
             if status_code is None and hasattr(err, "response"):
@@ -188,7 +232,9 @@ class OpenAIToolCallingClient(BaseLLMClient):
 
             diag_str = " ".join(diag_parts)
             logger.error(
-                "LLM tool-calling API failure [%s]: %s",
+                "%sLLM tool-calling API failure in %.2fs [%s]: %s",
+                job_prefix,
+                elapsed,
                 diag_str,
                 sanitized_msg,
             )
@@ -199,6 +245,7 @@ class OpenAIToolCallingClient(BaseLLMClient):
                 f"LLM tool-calling error ({self.provider}/{self.model} - {exc_category}{status_str}{code_str}): {sanitized_msg}"
             ) from err
 
+        elapsed = time.monotonic() - start_time
         choice = response.choices[0]
         msg = choice.message
         content = msg.content
@@ -214,6 +261,16 @@ class OpenAIToolCallingClient(BaseLLMClient):
                     )
                 )
 
+        logger.info(
+            "%sLLM tool-calling request completed in %.2fs [provider=%s, model=%s, tool_calls=%d, finish_reason=%s]",
+            job_prefix,
+            elapsed,
+            self.provider,
+            self.model,
+            len(tool_calls),
+            choice.finish_reason,
+        )
+
         return AgentLLMResponse(
             content=content,
             tool_calls=tool_calls,
@@ -227,9 +284,13 @@ class MockToolCallingClient(BaseLLMClient):
     def __init__(
         self,
         responses: Optional[List[AgentLLMResponse | Callable[..., AgentLLMResponse]]] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
     ):
         self.responses: List[Any] = list(responses) if responses else []
         self.call_history: List[Dict[str, Any]] = []
+        self.timeout = timeout
+        self.max_retries = max_retries
 
     def queue_response(self, response: AgentLLMResponse | Callable[..., AgentLLMResponse]) -> None:
         self.responses.append(response)
@@ -239,11 +300,15 @@ class MockToolCallingClient(BaseLLMClient):
         messages: List[Dict[str, Any]],
         tools: Optional[List[Dict[str, Any]]] = None,
         temperature: float = 0.2,
+        timeout: Optional[float] = None,
+        job_id: Optional[str] = None,
     ) -> AgentLLMResponse:
         self.call_history.append({
             "messages": messages,
             "tools": tools,
             "temperature": temperature,
+            "timeout": timeout,
+            "job_id": job_id,
         })
         if not self.responses:
             return AgentLLMResponse(

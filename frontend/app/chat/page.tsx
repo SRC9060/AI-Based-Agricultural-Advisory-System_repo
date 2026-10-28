@@ -53,6 +53,8 @@ interface Message {
   toolCalls?: ToolCallRecord[];
   toolCallsCount?: number;
   jobId?: string;
+  jobStatus?: string;
+  isPending?: boolean;
   isError?: boolean;
 }
 
@@ -170,6 +172,85 @@ function ChatContent() {
     }
     return [];
   }, []);
+
+  const [checkingJobId, setCheckingJobId] = useState<string | null>(null);
+
+  const checkJobStatus = useCallback(
+    async (targetJobId: string, messageIndex: number) => {
+      if (!targetJobId) return;
+      try {
+        setCheckingJobId(targetJobId);
+        setStatus(`🔍 Checking status for job ${targetJobId.slice(0, 12)}...`);
+        const statusRes = await apiFetch(`${API_URL}/agent/jobs/${targetJobId}`);
+        if (!statusRes.ok) {
+          setStatus("❌ Could not retrieve job status.");
+          return;
+        }
+        const jobData = await statusRes.json();
+        if (jobData.status === "COMPLETED") {
+          const resData = jobData.result || {};
+          setMessages((previous) =>
+            previous.map((msg, idx) =>
+              idx === messageIndex
+                ? {
+                    ...msg,
+                    text: resData.answer || "Advisory query completed.",
+                    toolCalls: resData.tool_calls || [],
+                    toolCallsCount:
+                      resData.tool_calls_count ?? (resData.tool_calls?.length || 0),
+                    jobStatus: "COMPLETED",
+                    isPending: false,
+                    isError: false,
+                  }
+                : msg,
+            ),
+          );
+          setStatus("✅ Agent job completed!");
+          if (session) void loadSessions(session.userId);
+        } else if (jobData.status === "FAILED") {
+          const errorMsg =
+            jobData.error_summary || "An unexpected error occurred during execution.";
+          setMessages((previous) =>
+            previous.map((msg, idx) =>
+              idx === messageIndex
+                ? {
+                    ...msg,
+                    text: `Agent job could not be completed: ${errorMsg}`,
+                    jobStatus: "FAILED",
+                    isPending: false,
+                    isError: true,
+                  }
+                : msg,
+            ),
+          );
+          setStatus("❌ Agent job failed.");
+        } else {
+          // Still RUNNING, RETRY_WAIT, or PENDING
+          setMessages((previous) =>
+            previous.map((msg, idx) =>
+              idx === messageIndex
+                ? {
+                    ...msg,
+                    jobStatus: jobData.status,
+                    text: `Your request is still being processed by the background agent worker (Job ID: ${targetJobId}, Status: ${jobData.status}, Attempt: ${jobData.attempt_count}/${jobData.max_attempts}).`,
+                    isPending: true,
+                  }
+                : msg,
+            ),
+          );
+          setStatus(
+            `⏳ Job is currently ${jobData.status.toLowerCase()} (attempt ${jobData.attempt_count}/${jobData.max_attempts}).`,
+          );
+        }
+      } catch (err) {
+        console.error("Error checking job status:", err);
+        setStatus("❌ Failed to connect to server to check status.");
+      } finally {
+        setCheckingJobId(null);
+      }
+    },
+    [session, loadSessions],
+  );
 
   const selectSession = useCallback(
     async (id: number) => {
@@ -471,6 +552,7 @@ useEffect(() => {
           let pollAttempts = 0;
           const maxAttempts = 30; // 30 * 1.5s = ~45s
           let isDone = false;
+          let lastKnownStatus = "RUNNING";
 
           while (pollAttempts < maxAttempts && !isDone) {
             await new Promise((r) => setTimeout(r, 1500));
@@ -508,6 +590,7 @@ useEffect(() => {
             }
 
             const currentJob = await pollRes.json();
+            lastKnownStatus = currentJob.status || "RUNNING";
             if (currentJob.status === "COMPLETED") {
               isDone = true;
               const resPayload = currentJob.result || {};
@@ -527,6 +610,8 @@ useEffect(() => {
                   toolCalls,
                   toolCallsCount,
                   jobId,
+                  jobStatus: "COMPLETED",
+                  isPending: false,
                 },
               ]);
               setStatus("");
@@ -550,6 +635,8 @@ useEffect(() => {
                   text: `Agent job could not be completed: ${errorMsg}`,
                   workflow: selectedWorkflow,
                   jobId,
+                  jobStatus: "FAILED",
+                  isPending: false,
                   isError: true,
                 },
               ]);
@@ -566,14 +653,17 @@ useEffect(() => {
           }
 
           if (!isDone) {
+            const finalStatus = lastKnownStatus;
             setStatus("⏳ Agent job is still running in background.");
             setMessages((previous) => [
               ...previous,
               {
                 type: "ai",
-                text: `Your request is still being processed by the background agent worker (Job ID: ${jobId}). You can check back shortly or review your session history.`,
+                text: `Your request is still being processed by the background agent worker (Job ID: ${jobId}, Status: ${finalStatus}). You can check its status at any time using the button below.`,
                 workflow: selectedWorkflow,
                 jobId,
+                jobStatus: finalStatus,
+                isPending: true,
               },
             ]);
           }
@@ -1573,16 +1663,38 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
                         className={`text-xs font-medium ${
                           message.isError
                             ? "text-rose-500 dark:text-rose-400"
-                            : "text-slate-500 dark:text-slate-400"
+                            : message.isPending
+                              ? "text-amber-600 dark:text-amber-400 font-semibold"
+                              : "text-slate-500 dark:text-slate-400"
                         }`}
                       >
                         {message.isError
                           ? "Execution failed"
-                          : (message.toolCallsCount ?? (message.toolCalls?.length || 0)) === 0
-                            ? "Direct LLM response (no tools needed)"
-                            : `${message.toolCallsCount ?? message.toolCalls?.length} tool${(message.toolCallsCount ?? message.toolCalls?.length) === 1 ? "" : "s"} called`}
+                          : message.isPending
+                            ? `Status: ${message.jobStatus || "In Progress"}`
+                            : (message.toolCallsCount ?? (message.toolCalls?.length || 0)) === 0
+                              ? "Direct LLM response (no tools needed)"
+                              : `${message.toolCallsCount ?? message.toolCalls?.length} tool${(message.toolCallsCount ?? message.toolCalls?.length) === 1 ? "" : "s"} called`}
                       </span>
                     </div>
+
+                    {message.isPending && message.jobId && (
+                      <div className="mt-2 mb-1.5">
+                        <button
+                          type="button"
+                          disabled={checkingJobId === message.jobId}
+                          onClick={() => void checkJobStatus(message.jobId!, index)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <span>🔄</span>
+                          <span>
+                            {checkingJobId === message.jobId
+                              ? "Checking..."
+                              : "Check Job Status"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
 
                     {message.toolCalls && message.toolCalls.length > 0 && (
                       <details className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 group">
