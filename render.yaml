@@ -8,15 +8,11 @@ services:
   - type: web
     name: agriadvisor-backend
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     rootDir: backend
     dockerfilePath: ./Dockerfile
     healthCheckPath: /
-    disk:
-      name: agriadvisor-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -36,9 +32,9 @@ services:
       - key: RATE_LIMIT_TRUST_PROXY
         value: "true"
       - key: KNOWLEDGE_BASE_PATH
-        value: /var/data/knowledge_base
+        value: /app/knowledge_base
       - key: CHROMA_DB_PATH
-        value: /var/data/chroma_db
+        value: /app/chroma_db
       - key: ALLOWED_ORIGINS
         sync: false
       - key: OPENAI_API_KEY
@@ -67,7 +63,7 @@ services:
   - type: web
     name: agriadvisor-pwa
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     rootDir: frontend
     dockerfilePath: ./Dockerfile

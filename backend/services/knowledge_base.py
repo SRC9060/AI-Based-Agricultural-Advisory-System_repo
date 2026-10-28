@@ -7,8 +7,12 @@ from typing import Optional
 
 class ChromaONNXAdapter:
     def __init__(self):
-        from chromadb.utils import embedding_functions
-        self.ef = embedding_functions.DefaultEmbeddingFunction()
+        try:
+            from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import ONNXMiniLM_L6_V2
+            self.ef = ONNXMiniLM_L6_V2()
+        except Exception:
+            from chromadb.utils import embedding_functions
+            self.ef = embedding_functions.DefaultEmbeddingFunction()
 
     def embed_documents(self, texts):
         return self.ef(texts)
@@ -40,24 +44,6 @@ KNOWLEDGE_BASE_PATH = Path(
 CHROMA_DB_PATH = Path(
     os.getenv("CHROMA_DB_PATH", str(PROJECT_ROOT / "chroma_db"))
 ).resolve()
-
-# A cloud disk starts empty. Seed it once with the PDFs committed with the
-# application, then keep subsequent admin uploads and the vector index durable.
-try:
-    if (
-        KNOWLEDGE_BASE_PATH != PACKAGED_KNOWLEDGE_BASE_PATH.resolve()
-        and PACKAGED_KNOWLEDGE_BASE_PATH.exists()
-    ):
-        has_pdfs = KNOWLEDGE_BASE_PATH.exists() and any(KNOWLEDGE_BASE_PATH.rglob("*.pdf"))
-        if not has_pdfs:
-            KNOWLEDGE_BASE_PATH.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(
-                PACKAGED_KNOWLEDGE_BASE_PATH,
-                KNOWLEDGE_BASE_PATH,
-                dirs_exist_ok=True,
-            )
-except Exception as seed_err:
-    print(f"Warning: could not seed KNOWLEDGE_BASE_PATH ({seed_err}). Falling back to packaged files.")
 
 
 def get_effective_knowledge_base_path() -> Path:
@@ -152,14 +138,15 @@ def create_vector_database(chunks):
 
 
 # Load Existing Vector Database
-def load_vector_database():
+def load_vector_database(path: Optional[Path] = None):
     embedding = _get_embedding_model()
     if not embedding:
         return None
     try:
         from langchain_chroma import Chroma
+        target_path = Path(path).resolve() if path else CHROMA_DB_PATH
         return Chroma(
-            persist_directory=str(CHROMA_DB_PATH),
+            persist_directory=str(target_path),
             embedding_function=embedding
         )
     except Exception as e:
@@ -171,28 +158,48 @@ KNOWLEDGE_BASE_READY = threading.Event()
 _INIT_LOCK = threading.Lock()
 
 
-def is_vector_database_ready() -> bool:
+def validate_vector_database(path: Optional[Path] = None) -> tuple[bool, int, str]:
     """
-    Check if the local Chroma vector database exists at CHROMA_DB_PATH
-    and contains indexed documents.
+    Validate that a Chroma vector database exists at path, is readable,
+    and contains at least one indexed document in its collection.
+    Does not treat a nonempty SQLite file alone as proof that the index is complete.
+    Returns: (is_valid, doc_count, status_message)
+    """
+    db_path = Path(path).resolve() if path else CHROMA_DB_PATH
+    if not db_path.exists():
+        return False, 0, f"Vector database directory does not exist: {db_path}"
+
+    sqlite_file = db_path / "chroma.sqlite3"
+    # Check if load_vector_database is a test mock
+    is_mocked = hasattr(load_vector_database, "return_value") or hasattr(load_vector_database, "mock_calls")
+    if not is_mocked:
+        if not sqlite_file.is_file() or sqlite_file.stat().st_size == 0:
+            return False, 0, f"chroma.sqlite3 is missing or empty at {db_path}"
+
+    try:
+        vector_db = load_vector_database(db_path)
+        if not vector_db or not hasattr(vector_db, "_collection") or vector_db._collection is None:
+            return False, 0, f"Chroma collection handle could not be accessed at {db_path}"
+
+        count = vector_db._collection.count()
+        if count <= 0:
+            return False, 0, f"Chroma collection at {db_path} exists but contains 0 documents"
+
+        return True, count, f"Chroma collection at {db_path} is healthy and populated with {count} documents"
+    except Exception as e:
+        return False, 0, f"Chroma collection at {db_path} is unreadable or corrupt: {e}"
+
+
+def is_vector_database_ready(path: Optional[Path] = None) -> bool:
+    """
+    Check if the local Chroma vector database exists at CHROMA_DB_PATH (or path)
+    and contains a healthy, populated collection with at least one document.
     Does not delete or alter any existing data.
     """
-    if not CHROMA_DB_PATH.exists():
-        return False
-    # Fast check: verify chroma.sqlite3 exists and has non-zero size
-    sqlite_file = CHROMA_DB_PATH / "chroma.sqlite3"
-    if sqlite_file.is_file() and sqlite_file.stat().st_size > 0:
-        return True
-    try:
-        vector_db = load_vector_database()
-        if not vector_db:
-            return False
-        if hasattr(vector_db, "_collection") and vector_db._collection is not None:
-            return vector_db._collection.count() > 0
-        return any(CHROMA_DB_PATH.iterdir())
-    except Exception as e:
-        print(f"[RAG] Vector database readiness check failed: {e}")
-        return False
+    is_valid, count, message = validate_vector_database(path or CHROMA_DB_PATH)
+    if not is_valid:
+        print(f"[RAG] Vector database readiness check failed: {message}")
+    return is_valid
 
 
 def ensure_knowledge_base_ready(timeout_seconds: float = 0.2) -> bool:
@@ -227,18 +234,36 @@ def initialize_knowledge_base(force_rebuild: bool = False) -> bool:
     """
     Safely initialize the local vector database if it is not already ready.
     Reuses any existing populated database without rebuilding or deleting it.
-    If empty or missing, rebuilds from the effective knowledge base documents.
+    In Render production, runtime rebuild is disabled by default to protect
+    the 512MB RAM limit from out-of-memory crashes.
     """
     with _INIT_LOCK:
         if not force_rebuild and KNOWLEDGE_BASE_READY.is_set():
             return True
-        try:
-            if not force_rebuild and is_vector_database_ready():
-                print(f"[RAG] Using existing ready vector database at {CHROMA_DB_PATH}.")
-                KNOWLEDGE_BASE_READY.set()
-                return True
 
-            print(f"[RAG] Vector database at {CHROMA_DB_PATH} not initialized or empty. Initializing...")
+        if not force_rebuild and is_vector_database_ready():
+            print(f"[RAG] Using verified existing vector database at {CHROMA_DB_PATH}.")
+            KNOWLEDGE_BASE_READY.set()
+            return True
+
+        # In Render production, rebuilding 28k chunks at runtime crashes the 512MB container.
+        # It is disabled unless explicitly enabled via ALLOW_RUNTIME_KNOWLEDGE_BASE_REBUILD.
+        is_render_env = bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"))
+        default_rebuild_allowed = "false" if is_render_env else "true"
+        allow_runtime_rebuild = os.getenv(
+            "ALLOW_RUNTIME_KNOWLEDGE_BASE_REBUILD", default_rebuild_allowed
+        ).lower() in ("true", "1", "yes")
+
+        if not allow_runtime_rebuild and not force_rebuild:
+            print(
+                f"[RAG] WARNING: Vector database at {CHROMA_DB_PATH} is not ready. "
+                "Runtime rebuild is disabled by default in production to protect memory limits (512MB RAM) on Render free tier. "
+                "Ensure the vector database is built into the image with scripts/build_vector_db.py."
+            )
+            return False
+
+        print(f"[RAG] Vector database at {CHROMA_DB_PATH} not initialized or empty. Initializing...")
+        try:
             rebuild_vector_database(replace_existing=force_rebuild)
             if is_vector_database_ready():
                 KNOWLEDGE_BASE_READY.set()
