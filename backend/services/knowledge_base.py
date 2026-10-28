@@ -302,71 +302,186 @@ def start_knowledge_base_initialization() -> Optional[threading.Thread]:
         return _KB_INIT_THREAD
 
 
+# Specific crop folders under Crops/
+KNOWN_CROP_FOLDERS = {
+    "Tomato", "Chilli", "Cotton", "Groundnut", "Maize",
+    "Onion", "Potato", "Rice", "Sugarcane", "Wheat"
+}
+
+# General agronomy and cross-cutting folders
+GENERAL_AGRONOMY_FOLDERS = {
+    "Horticulture", "Diseases", "Pests", "Soil_Health", "Fertilizers",
+    "General_Agriculture", "Integrated_Farming", "Organic_Farming",
+    "Irrigation", "Weed_Management", "ICAR", "KCC_FAQs"
+}
+
+# Crop keyword normalization map
+CROP_KEYWORD_MAP = {
+    "tomato": "Tomato",
+    "tomatoes": "Tomato",
+    "wheat": "Wheat",
+    "rice": "Rice",
+    "paddy": "Rice",
+    "maize": "Maize",
+    "corn": "Maize",
+    "cotton": "Cotton",
+    "potato": "Potato",
+    "potatoes": "Potato",
+    "onion": "Onion",
+    "onions": "Onion",
+    "groundnut": "Groundnut",
+    "groundnuts": "Groundnut",
+    "peanut": "Groundnut",
+    "peanuts": "Groundnut",
+    "sugarcane": "Sugarcane",
+    "chilli": "Chilli",
+    "chillies": "Chilli",
+    "chili": "Chilli",
+    "chilies": "Chilli",
+    "pepper": "Chilli",
+    "peppers": "Chilli",
+}
+
+
+def detect_crop(query: str, explicit_crop: Optional[str] = None) -> Optional[str]:
+    """Detect and normalize target crop name from explicit crop param or query text."""
+    if explicit_crop and explicit_crop.strip():
+        norm = explicit_crop.strip().lower()
+        if norm in CROP_KEYWORD_MAP:
+            return CROP_KEYWORD_MAP[norm]
+        for folder in KNOWN_CROP_FOLDERS:
+            if folder.lower() == norm:
+                return folder
+        return explicit_crop.strip().title()
+
+    import re
+    query_lower = query.lower()
+    for kw, canon in CROP_KEYWORD_MAP.items():
+        if re.search(rf"\b{re.escape(kw)}\b", query_lower):
+            return canon
+    return None
+
+
+def is_duplicate_passage(candidate_content: str, seen_contents: list[str]) -> bool:
+    """
+    Check if candidate_content is an exact or near-duplicate of any already accepted passage.
+    Matches identical starting prefix or >= 70% word set overlap.
+    """
+    import re
+    cleaned_candidate = " ".join(candidate_content.split()).lower()
+    c_tokens = set(re.findall(r"\b[a-zA-Z0-9]+\b", cleaned_candidate))
+    if not c_tokens:
+        return True
+
+    cand_prefix = cleaned_candidate[:120]
+
+    for seen in seen_contents:
+        cleaned_seen = " ".join(seen.split()).lower()
+        seen_prefix = cleaned_seen[:120]
+        if cand_prefix and seen_prefix:
+            if cand_prefix in cleaned_seen or seen_prefix in cleaned_candidate:
+                return True
+        s_tokens = set(re.findall(r"\b[a-zA-Z0-9]+\b", cleaned_seen))
+        if s_tokens:
+            jaccard = len(c_tokens & s_tokens) / max(len(c_tokens | s_tokens), 1)
+            if jaccard >= 0.70:
+                return True
+    return False
+
+
 # General Search in Knowledge Base
-def search_knowledge_base(query):
+def search_knowledge_base(query: str, crop: Optional[str] = None):
     if not ensure_knowledge_base_ready(timeout_seconds=0.2):
         print("[RAG] Knowledge base is not ready or currently initializing; search skipped.")
         return []
     vector_db = load_vector_database()
     if not vector_db:
         return []
+
+    target_crop = detect_crop(query, crop)
+    candidates: list[tuple[Any, float]] = []
+
+    # 1. General similarity search with scores (returns all candidates)
     try:
-        results_with_scores = (
-            vector_db.similarity_search_with_score(
-                query,
-                k=10
-            )
+        results_with_scores = vector_db.similarity_search_with_score(
+            query,
+            k=15 if target_crop else 10,
         )
+        for doc, score in results_with_scores:
+            if score < 1.3:
+                candidates.append((doc, score))
     except Exception as e:
         print("Knowledge base search error:", e)
-        return []
-    results = []
-    print("\n===== Retrieved Documents =====")
-    for doc, score in results_with_scores:
-        print(f"Score: {score:.4f}")
-        print("Folder:", doc.metadata.get("folder"))
-        print("Source:", doc.metadata.get("source"))
-        print(_safe_console_preview(doc.page_content, 200))
-        print("-" * 50)
-        if score < 1.2:
-            results.append(doc)
 
-    crop_keywords = {
-        "wheat": "Wheat",
-        "rice": "Rice",
-        "paddy": "Rice",
-        "maize": "Maize",
-        "corn": "Maize",
-        "cotton": "Cotton",
-        "potato": "Potato",
-        "tomato": "Tomato",
-        "onion": "Onion",
-        "groundnut": "Groundnut",
-        "peanut": "Groundnut",
-        "sugarcane": "Sugarcane",
-        "chilli": "Chilli",
-        "pepper": "Chilli",
-        "pest": "Pest",
-        "disease": "Disease",
-    }
-    detected_crop = None
-    query_lower = query.lower()
-    for crop in crop_keywords:
-        if crop in query_lower:
-            detected_crop = crop_keywords[crop]
-            break
-    if detected_crop:
+    # 2. Targeted crop-specific search if target_crop is known
+    if target_crop and target_crop in KNOWN_CROP_FOLDERS:
         try:
             crop_results = vector_db.similarity_search(
                 query,
-                k=5,
-                filter={"folder": detected_crop},
+                k=6,
+                filter={"folder": target_crop},
             )
-            if crop_results:
-                return crop_results
+            for doc in crop_results:
+                candidates.append((doc, 0.4))
         except Exception:
             pass
-    return results[:5]
+
+    if not candidates:
+        return []
+
+    # 3. Deduplicate candidate passages
+    deduped_candidates: list[tuple[Any, float]] = []
+    seen_contents: list[str] = []
+
+    for doc, score in candidates:
+        content = (doc.page_content or "").strip()
+        if not content:
+            continue
+        if is_duplicate_passage(content, seen_contents):
+            continue
+        seen_contents.append(content)
+        deduped_candidates.append((doc, score))
+
+    # 4. If no target crop, sort by similarity score and return top 5
+    if not target_crop:
+        deduped_candidates.sort(key=lambda item: item[1] if item[1] is not None else 999.0)
+        return [doc for doc, _ in deduped_candidates[:5]]
+
+    # 5. Crop-aware ranking & tiered filtering when target_crop is known
+    target_crop_lower = target_crop.lower()
+    tier1_target: list[tuple[Any, float]] = []
+    tier2_general: list[tuple[Any, float]] = []
+    tier3_unrelated: list[tuple[Any, float]] = []
+
+    for doc, score in deduped_candidates:
+        folder = doc.metadata.get("folder", "") if doc.metadata else ""
+        filename = doc.metadata.get("filename", "") if doc.metadata else ""
+        content_preview = (doc.page_content or "")[:250].lower()
+
+        # Tier 1: Target Crop
+        if folder == target_crop or target_crop_lower in filename.lower() or target_crop_lower in content_preview:
+            tier1_target.append((doc, score))
+        # Tier 3: Unrelated specific crop
+        elif folder in KNOWN_CROP_FOLDERS and folder != target_crop:
+            tier3_unrelated.append((doc, score))
+        # Tier 2: General agronomy, Horticulture, Diseases, Pests, Soil Health, etc.
+        else:
+            tier2_general.append((doc, score))
+
+    # Sort each tier by similarity score (lower distance = better match)
+    tier1_target.sort(key=lambda item: item[1] if item[1] is not None else 999.0)
+    tier2_general.sort(key=lambda item: item[1] if item[1] is not None else 999.0)
+    tier3_unrelated.sort(key=lambda item: item[1] if item[1] is not None else 999.0)
+
+    # Filtering rule:
+    # If Tier 1 + Tier 2 has sufficient evidence (at least 3 documents),
+    # drop Tier 3 (unrelated crops like Sugarcane, Groundnut) completely.
+    combined_relevant = tier1_target + tier2_general
+    if len(combined_relevant) >= 3:
+        return [doc for doc, _ in combined_relevant[:5]]
+
+    # If few target/general documents exist, combine all tiers in priority order
+    return [doc for doc, _ in (tier1_target + tier2_general + tier3_unrelated)[:5]]
 
 
 # Search Documents inside Government Schemes 
@@ -411,10 +526,15 @@ def search_government_schemes(query):
             print("DEBUG scheme fallback search failed:", e)
             return []
 
+    seen_scheme_texts: list[str] = []
     for doc, score in results_with_scores:
         folder = doc.metadata.get("folder")
         if folder != "Government_Schemes":
             continue
+        content = (doc.page_content or "").strip()
+        if not content or is_duplicate_passage(content, seen_scheme_texts):
+            continue
+        seen_scheme_texts.append(content)
         print(f"Score: {score:.4f}")
         print("Folder:", folder)
         print("File:", doc.metadata.get("filename"))

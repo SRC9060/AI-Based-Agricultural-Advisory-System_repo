@@ -37,6 +37,9 @@ You have access to live tools to look up verified information:
 
 CRITICAL OPERATIONAL RULES:
 - When the farmer asks about weather, market prices, or government schemes, ALWAYS use the relevant tool to fetch verified data before answering.
+- SEARCH EFFICIENCY: Do NOT repeat identical or near-identical searches within the same session. If you have already searched, synthesize the retrieved evidence.
+- CROP SPECIFICITY: When inquiring about a specific crop, provide the `crop` parameter to retrieve crop-specific guidance and general horticulture/pathology recommendations.
+- CHEMICAL & PESTICIDE DOSAGE SAFETY: Only describe a dosage or chemical treatment as verified when the retrieved source explicitly supports the crop, product, dose, and application method. Otherwise, clearly state that the treatment needs confirmation from an authoritative local recommendation (such as a local Krishi Vigyan Kendra / agricultural extension officer) or product label. NEVER invent, guess, or extrapolate chemical dosages.
 - NEVER invent, hallucinate, or extrapolate market prices, dates, rainfall, or temperature.
 - If a tool reports that data is unavailable, clearly state that verified live records are not available rather than guessing.
 - Do NOT claim that crop diseases have been diagnosed by a computer vision model from text.
@@ -67,6 +70,52 @@ class AgentRunner:
         self.client = llm_client
         self.max_rounds = max_rounds
         self.system_prompt = system_prompt
+
+    @staticmethod
+    def _detect_crop_from_text(text: str) -> Optional[str]:
+        if not text:
+            return None
+        import re
+        from services.knowledge_base import CROP_KEYWORD_MAP
+        text_lower = text.lower()
+        for kw, canon in CROP_KEYWORD_MAP.items():
+            if re.search(rf"\b{re.escape(kw)}\b", text_lower):
+                return canon
+        return None
+
+    @staticmethod
+    def _normalize_search_query(q: str) -> str:
+        import re
+        tokens = re.findall(r"\b[a-zA-Z0-9]+\b", q.lower())
+        stop_words = {
+            "what", "is", "are", "the", "a", "an", "in", "of", "for", "to", "and", "or",
+            "how", "do", "does", "can", "should", "why", "my", "on", "with", "about",
+            "please", "tell", "me", "find", "search", "give", "information"
+        }
+        stemmed = []
+        for t in tokens:
+            if t in stop_words:
+                continue
+            for suffix in ("ing", "es", "ed", "s"):
+                if t.endswith(suffix) and len(t) - len(suffix) >= 3:
+                    t = t[:-len(suffix)]
+                    break
+            stemmed.append(t)
+        return " ".join(stemmed) if stemmed else " ".join(tokens)
+
+    @classmethod
+    def _query_similarity(cls, norm1: str, norm2: str) -> float:
+        if not norm1 or not norm2:
+            return 0.0
+        if norm1 == norm2:
+            return 1.0
+        tokens1 = set(norm1.split())
+        tokens2 = set(norm2.split())
+        if not tokens1 or not tokens2:
+            return 0.0
+        intersection = len(tokens1 & tokens2)
+        union = len(tokens1 | tokens2)
+        return intersection / union
 
     def run(
         self,
@@ -106,6 +155,10 @@ class AgentRunner:
             messages.append({"role": "user", "content": user_query})
 
         tool_calls_executed: List[Dict[str, Any]] = []
+        executed_searches: Dict[str, List[Dict[str, Any]]] = {}
+        kb_search_count = 0
+        MAX_KB_SEARCHES_PER_RUN = 3
+        detected_user_crop = self._detect_crop_from_text(user_query)
         rounds = 0
 
         while rounds < self.max_rounds:
@@ -175,25 +228,102 @@ class AgentRunner:
 
                 # Process and execute each requested tool call
                 for tc in response.tool_calls:
-                    t_start = time.monotonic()
-                    logger.info("%sTool call '%s' started [round=%d]", job_prefix, tc.name, rounds)
-                    exec_result = self.registry.execute(tc.name, tc.arguments)
-                    t_elapsed = time.monotonic() - t_start
-                    logger.info(
-                        "%sTool call '%s' completed in %.2fs [success=%s]",
-                        job_prefix,
-                        tc.name,
-                        t_elapsed,
-                        exec_result.get("success", False),
-                    )
-
-                    # Extract arguments for audit trail
+                    # Extract arguments for audit trail and normalization
                     parsed_args = tc.arguments
                     if isinstance(tc.arguments, str):
                         try:
                             parsed_args = json.loads(tc.arguments)
                         except Exception:
                             parsed_args = {"raw": tc.arguments}
+
+                    # Redundant search prevention for knowledge base and scheme searches
+                    is_redundant = False
+                    cached_result = None
+                    if tc.name in ("search_agricultural_knowledge_base", "search_government_schemes") and isinstance(parsed_args, dict):
+                        raw_q = str(parsed_args.get("query", "")).strip()
+                        norm_q = self._normalize_search_query(raw_q)
+                        history = executed_searches.setdefault(tc.name, [])
+
+                        for prev in history:
+                            sim = self._query_similarity(norm_q, prev["norm_query"])
+                            if sim >= 0.70 or norm_q == prev["norm_query"]:
+                                is_redundant = True
+                                cached_result = prev["result"]
+                                logger.info(
+                                    "%sRedundant search detected for '%s' (query: '%s' matches '%s' with similarity %.2f); reusing cached evidence",
+                                    job_prefix,
+                                    tc.name,
+                                    raw_q,
+                                    prev["raw_query"],
+                                    sim,
+                                )
+                                break
+
+                    if is_redundant and cached_result is not None:
+                        exec_result = {
+                            "success": True,
+                            "result": {
+                                "status": "cached",
+                                "duplicate_prevented": True,
+                                "message": (
+                                    "A near-identical search was already executed in this session. "
+                                    "Using previously retrieved evidence. Please synthesize your advisory "
+                                    "response based on the evidence already retrieved rather than repeating searches."
+                                ),
+                                "documents": cached_result.get("result", {}).get("documents", []),
+                            },
+                        }
+                    elif tc.name == "search_agricultural_knowledge_base" and kb_search_count >= MAX_KB_SEARCHES_PER_RUN:
+                        logger.info(
+                            "%sKnowledge base search limit (%d) reached; returning budget notice",
+                            job_prefix,
+                            MAX_KB_SEARCHES_PER_RUN,
+                        )
+                        exec_result = {
+                            "success": True,
+                            "result": {
+                                "status": "search_limit_reached",
+                                "message": (
+                                    f"Maximum knowledge base searches ({MAX_KB_SEARCHES_PER_RUN}) reached for this advisory session. "
+                                    "Please synthesize your final response from the extensive evidence already gathered above."
+                                ),
+                                "documents": [],
+                            },
+                        }
+                    else:
+                        # Auto-propagate crop context if user query explicitly specified a crop
+                        # and the LLM omitted the crop parameter
+                        if (
+                            tc.name == "search_agricultural_knowledge_base"
+                            and isinstance(parsed_args, dict)
+                            and detected_user_crop
+                            and not parsed_args.get("crop")
+                        ):
+                            parsed_args["crop"] = detected_user_crop
+                            tc.arguments = json.dumps(parsed_args)
+
+                        t_start = time.monotonic()
+                        logger.info("%sTool call '%s' started [round=%d]", job_prefix, tc.name, rounds)
+                        exec_result = self.registry.execute(tc.name, tc.arguments)
+                        t_elapsed = time.monotonic() - t_start
+                        logger.info(
+                            "%sTool call '%s' completed in %.2fs [success=%s]",
+                            job_prefix,
+                            tc.name,
+                            t_elapsed,
+                            exec_result.get("success", False),
+                        )
+
+                        if tc.name == "search_agricultural_knowledge_base":
+                            kb_search_count += 1
+
+                        if tc.name in ("search_agricultural_knowledge_base", "search_government_schemes") and isinstance(parsed_args, dict):
+                            raw_q = str(parsed_args.get("query", "")).strip()
+                            executed_searches.setdefault(tc.name, []).append({
+                                "raw_query": raw_q,
+                                "norm_query": self._normalize_search_query(raw_q),
+                                "result": exec_result,
+                            })
 
                     # Summarize result for client audit log
                     if exec_result.get("success"):

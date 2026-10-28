@@ -29,6 +29,14 @@ class SearchKnowledgeBaseInput(BaseModel):
         min_length=2,
         max_length=500,
     )
+    crop: Optional[str] = Field(
+        default=None,
+        description=(
+            "Target crop name if explicitly mentioned in the question or context "
+            "(e.g., 'Tomato', 'Wheat', 'Rice', 'Cotton', 'Chilli', 'Sugarcane')."
+        ),
+        max_length=100,
+    )
 
 
 class GetWeatherInput(BaseModel):
@@ -92,7 +100,7 @@ def handle_search_knowledge_base(params: SearchKnowledgeBaseInput) -> Dict[str, 
                 "retryable": True,
             }
 
-        docs = search_knowledge_base(params.query)
+        docs = search_knowledge_base(params.query, crop=params.crop)
         if not docs:
             return {
                 "status": "not_found",
@@ -101,24 +109,38 @@ def handle_search_knowledge_base(params: SearchKnowledgeBaseInput) -> Dict[str, 
             }
 
         normalized = []
-        for doc in docs[:3]:  # Top 3 relevant passages
+        for doc in docs[:4]:  # Top 3-4 most relevant distinct passages
             source = (
                 Path(doc.metadata.get("source", "knowledge_base")).name
                 if doc.metadata
                 else "document"
             )
             folder = doc.metadata.get("folder", "general") if doc.metadata else "general"
-            content = doc.page_content.strip()[:400] if doc.page_content else ""
-            normalized.append({
+            page = doc.metadata.get("page") if doc.metadata else None
+            content = doc.page_content.strip()[:800] if doc.page_content else ""
+            item: Dict[str, Any] = {
                 "source": source,
                 "folder": folder,
                 "content": content,
-            })
+            }
+            if page is not None:
+                try:
+                    item["page"] = int(page) + 1  # 1-indexed for farmer/advisor reference
+                except (ValueError, TypeError):
+                    item["page"] = page
+            normalized.append(item)
 
         return {
             "status": "success",
             "count": len(normalized),
+            "crop": params.crop,
             "documents": normalized,
+            "dosage_safety_guideline": (
+                "Only recommend chemical/pesticide dosages if explicitly verified in the retrieved documents above "
+                "for this specific crop, target pest/disease, and application method. Otherwise, explicitly state "
+                "that the treatment requires confirmation from an authoritative local recommendation "
+                "(such as a Krishi Vigyan Kendra, State Agricultural University, or extension officer) or product label."
+            ),
         }
     except Exception as err:
         return {
