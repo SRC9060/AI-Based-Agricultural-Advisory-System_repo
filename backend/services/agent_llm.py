@@ -8,10 +8,66 @@ for deterministic automated testing.
 
 from __future__ import annotations
 
+import logging
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 from config import Config
+
+logger = logging.getLogger("agriadvisor.agent_llm")
+
+RETIRED_GROQ_MODELS = {
+    "llama-3.3-70b-versatile",
+    "llama-3.1-70b-versatile",
+}
+
+DEFAULT_GROQ_MODEL = "qwen/qwen3.8-27b"
+
+
+def resolve_groq_model(model_override: Optional[str] = None) -> str:
+    """
+    Resolve the Groq model for agent tool-calling according to configuration priority:
+    1. AGENT_LLM_MODEL environment variable
+    2. Explicit model argument (if passed and valid)
+    3. GROQ_MODEL environment variable
+    4. Config.GROQ_MODEL
+    5. Documented fallback: DEFAULT_GROQ_MODEL ('qwen/qwen3.8-27b')
+
+    Rejects retired models (e.g. retired free/developer-tier Llama 3.3/3.1 70B)
+    and preserves valid explicit configuration overrides.
+    """
+    candidates = [
+        os.getenv("AGENT_LLM_MODEL"),
+        model_override,
+        os.getenv("GROQ_MODEL"),
+        getattr(Config, "GROQ_MODEL", None),
+    ]
+
+    for candidate in candidates:
+        if candidate and isinstance(candidate, str):
+            cleaned = candidate.strip()
+            if cleaned and cleaned.lower() not in RETIRED_GROQ_MODELS:
+                return cleaned
+
+    return DEFAULT_GROQ_MODEL
+
+
+def _sanitize_diagnostic_text(text: str, api_key: Optional[str] = None) -> str:
+    """
+    Sanitize diagnostic message to ensure API keys, tokens, and filesystem paths
+    are never leaked into logs or exception traces.
+    """
+    if not text:
+        return ""
+    cleaned = str(text)
+    if api_key:
+        cleaned = cleaned.replace(api_key, "[REDACTED_API_KEY]")
+    cleaned = re.sub(r"(gsk_[a-zA-Z0-9_\-]{16,})", "[REDACTED_GROQ_KEY]", cleaned)
+    cleaned = re.sub(r"(sk-[a-zA-Z0-9_\-]{16,})", "[REDACTED_OPENAI_KEY]", cleaned)
+    cleaned = re.sub(r"(Bearer\s+)[^\s,;]+", r"\1[REDACTED_BEARER]", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"([a-zA-Z]:\\[^\s,;]+)", "[REDACTED_PATH]", cleaned)
+    return cleaned
 
 
 @dataclass
@@ -63,12 +119,7 @@ class OpenAIToolCallingClient(BaseLLMClient):
         elif groq_key:
             self.api_key = groq_key
             self.base_url = base_url or "https://api.groq.com/openai/v1"
-            # Prefer Llama-3.3-70b-versatile for Groq function calling
-            configured_model = os.getenv("AGENT_LLM_MODEL") or model
-            if not configured_model or "qwen3.8" in configured_model.lower():
-                self.model = "llama-3.3-70b-versatile"
-            else:
-                self.model = configured_model
+            self.model = resolve_groq_model(model_override=model)
             self.provider = "groq"
         elif openai_key:
             self.api_key = openai_key
@@ -116,10 +167,37 @@ class OpenAIToolCallingClient(BaseLLMClient):
         try:
             response = client.chat.completions.create(**kwargs)
         except Exception as err:
-            err_msg = str(err)
-            if self.api_key:
-                err_msg = err_msg.replace(self.api_key, "[REDACTED]")
-            raise RuntimeError(f"LLM tool-calling error ({self.provider}): {err_msg}") from err
+            exc_category = type(err).__name__
+            status_code = getattr(err, "status_code", None)
+            if status_code is None and hasattr(err, "response"):
+                status_code = getattr(err.response, "status_code", None)
+            upstream_code = getattr(err, "code", None)
+
+            raw_msg = str(err)
+            sanitized_msg = _sanitize_diagnostic_text(raw_msg, self.api_key)
+
+            diag_parts = [
+                f"provider={self.provider}",
+                f"model={self.model}",
+                f"exception={exc_category}",
+            ]
+            if status_code is not None:
+                diag_parts.append(f"status_code={status_code}")
+            if upstream_code is not None:
+                diag_parts.append(f"code={upstream_code}")
+
+            diag_str = " ".join(diag_parts)
+            logger.error(
+                "LLM tool-calling API failure [%s]: %s",
+                diag_str,
+                sanitized_msg,
+            )
+
+            status_str = f" HTTP {status_code}" if status_code is not None else ""
+            code_str = f" code={upstream_code}" if upstream_code is not None else ""
+            raise RuntimeError(
+                f"LLM tool-calling error ({self.provider}/{self.model} - {exc_category}{status_str}{code_str}): {sanitized_msg}"
+            ) from err
 
         choice = response.choices[0]
         msg = choice.message

@@ -2277,7 +2277,7 @@ def agent_chat(
         conversation_context=conversation_context or None,
     )
 
-    if session:
+    if session and result.status != "error":
         db = SessionLocal()
         try:
             db.add(

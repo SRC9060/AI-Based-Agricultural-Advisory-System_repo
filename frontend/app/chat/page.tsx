@@ -53,6 +53,7 @@ interface Message {
   toolCalls?: ToolCallRecord[];
   toolCallsCount?: number;
   jobId?: string;
+  isError?: boolean;
 }
 
 interface ChatSessionItem {
@@ -447,6 +448,25 @@ useEffect(() => {
             return;
           }
 
+          if (jobData.status === "FAILED") {
+            const errorMsg =
+              jobData.error_summary && jobData.error_summary.trim()
+                ? jobData.error_summary.trim()
+                : "An unexpected error occurred during agent execution.";
+            setStatus("❌ Agent job failed.");
+            setMessages((previous) => [
+              ...previous,
+              {
+                type: "ai",
+                text: `Agent job could not be completed: ${errorMsg}`,
+                workflow: selectedWorkflow,
+                jobId,
+                isError: true,
+              },
+            ]);
+            return;
+          }
+
           // Poll GET /agent/jobs/{job_id}
           let pollAttempts = 0;
           const maxAttempts = 30; // 30 * 1.5s = ~45s
@@ -530,6 +550,7 @@ useEffect(() => {
                   text: `Agent job could not be completed: ${errorMsg}`,
                   workflow: selectedWorkflow,
                   jobId,
+                  isError: true,
                 },
               ]);
               break;
@@ -1548,10 +1569,18 @@ async function speakAnswer(text: string, messageIndex?: number, messageId?: stri
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
                         ⚡ {formatWorkflowTitle(message.workflow)}
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                        {(message.toolCallsCount ?? (message.toolCalls?.length || 0)) === 0
-                          ? "Direct LLM response (no tools needed)"
-                          : `${message.toolCallsCount ?? message.toolCalls?.length} tool${(message.toolCallsCount ?? message.toolCalls?.length) === 1 ? "" : "s"} called`}
+                      <span
+                        className={`text-xs font-medium ${
+                          message.isError
+                            ? "text-rose-500 dark:text-rose-400"
+                            : "text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        {message.isError
+                          ? "Execution failed"
+                          : (message.toolCallsCount ?? (message.toolCalls?.length || 0)) === 0
+                            ? "Direct LLM response (no tools needed)"
+                            : `${message.toolCallsCount ?? message.toolCalls?.length} tool${(message.toolCallsCount ?? message.toolCalls?.length) === 1 ? "" : "s"} called`}
                       </span>
                     </div>
 

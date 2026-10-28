@@ -393,6 +393,43 @@ class AgentWorker:
                 conversation_context=conversation_context or None,
             )
 
+            # If AgentRunner failed with status="error", mark job as FAILED
+            if result.status == "error":
+                now = datetime.utcnow()
+                safe_error_summary = sanitize_worker_error(result.answer)
+                rows_updated = (
+                    db.query(AgentJob)
+                    .filter(
+                        AgentJob.id == job_id,
+                        AgentJob.status == "RUNNING",
+                        AgentJob.locked_by == self.worker_id,
+                    )
+                    .update(
+                        {
+                            AgentJob.status: "FAILED",
+                            AgentJob.error_summary: safe_error_summary,
+                            AgentJob.result: None,
+                            AgentJob.completed_at: now,
+                            AgentJob.updated_at: now,
+                            AgentJob.locked_by: None,
+                            AgentJob.lease_timeout_at: None,
+                        },
+                        synchronize_session=False,
+                    )
+                )
+                if rows_updated == 0:
+                    logger.warning(
+                        "Worker %s lost lease for job %s during error update; discarding stale failure.",
+                        self.worker_id,
+                        job_id,
+                    )
+                    db.rollback()
+                    return False
+
+                db.commit()
+                logger.error("Job %s marked FAILED due to runner error: %s", job_id, safe_error_summary)
+                return False
+
             # Format result payload
             result_payload = {
                 "answer": result.answer,
