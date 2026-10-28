@@ -255,8 +255,9 @@ def initialize_knowledge_base(force_rebuild: bool = False) -> bool:
         ).lower() in ("true", "1", "yes")
 
         if not allow_runtime_rebuild and not force_rebuild:
+            _valid, _cnt, msg = validate_vector_database(CHROMA_DB_PATH)
             print(
-                f"[RAG] WARNING: Vector database at {CHROMA_DB_PATH} is not ready. "
+                f"[RAG] WARNING: Vector database at {CHROMA_DB_PATH} is not ready ({msg}). "
                 "Runtime rebuild is disabled by default in production to protect memory limits (512MB RAM) on Render free tier. "
                 "Ensure the vector database is built into the image with scripts/build_vector_db.py."
             )
